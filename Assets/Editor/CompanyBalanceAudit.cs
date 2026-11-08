@@ -1,4 +1,5 @@
 // Added by this fork for the VoreWar mercenary-company conversion.
+// 2026-11-06: Compare synthetic spellbook and bow loadouts in native battles (spec 40C).
 // 2026-11-05: Run connected native campaign economy histories and boundary checks (spec 38 phase B).
 // 2026-11-05: Diagnose cleanup backtracking and replay exact companies after Flight retirement.
 // 2026-11-05: Add exact mitigation tables and paired armor-only calibration batches (spec 38 phase A).
@@ -84,6 +85,7 @@ public static partial class CompanyBalanceAudit
         public int armorSlot = -1;
         public int enemyDamageBonus;
         public float enemyAccuracyBonus;
+        public string spellReview;
     }
     static CompanyBalanceAudit() { EditorApplication.update += Update; }
     public static void Run()
@@ -191,6 +193,16 @@ public static partial class CompanyBalanceAudit
             new Scenario{name="road-strong-leader",road=true,leaderLevel=8},
             new Scenario{name="road-wounded",road=true,level=3,leaderLevel=3,hp=.60f},
             new Scenario{name="stress-five-slugs",road=true,slugs=5},new Scenario{name="stress-seven-slugs",road=true,slugs=7}};
+        bool spellReview = Environment.GetCommandLineArgs().Contains("-balanceSpells40C");
+        if (spellReview)
+        {
+            scenarios = new[] {
+                new Scenario{name="spell-bolt",level=5,leaderLevel=5,rating=4,roles=new[]{2,2,2},spellReview="bolt"},
+                new Scenario{name="spell-cinder",level=5,leaderLevel=5,rating=4,roles=new[]{2,2,2},spellReview="cinder"},
+                new Scenario{name="spell-bow",level=5,leaderLevel=5,rating=4,roles=new[]{2,2,2},spellReview="bow"}
+            };
+            report.assumptions.Add("Exploratory paired level-5 Lizard companies: all retain Power Bolt; the second slot is empty, Cinder Field, or a basic bow respectively. Loadouts are synthetic, without purchase costs; fixed-rating enemies share generation seeds. Small samples are not a balance proof.");
+        }
         if (calibration)
         {
             ConfigureCalibrationVariant();
@@ -238,7 +250,7 @@ public static partial class CompanyBalanceAudit
             }
             CleanupBattle();WriteReport();UnityEngine.Debug.Log("Balance case "+row.scenario+" seed "+seed+": "+(row.error??row.outcome));yield return null;
         }
-        if(!nativeTurbo && !calibration)EconomyRuns();WriteReport();
+        if(!nativeTurbo && !calibration && !spellReview)EconomyRuns();WriteReport();
         if (report.battles.Any(b => !b.completed || !string.IsNullOrEmpty(b.error)))
             throw new InvalidOperationException("One or more native cases failed. See the preserved case errors.");
     }
@@ -281,6 +293,19 @@ public static partial class CompanyBalanceAudit
     {
         bool sponsored=scenario.level>1 || scenario.leaderLevel>1 || scenario.gear>0;
         var state=Fresh(seed,scenario.roles,scenario.level,scenario.leaderLevel,sponsored);var company=Members(state);
+        if (scenario.spellReview != null)
+            foreach (var member in company)
+            {
+                var unit = U(member);
+                var bolt = (Item)C(T("CompanyEquipment"), "Create", "spell.bolt");
+                var extra = scenario.spellReview == "cinder" ? (Item)C(T("CompanyEquipment"), "Create", "spell.cinder") : null;
+                var bow = scenario.spellReview == "bow" ? (Item)C(T("CompanyEquipment"), "Create", "weapon.bow") : null;
+                L(state, "Inventory").Add(bolt);
+                if (extra != null) L(state, "Inventory").Add(extra);
+                if (bow != null) L(state, "Inventory").Add(bow);
+                unit.SetItem(bolt, 7); unit.SetItem(extra, 8); unit.SetItem(bow, 6);
+                unit.UpdateSpells();
+            }
         row.fixtureFunding=sponsored?30000-(int)G(T("CompanyEconomy"),"StartingGold"):0;S(state,"Reputation",25);
         if (scenario.armorOnly)
             foreach (var member in company) CalibrationArmor(state, member, scenario);

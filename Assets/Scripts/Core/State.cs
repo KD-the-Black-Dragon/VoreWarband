@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Load packaged balance by default and save developer edits as explicit immutable drafts (spec 40A).
 // 2026-10-30: Enforce code-owned settings and retained global preferences (spec 02C).
 // 2026-10-30: Remove legacy event initialization and startup/reset event-file seeding (spec 04A).
 // 2026-10-30: Retire rejected-species name seeds and reset active lists without deleting paths (spec 03B2).
@@ -99,6 +100,22 @@ public static class State
             UnitTagDirectory = $"UserData{Path.DirectorySeparatorChar}UnitTags{Path.DirectorySeparatorChar}";
             NameFileDirectory = $"UserData{Path.DirectorySeparatorChar}NameFiles{Path.DirectorySeparatorChar}";
         }
+#if UNITY_EDITOR
+        string diagnosticRoot = Environment.GetEnvironmentVariable("VOREWAR_AUTHORING_USERDATA");
+        if (!string.IsNullOrEmpty(diagnosticRoot))
+        {
+            string logs = Path.GetFullPath(Path.Combine(Application.dataPath, "../Logs")) + Path.DirectorySeparatorChar;
+            diagnosticRoot = Path.GetFullPath(diagnosticRoot);
+            if (!diagnosticRoot.StartsWith(logs, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Authoring diagnostics must stay inside project Logs.");
+            StorageDirectory = diagnosticRoot + Path.DirectorySeparatorChar;
+            SaveDirectory = Path.Combine(diagnosticRoot, "Saves") + Path.DirectorySeparatorChar;
+            MapDirectory = Path.Combine(diagnosticRoot, "Maps") + Path.DirectorySeparatorChar;
+            CustomTraitDirectory = Path.Combine(diagnosticRoot, "CustomTraits") + Path.DirectorySeparatorChar;
+            ConditionalTraitDirectory = Path.Combine(diagnosticRoot, "ConditionalTraits") + Path.DirectorySeparatorChar;
+            UnitTagDirectory = Path.Combine(diagnosticRoot, "UnitTags") + Path.DirectorySeparatorChar;
+            NameFileDirectory = Path.Combine(diagnosticRoot, "NameFiles") + Path.DirectorySeparatorChar;
+        }
+#endif
         try
         {
             Directory.CreateDirectory(StorageDirectory.TrimEnd(new char[] { '\\', '/' }));
@@ -468,60 +485,28 @@ public static class State
 
     public static void SaveEditedRaces()
     {
-        try
-        {
-            byte[] bytes = SerializationUtility.SerializeValue(RaceSettings, DataFormat.Binary);
-            File.WriteAllBytes(RaceSaveDataName, bytes);
-        }
-        catch
-        {
-            Debug.LogWarning("Failed to properly save edited races!");
-        }
+        try { BalanceAuthoring.SaveDraft(); BalanceAuthoring.UpdateStatus(); }
+        catch (Exception ex) { GameManager.CreateMessageBox("Balance draft was not saved. " + ex.Message); }
     }
 
     public static void LoadRaceData()
     {
-        RaceSlot = PlayerPrefs.GetInt("RaceEditorSlot", 1);
-        ChangeRaceSlotUsed(RaceSlot);
+        ChangeRaceSlotUsed(PlayerPrefs.GetInt("RaceEditorSlot", 1));
     }
 
     public static void ChangeRaceSlotUsed(int num)
     {
-        RaceSlot = num;
-        PlayerPrefs.SetInt("RaceEditorSlot", num);
-        if (RaceSlot <= 1)
-            RaceSaveDataName = $"{StorageDirectory}EditedRaces.dat";
-        else if (RaceSlot == 2)
-            RaceSaveDataName = $"{StorageDirectory}EditedRaces2.dat";
-        else if (RaceSlot == 3)
-            RaceSaveDataName = $"{StorageDirectory}EditedRaces3.dat";
-        LoadEditedRaces();
+        RaceSlot = Math.Max(1, Math.Min(3, num));
+        PlayerPrefs.SetInt("RaceEditorSlot", RaceSlot);
+        RaceSaveDataName = StorageDirectory + (RaceSlot == 1 ? "EditedRaces.dat" : "EditedRaces" + RaceSlot + ".dat");
+        if (!BalanceAuthoring.IsDraft) LoadEditedRaces();
     }
 
     public static void LoadEditedRaces()
     {
-        try
-        {
-            if (File.Exists(RaceSaveDataName))
-            {
-                byte[] bytes = File.ReadAllBytes(RaceSaveDataName);
-                RaceSettings = SerializationUtility.DeserializeValue<RaceSettings>(bytes, DataFormat.Binary);
-                GameManager.Start_Mode.miscText.text = string.Empty;
-                RaceSettings.Sanitize();
-            }
-            else
-            {
-                RaceSettings = new RaceSettings();
-                GameManager.Start_Mode.miscText.text = string.Empty;
-            }
-        }
-        catch
-        {
-            RaceSettings = new RaceSettings();
-            GameManager.Start_Mode.miscText.text = "Failed to properly read race settings";
-        }
+        // Local binary overrides are imported explicitly through the developer workflow.
+        BalanceAuthoring.UseOfficial();
     }
-
 
     public static void ResetNamelists()
     {

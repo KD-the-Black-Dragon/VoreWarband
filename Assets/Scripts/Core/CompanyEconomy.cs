@@ -1,4 +1,11 @@
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Rebind generic tiered weapon labels in saved company inventory.
+// 2026-11-08: Mark upkeep insolvency as a uniquely identified 40E ending (spec 40E).
+// 2026-11-08: Enroll existing campaigns into calendar difficulty without backdating pressure (spec 40F).
+// 2026-11-07: Persist Grudge raises on level-ups and preview their next wage (spec 40D).
+// 2026-11-06: Generate reputation-eligible spellbooks for experienced mages (spec 40C).
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-06: Enroll older saved characters without rerolling their base stats (spec 40A).
 // 2026-11-05: Implement upkeep-first weekly billing, grace-week insolvency and accelerating wages with safe save enrollment (spec 38 phase B).
 // 2026-11-04: Apply explainable healthy power and approved capped encounter scaling (spec 34 slice 3).
 // 2026-11-04: Charge quoted recruitment gear, compensate starting funds and generate tiered loadouts (spec 34 slice 5).
@@ -29,6 +36,7 @@ internal static class CompanyEconomy
         if (!SpeciesPolicy.IsAllowed(race, leader ? SpeciesUse.Leader : SpeciesUse.Mercenary)) throw new InvalidOperationException("That species is not enabled for recruitment.");
         return Random(state, () =>
         {
+            state.DeveloperBalance |= BalanceAuthoring.IsDraft;
             var unit = new Unit(0, race, 0, true, leader ? UnitType.Leader : UnitType.Soldier,
                 itemContext: CompanyEquipment.Repository, companyLoadout: true);
             var record = new CompanyCharacter { Id = Guid.NewGuid().ToString("N"), Unit = unit, Focus = focus,
@@ -42,7 +50,17 @@ internal static class CompanyEconomy
                 CompanyEquipment.Generated(state, focus == 1 ? CompanySlot.Ranged : CompanySlot.Melee, level).Id;
             Item weapon = CompanyEquipment.Create(weaponId);
             unit.SetItem(weapon, focus == 1 ? (int)CompanySlot.Ranged : (int)CompanySlot.Melee);
-            if (focus == 2) unit.SetItem(CompanyEquipment.Create("spell.bolt"), (int)CompanySlot.Spell1);
+            if (focus == 2)
+            {
+                unit.SetItem(CompanyEquipment.Create("spell.bolt"), (int)CompanySlot.Spell1);
+                if (level >= 3)
+                {
+                    int maxTier = level >= 10 ? 3 : level >= 5 ? 2 : 1;
+                    var books = CompanyEquipment.Available(state).Where(d => d.Slot == CompanySlot.Spell1 &&
+                        d.Tier <= maxTier && d.Id != "spell.bolt").ToArray();
+                    if (books.Length > 0) unit.SetItem(CompanyEquipment.Create(books[state.Next(books.Length)].Id), (int)CompanySlot.Spell2);
+                }
+            }
             if (level >= 3) { var armor = CompanyEquipment.Generated(state, state.Next(2) == 0 ? CompanySlot.Helmet : CompanySlot.Torso, level); unit.SetItem(CompanyEquipment.Create(armor.Id), (int)armor.Slot); }
             if (level >= 6) { var armor = CompanyEquipment.Generated(state, state.Next(2) == 0 ? CompanySlot.Legs : CompanySlot.Arms, level); unit.SetItem(CompanyEquipment.Create(armor.Id), (int)armor.Slot); }
             unit.UpdateSpells(); unit.Health = unit.MaxHealth; unit.RestoreManaPct(1);
@@ -60,6 +78,7 @@ internal static class CompanyEconomy
     }
     internal static void Bind(CompanyCampaign state)
     {
+        if (string.IsNullOrEmpty(state.BalanceRevision)) state.BalanceRevision = BalanceAuthoring.LegacyRevision;
         if (!state.Preview && state.EconomyVersion == 0)
         {
             // Existing campaigns start with the first bill at their next scheduled payday.
@@ -70,6 +89,7 @@ internal static class CompanyEconomy
         bool upgradingStats = state.Characters.Any(person => person.Unit.NeedsFourStatUpgrade);
         foreach (var person in state.Characters)
         {
+            UnitSpeciesBalance.EnrollLegacy(person.Unit);
             person.Unit.EnsureFourStats();
             if (upgradingStats) person.LevelChoices = null;
             else if (person.LevelChoices != null) person.LevelChoices = person.LevelChoices.Select(WarbandStats.Canonical)
@@ -113,19 +133,38 @@ internal static class CompanyEconomy
             }
             state.CompanyRulesVersion = 4;
         }
+        if (state.CompanyRulesVersion < 5)
+        {
+            // Start the protected period on the current saved day; never punish a returning campaign for elapsed time.
+            state.CalendarDifficultyStartDay = state.ElapsedDays;
+            state.CompanyRulesVersion = 5;
+        }
         foreach (var c in state.Characters)
         {
             c.Unit.BindCompanyItems(CompanyEquipment.Repository);
             c.Unit.PermanentInjuryImmune = c.Id == state.LeaderId;
         }
+        if (state.Inventory != null)
+            foreach (var item in state.Inventory) CompanyEquipment.BindCompanyItem(item);
     }
     internal static int WageAtLevel(CompanyCampaign state, CompanyCharacter c, int level)
     {
         if (c.Id == state.LeaderId) return 0;
+        return (int)Math.Min(int.MaxValue, (long)BaseWageAtLevel(c, level) + c.GrudgeWageSurcharge);
+    }
+    static int BaseWageAtLevel(CompanyCharacter c, int level)
+    {
         long steps = Math.Max(0, level - 1);
         long veteranSteps = Math.Max(0, steps - 3);
         return (int)Math.Min(int.MaxValue, c.BaseWage + 3 * steps + 2 * steps * steps +
             2 * veteranSteps * veteranSteps * veteranSteps);
+    }
+    internal static int WageForNextLevel(CompanyCampaign state, CompanyCharacter c)
+    {
+        if (c.Id == state.LeaderId) return 0;
+        int next = c.Unit.Level + 1;
+        int ordinaryIncrease = Math.Max(0, BaseWageAtLevel(c, next) - BaseWageAtLevel(c, c.Unit.Level));
+        return (int)Math.Min(int.MaxValue, (long)WageAtLevel(state, c, next) + CompanyPostBattleTraits.FutureGrudgeIncrease(c, ordinaryIncrease));
     }
     internal static int Wage(CompanyCampaign state, CompanyCharacter c) => WageAtLevel(state, c, c.Unit.Level);
     internal static int Upkeep(CompanyCampaign state)
@@ -217,8 +256,11 @@ internal static class CompanyEconomy
     {
         if (state.InBattle || state.Busy || !state.Members.Any(m => m.CharacterId == c.Id) || !c.Unit.HasEnoughExpToLevelUp() || c.LevelChoices == null || !c.LevelChoices.Contains(stat))
             throw new InvalidOperationException("That level-up choice is unavailable.");
-        int health = c.Unit.Health, maximum = c.Unit.MaxHealth;
+        int health = c.Unit.Health, maximum = c.Unit.MaxHealth, oldLevel = c.Unit.Level;
+        int normalIncrease = Math.Max(0, BaseWageAtLevel(c, oldLevel + 1) - BaseWageAtLevel(c, oldLevel));
+        int grudgeIncrease = CompanyPostBattleTraits.FutureGrudgeIncrease(c, normalIncrease);
         Random(state, () => { c.Unit.LevelUp(stat); return 0; });
+        c.GrudgeWageSurcharge = (int)Math.Min(int.MaxValue, (long)c.GrudgeWageSurcharge + grudgeIncrease);
         c.Unit.Health = Math.Min(c.Unit.MaxHealth, health + c.Unit.MaxHealth - maximum);
         c.LevelChoices = null;
     }
@@ -269,6 +311,8 @@ internal sealed class CompanyWages : ICompanyDailySystem
         {
             state.Ended = true;
             state.EndReason = "The company ceased operating due to critical insolvency. Its upkeep debt was not paid before payday.";
+            state.EndingKind = CompanyEndingKind.Insolvency;
+            state.EndingId = Guid.NewGuid().ToString("N");
             state.PendingDecision = null; state.PendingDecisionKind = null;
             state.DeferredWageDecision = null; state.DeferredDecisionKind = null; state.PendingCharacterIds = new string[0];
             return;

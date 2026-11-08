@@ -1,0 +1,4541 @@
+{
+  "Schema": 1,
+  "Revision": "balance-40a-initial",
+  "ParentRevision": "legacy-pre40a",
+  "ParentHash": "8ee943765fc189c0b68d12d976742261beb340cd48383e6383b988e651dffc3a",
+  "ModifiedDate": "2026-11-06",
+  "Species": [
+    {
+      "Species": "Bunnies",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Dexterity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "EasyToVore",
+          "EvasiveBattler"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Lizards",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 2,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Intelligence",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Resilient",
+          "Intimidating",
+          "GiantSlayer",
+          "NaturalCaster"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 9,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Kangaroos",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "BornToMove"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Equines",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 15,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "StrongMelee",
+          "RangedIneptitude"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Sergal",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "KeenReflexes",
+          "StrongMelee",
+          "EscapeArtist"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Bees",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Unbirth",
+          "CockVore",
+          "BreastVore",
+          "Anal",
+          "TailVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "KeenReflexes",
+          "Stinger"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Bats",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 8,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Vampirism"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Panthers",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "TasteForBlood",
+          "Pounce",
+          "Frenzy"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Avians",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 2,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Dexterity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "KeenShot",
+          "Featherweight"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 14
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Ants",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "PackStrength",
+          "RangedIneptitude"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Frogs",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Pounce",
+          "HeavyPounce",
+          "RangedVore",
+          "Clumsy"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Sharks",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "SenseWeakness",
+          "WaterWalker"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Deer",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "EvasiveBattler"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Mice",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 8,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Timid",
+          "SwiftStrike"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Gnolls",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "PackVoracity",
+          "SenseWeakness",
+          "Biter",
+          "TasteForBlood"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 8,
+            "Maximum": 14
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Lupine",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "PackStrength",
+          "Pounce",
+          "Biter"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Jackals",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Endurance",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "PackMind",
+          "DexterousDefense",
+          "Finesse"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Draconians",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 15,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Intelligence",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "NaturalCaster"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Alligators",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "CockVore",
+          "Unbirth",
+          "Anal",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 24,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": false,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Ravenous",
+          "Resilient",
+          "Intimidating",
+          "Crusher"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 20,
+            "Maximum": 29
+          },
+          "Agility": {
+            "Minimum": 5,
+            "Maximum": 8
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 10,
+            "Maximum": 16
+          }
+        },
+        "StomachSize": 24,
+        "Upkeep": 10.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Kobolds",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 8,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 0.9,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "EasyToVore"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 7,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Hippos",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 24,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Endurance",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "StrongMelee",
+          "HardSkin",
+          "Crusher"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 19,
+            "Maximum": 28
+          },
+          "Agility": {
+            "Minimum": 7,
+            "Maximum": 14
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 15
+          },
+          "Voracity": {
+            "Minimum": 12,
+            "Maximum": 19
+          }
+        },
+        "StomachSize": 24,
+        "Upkeep": 11.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Komodos",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": false,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "VenomousBite",
+          "Intimidating",
+          "Resilient",
+          "Crusher"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 15,
+            "Maximum": 24
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 13
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 15
+          },
+          "Voracity": {
+            "Minimum": 14,
+            "Maximum": 21
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Vargul",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Intimidating",
+          "SenseWeakness",
+          "Berserk",
+          "Maul"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 14,
+            "Maximum": 20
+          },
+          "Agility": {
+            "Minimum": 14,
+            "Maximum": 20
+          },
+          "Intelligence": {
+            "Minimum": 8,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 13,
+            "Maximum": 19
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 15.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Badgers",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Anal",
+          "Oral",
+          "CockVore",
+          "BreastVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": false,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Endurance",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.4,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "GiantSlayer",
+          "Berserk",
+          "Resilient"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 17,
+            "Maximum": 25
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 13
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 14
+          },
+          "Voracity": {
+            "Minimum": 13,
+            "Maximum": 21
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 8.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Serpents",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 0.9,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "SlowAbsorption",
+          "Biter",
+          "Ravenous",
+          "Resilient"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 19
+          },
+          "Agility": {
+            "Minimum": 6,
+            "Maximum": 13
+          },
+          "Intelligence": {
+            "Minimum": 5,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 18,
+            "Maximum": 26
+          }
+        },
+        "StomachSize": 30,
+        "Upkeep": 8.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Wyvern",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Unbirth",
+          "CockVore",
+          "Anal",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 30,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 2.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 4.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "Berserk",
+          "Resilient"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 17,
+            "Maximum": 28
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 18
+          },
+          "Intelligence": {
+            "Minimum": 8,
+            "Maximum": 19
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 17
+          }
+        },
+        "StomachSize": 30,
+        "Upkeep": 13.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "WyvernMatron",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Unbirth",
+          "CockVore",
+          "Anal",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 40,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 3.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 9.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "Berserk",
+          "Resilient"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 28,
+            "Maximum": 38
+          },
+          "Agility": {
+            "Minimum": 12,
+            "Maximum": 27
+          },
+          "Intelligence": {
+            "Minimum": 15,
+            "Maximum": 33
+          },
+          "Voracity": {
+            "Minimum": 22,
+            "Maximum": 33
+          }
+        },
+        "StomachSize": 40,
+        "Upkeep": 30.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralWolves",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.75,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "PackTactics",
+          "Pounce"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 16,
+            "Maximum": 25
+          },
+          "Agility": {
+            "Minimum": 13,
+            "Maximum": 20
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 20,
+            "Maximum": 28
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Harvesters",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 30,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "SlowDigestion",
+          "Intimidating",
+          "BornToMove",
+          "NimbleClimber",
+          "Crusher"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 16,
+            "Maximum": 23
+          },
+          "Agility": {
+            "Minimum": 12,
+            "Maximum": 21
+          },
+          "Intelligence": {
+            "Minimum": 9,
+            "Maximum": 18
+          },
+          "Voracity": {
+            "Minimum": 14,
+            "Maximum": 19
+          }
+        },
+        "StomachSize": 30,
+        "Upkeep": 6.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralBats",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [
+          "Small"
+        ],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "EvasiveBattler"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 8,
+            "Maximum": 12
+          },
+          "Agility": {
+            "Minimum": 12,
+            "Maximum": 16
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 11
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 13
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 1.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Dragon",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 100,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 3.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 12.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Maul",
+          "Greedy",
+          "AdeptLearner"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 28,
+            "Maximum": 39
+          },
+          "Agility": {
+            "Minimum": 13,
+            "Maximum": 20
+          },
+          "Intelligence": {
+            "Minimum": 16,
+            "Maximum": 27
+          },
+          "Voracity": {
+            "Minimum": 16,
+            "Maximum": 26
+          }
+        },
+        "StomachSize": 80,
+        "Upkeep": 30.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Dragonfly",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 9,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.4,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Tempered"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 8,
+            "Maximum": 10
+          },
+          "Agility": {
+            "Minimum": 15,
+            "Maximum": 20
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 11
+          },
+          "Voracity": {
+            "Minimum": 8,
+            "Maximum": 11
+          }
+        },
+        "StomachSize": 9,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "TwistedVines",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.4,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Tempered",
+          "SlowDigestion"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 15
+          },
+          "Agility": {
+            "Minimum": 5,
+            "Maximum": 8
+          },
+          "Intelligence": {
+            "Minimum": 5,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 8,
+            "Maximum": 14
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralAnts",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 3,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Dexterity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.2,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "AcidResistant",
+          "BornToMove",
+          "SlowDigestion"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 5,
+            "Maximum": 7
+          },
+          "Agility": {
+            "Minimum": 10,
+            "Maximum": 14
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 7,
+            "Maximum": 10
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 1.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Gryphons",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Intimidating",
+          "Greedy"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 14,
+            "Maximum": 20
+          },
+          "Agility": {
+            "Minimum": 15,
+            "Maximum": 22
+          },
+          "Intelligence": {
+            "Minimum": 8,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 8,
+            "Maximum": 15
+          }
+        },
+        "StomachSize": 22,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "SpitterSlugs",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 2,
+        "BodySize": 8,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 0.45,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "BoggingSlime",
+          "GelatinousBody",
+          "SoftBody",
+          "GlueBomb"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 4,
+            "Maximum": 6
+          },
+          "Agility": {
+            "Minimum": 5,
+            "Maximum": 8
+          },
+          "Intelligence": {
+            "Minimum": 4,
+            "Maximum": 6
+          },
+          "Voracity": {
+            "Minimum": 6,
+            "Maximum": 10
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "SpringSlugs",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 0.9,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "BoggingSlime",
+          "EasyToVore",
+          "Pounce",
+          "SoftBody"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 8,
+            "Maximum": 12
+          },
+          "Agility": {
+            "Minimum": 5,
+            "Maximum": 7
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 12,
+            "Maximum": 20
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "RockSlugs",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 32,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 3.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Resilient",
+          "SoftBody",
+          "HardSkin"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 27,
+            "Maximum": 35
+          },
+          "Agility": {
+            "Minimum": 5,
+            "Maximum": 7
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 22,
+            "Maximum": 32
+          }
+        },
+        "StomachSize": 50,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "CoralSlugs",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Paralyzer",
+          "Stinger",
+          "GelatinousBody",
+          "SoftBody",
+          "Toxic"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 14
+          },
+          "Agility": {
+            "Minimum": 5,
+            "Maximum": 7
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 12,
+            "Maximum": 20
+          }
+        },
+        "StomachSize": 16,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Salamanders",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Intelligence",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "HotBlooded"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 15
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 14
+          },
+          "Intelligence": {
+            "Minimum": 9,
+            "Maximum": 17
+          },
+          "Voracity": {
+            "Minimum": 11,
+            "Maximum": 18
+          }
+        },
+        "StomachSize": 18,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Mantis",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Pounce",
+          "SenseWeakness",
+          "BladeDance"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 12,
+            "Maximum": 17
+          },
+          "Agility": {
+            "Minimum": 15,
+            "Maximum": 23
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 6,
+            "Maximum": 10
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 6.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "EasternDragon",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "CockVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 80,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 3.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 12.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Ravenous",
+          "AdeptLearner",
+          "Maul"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 19,
+            "Maximum": 23
+          },
+          "Agility": {
+            "Minimum": 11,
+            "Maximum": 22
+          },
+          "Intelligence": {
+            "Minimum": 15,
+            "Maximum": 26
+          },
+          "Voracity": {
+            "Minimum": 27,
+            "Maximum": 36
+          }
+        },
+        "StomachSize": 80,
+        "Upkeep": 36.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Catfish",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Stomach",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.5,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Slippery",
+          "Ravenous",
+          "Nauseous",
+          "SlowDigestion"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 13,
+            "Maximum": 20
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 13
+          },
+          "Intelligence": {
+            "Minimum": 8,
+            "Maximum": 12
+          },
+          "Voracity": {
+            "Minimum": 16,
+            "Maximum": 24
+          }
+        },
+        "StomachSize": 16,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "WarriorAnts",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "AcidResistant",
+          "PackStrength",
+          "SlowDigestion"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 8,
+            "Maximum": 12
+          },
+          "Agility": {
+            "Minimum": 10,
+            "Maximum": 14
+          },
+          "Intelligence": {
+            "Minimum": 9,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 8,
+            "Maximum": 12
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Gazelle",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "ForcefulBlow"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 15
+          },
+          "Agility": {
+            "Minimum": 15,
+            "Maximum": 23
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 10,
+            "Maximum": 16
+          }
+        },
+        "StomachSize": 12,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralLizards",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 17,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.75,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Intimidating",
+          "Biter",
+          "Resilient"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 11,
+            "Maximum": 19
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 16
+          },
+          "Intelligence": {
+            "Minimum": 8,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 17
+          }
+        },
+        "StomachSize": 16,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Monitors",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "HardSkin",
+          "Resilient",
+          "VenomShock"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 17,
+            "Maximum": 25
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 13
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 15
+          },
+          "Voracity": {
+            "Minimum": 14,
+            "Maximum": 21
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Terrorbird",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "TailVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 18,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.75,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Intimidating",
+          "Tenacious"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 17
+          },
+          "Agility": {
+            "Minimum": 10,
+            "Maximum": 18
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 12
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 17
+          }
+        },
+        "StomachSize": 18,
+        "Upkeep": 3.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Dratopyr",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "CockVore",
+          "Oral",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 12,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 0.95,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 8,
+            "Maximum": 12
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 12
+          },
+          "Intelligence": {
+            "Minimum": 9,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 8,
+            "Maximum": 15
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralLions",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 3.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "Pounce",
+          "Ravenous",
+          "TasteForBlood",
+          "PleasurableTouch"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 13,
+            "Maximum": 20
+          },
+          "Agility": {
+            "Minimum": 11,
+            "Maximum": 18
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 18,
+            "Maximum": 24
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 6.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Goodra",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 32,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 2.0,
+        "FavoredStat": "Stomach",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 12.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "BoggingSlime",
+          "Resilient",
+          "SoftBody",
+          "HardSkin"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 31,
+            "Maximum": 39
+          },
+          "Agility": {
+            "Minimum": 11,
+            "Maximum": 17
+          },
+          "Intelligence": {
+            "Minimum": 21,
+            "Maximum": 27
+          },
+          "Voracity": {
+            "Minimum": 29,
+            "Maximum": 38
+          }
+        },
+        "StomachSize": 50,
+        "Upkeep": 21.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralHorses",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Agility",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "ForcefulBlow",
+          "BornToMove"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 17,
+            "Maximum": 23
+          },
+          "Agility": {
+            "Minimum": 13,
+            "Maximum": 20
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 10,
+            "Maximum": 16
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralFox",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Unbirth",
+          "CockVore",
+          "Anal",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 16,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Pounce",
+          "Ravenous"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 15,
+            "Maximum": 20
+          },
+          "Agility": {
+            "Minimum": 11,
+            "Maximum": 16
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 20,
+            "Maximum": 28
+          }
+        },
+        "StomachSize": 24,
+        "Upkeep": 4.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Terminid",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 16,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Disgusting",
+          "Pounce",
+          "FireVulnerable",
+          "Frenzy"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 16,
+            "Maximum": 21
+          },
+          "Agility": {
+            "Minimum": 11,
+            "Maximum": 16
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 16
+          },
+          "Voracity": {
+            "Minimum": 20,
+            "Maximum": 28
+          }
+        },
+        "StomachSize": 24,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Otachi",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "CockVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 80,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 2.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 7.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "TailStrike",
+          "HealingBlood",
+          "PoisonSpit"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 20,
+            "Maximum": 29
+          },
+          "Agility": {
+            "Minimum": 17,
+            "Maximum": 24
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 20
+          },
+          "Voracity": {
+            "Minimum": 35,
+            "Maximum": 45
+          }
+        },
+        "StomachSize": 80,
+        "Upkeep": 30.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "FeralSlime",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 7,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Endurance",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 0.75,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "BoggingSlime",
+          "SoftBody",
+          "GelatinousBody"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 9,
+            "Maximum": 13
+          },
+          "Agility": {
+            "Minimum": 4,
+            "Maximum": 6
+          },
+          "Intelligence": {
+            "Minimum": 5,
+            "Maximum": 8
+          },
+          "Voracity": {
+            "Minimum": 10,
+            "Maximum": 16
+          }
+        },
+        "StomachSize": 15,
+        "Upkeep": 2.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Raiju",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "CockVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 60,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 2.0,
+        "FavoredStat": "Endurance",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 1.3,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Intimidating",
+          "Resilient",
+          "Grounded",
+          "MetabolicSurge",
+          "Biter"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 20,
+            "Maximum": 29
+          },
+          "Agility": {
+            "Minimum": 17,
+            "Maximum": 24
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 20
+          },
+          "Voracity": {
+            "Minimum": 35,
+            "Maximum": 45
+          }
+        },
+        "StomachSize": 50,
+        "Upkeep": 30.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Smudger",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "Unbirth",
+          "CockVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 25,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "SteadyStomach",
+          "Ravenous",
+          "Tasty"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 17,
+            "Maximum": 25
+          },
+          "Agility": {
+            "Minimum": 8,
+            "Maximum": 13
+          },
+          "Intelligence": {
+            "Minimum": 7,
+            "Maximum": 15
+          },
+          "Voracity": {
+            "Minimum": 14,
+            "Maximum": 21
+          }
+        },
+        "StomachSize": 20,
+        "Upkeep": 10.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "SpaceCroach",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 40,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "SenseWeakness",
+          "BoggingSlime",
+          "Ravenous",
+          "Pounce",
+          "NimbleClimber"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 17,
+            "Maximum": 23
+          },
+          "Agility": {
+            "Minimum": 15,
+            "Maximum": 23
+          },
+          "Intelligence": {
+            "Minimum": 6,
+            "Maximum": 10
+          },
+          "Voracity": {
+            "Minimum": 9,
+            "Maximum": 15
+          }
+        },
+        "StomachSize": 30,
+        "Upkeep": 13.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Trex",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "CockVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 90,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 2.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 12.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Berserk",
+          "Biter",
+          "Ravenous",
+          "IronGut",
+          "Resilient"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 26,
+            "Maximum": 34
+          },
+          "Agility": {
+            "Minimum": 10,
+            "Maximum": 15
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 14
+          },
+          "Voracity": {
+            "Minimum": 24,
+            "Maximum": 32
+          }
+        },
+        "StomachSize": 50,
+        "Upkeep": 24.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "Utahraptor",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral",
+          "Anal",
+          "CockVore",
+          "Unbirth",
+          "BladderVore"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 30,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 2.0,
+        "FavoredStat": "Strength",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Pounce",
+          "Biter",
+          "BornToMove"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 15,
+            "Maximum": 20
+          },
+          "Agility": {
+            "Minimum": 10,
+            "Maximum": 15
+          },
+          "Intelligence": {
+            "Minimum": 10,
+            "Maximum": 14
+          },
+          "Voracity": {
+            "Minimum": 14,
+            "Maximum": 20
+          }
+        },
+        "StomachSize": 30,
+        "Upkeep": 5.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    },
+    {
+      "Species": "BlackWidow",
+      "Settings": {
+        "AllowedVoreTypes": [
+          "Oral"
+        ],
+        "BannerType": 0,
+        "BaseAP": 3,
+        "BodySize": 20,
+        "CanUseMeleeWeapons": true,
+        "CanUseRangedWeapons": true,
+        "ConversionRace": "none",
+        "DeployCost": 1.0,
+        "FavoredStat": "Voracity",
+        "FavoredStatSet": true,
+        "FemaleTraits": [],
+        "HermTraits": [],
+        "InnateSpell": "None",
+        "LeaderRace": "none",
+        "LeaderTraits": [],
+        "MaleTraits": [],
+        "MaxBoob": 0,
+        "MaxDick": 0,
+        "MaxWeight": 0,
+        "MinBoob": 0,
+        "MinDick": 0,
+        "MinWeight": 0,
+        "MorphRace": "none",
+        "OverrideFurry": false,
+        "OverrideGender": false,
+        "PowerAdjustment": 2.0,
+        "RaceAI": "Standard",
+        "RaceTags": [],
+        "RaceTraits": [
+          "Biter",
+          "VenomousBite",
+          "VenomShock",
+          "Webber"
+        ],
+        "SpawnRace": "none",
+        "SpawnTraits": [],
+        "Stats": {
+          "Strength": {
+            "Minimum": 15,
+            "Maximum": 26
+          },
+          "Agility": {
+            "Minimum": 12,
+            "Maximum": 21
+          },
+          "Intelligence": {
+            "Minimum": 9,
+            "Maximum": 13
+          },
+          "Voracity": {
+            "Minimum": 14,
+            "Maximum": 19
+          }
+        },
+        "StomachSize": 25,
+        "Upkeep": 8.0,
+        "clothedFraction": 0.85,
+        "furryFraction": 1.0,
+        "hermFraction": 0.0,
+        "maleFraction": 1.0,
+        "overrideBoob": false,
+        "overrideClothes": false,
+        "overrideDick": false,
+        "overrideWeight": false
+      }
+    }
+  ],
+  "UnitTags": [],
+  "TraitClassifications": {}
+}

@@ -1,4 +1,5 @@
 ﻿// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-07: Add new battle injuries to post-battle event evidence (spec 40D).
 // 2026-11-05: Set ordinary/field-rest/town-rest HP recovery to 10/20/30 percent (spec 36).
 // 2026-11-05: Separate faster general HP recovery from longer calendar-day injuries.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
@@ -87,6 +88,7 @@ internal static class CompanyInjuries
             DaysRemaining = grade == CompanyInjuryGrade.Bruised ? MinorDays : grade == CompanyInjuryGrade.Battered ? ModerateDays : SeriousDays,
             RecoveryRoll = State.Rand.NextDouble() };
         unit.Injuries.Add(injury);
+        CompanyPostBattleTraits.RecordInjury(unit);
         Announce(unit, "suffered " + Description(injury) + ".", Name(injury));
     }
     static IEnumerable<CompanyInjury> At(Unit unit, CompanyBodyPart part) => unit.Injuries.Where(i => i.Complication == CompanyComplication.BodyPart && i.Part == part);

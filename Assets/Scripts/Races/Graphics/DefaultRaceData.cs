@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Preserve explicit company weapon art instead of applying legacy random light-melee variants.
 // 2026-11-01: Separate stored species reads from intentional override creation (spec 03B3C).
 // 2026-11-03: Remove permanently retired identity branches/entries while preserving shared behavior (spec 21).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
@@ -651,7 +652,7 @@ abstract class DefaultRaceData
     {
         if (actor.Unit.HasWeapon && actor.Surrendered == false)
         {
-            if (actor.Unit.BasicMeleeWeaponType == 1 && (actor.GetWeaponSprite() == 0 || actor.GetWeaponSprite() == 1))
+            if (!actor.Unit.CompanyLoadout && actor.Unit.BasicMeleeWeaponType == 1 && (actor.GetWeaponSprite() == 0 || actor.GetWeaponSprite() == 1))
             {
                     if (actor.GetWeaponSprite() == 0)
                 return State.GameManager.SpriteDictionary.Weapons[8];

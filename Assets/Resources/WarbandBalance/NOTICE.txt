@@ -1,0 +1,5 @@
+VoreWar mercenary-company conversion balance data.
+Existing upstream attribution and GPL-3.0 terms remain applicable. See CHANGES.md and License.txt.
+2026-11-06 Assets/Resources/WarbandBalance/Profiles/legacy-pre40a.json
+2026-11-06 Assets/Resources/WarbandBalance/Profiles/balance-40a-initial.json
+2026-11-06 Assets/Resources/WarbandBalance/Profiles/balance-20261106-f5c113757d3d4a77b53c1d0a51a1bf50.json

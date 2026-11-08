@@ -1,10 +1,13 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-08: Verify calendar difficulty boundaries and record pressure in connected campaign simulations (spec 40F).
+// 2026-11-08: Verify late road generation, current Ironman ending order and 40F campaign transitions (specs 40E–40F).
 // 2026-11-05: Allow focused economy boundary verification for the integrated injury handoff (spec 38 phase D).
 // 2026-11-05: Exercise upkeep boundaries and connected native economic campaign policies (spec 38 phase B).
 // See CHANGES.md and License.txt for GPL-3.0 terms. Existing attribution remains applicable.
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -15,7 +18,8 @@ public static partial class CompanyBalanceAudit
     {
         public int day, gold, upkeep, upkeepDebt, wages, debt, members, levels, contracts, losses, reputation;
         public int hp, maxHp, injuries, oldInjuries, spentOnGear, spentOnHires, spentOnTreatment, departures, formerDebt;
-        public double power;
+        public int minOfferRating, maxOfferRating;
+        public double power, calendarPressure;
     }
     [Serializable] public sealed class EconomicHistory
     {
@@ -30,12 +34,14 @@ public static partial class CompanyBalanceAudit
     {
         public int day, rating, rounds, losses, destroyedGear, gold, injuries;
         public bool road, completed, ended;
-        public double companyPower, enemyPower;
+        public int calendarAgeDays;
+        public double companyPower, enemyPower, calendarPressure;
     }
     [Serializable] public sealed class EconomicReport
     {
         public bool complete;
         public int startingGold, initialUpkeep, weeklyUpkeepIncrease;
+        public long lateOfferGenerationMilliseconds;
         public string wageCurve;
         public List<string> checks = new List<string>();
         public List<EconomicHistory> histories = new List<EconomicHistory>();
@@ -63,8 +69,12 @@ public static partial class CompanyBalanceAudit
         economicReport.initialUpkeep = (int)G(T("CompanyEconomy"), "InitialUpkeep");
         economicReport.weeklyUpkeepIncrease = (int)G(T("CompanyEconomy"), "WeeklyUpkeepIncrease");
         economicReport.wageCurve = "Base + 3n + 2nÃ‚Â² + 2max(0,n-3)Ã‚Â³; n=level-1";
-        CheckEconomyBoundaries(); WriteEconomy();
-        if (Environment.GetCommandLineArgs().Contains("-balanceBoundariesOnly"))
+        bool calendarOnly = Environment.GetCommandLineArgs().Contains("-balanceCalendarOnly");
+        bool skipLegacyBoundaries = Environment.GetCommandLineArgs().Contains("-balanceSkipLegacyEconomyBoundaries");
+        if (!calendarOnly && !skipLegacyBoundaries) CheckEconomyBoundaries();
+        CheckCalendarBoundaries();
+        WriteEconomy();
+        if (calendarOnly || Environment.GetCommandLineArgs().Contains("-balanceBoundariesOnly"))
         {
             economicReport.complete = true;
             WriteEconomy();
@@ -95,6 +105,111 @@ public static partial class CompanyBalanceAudit
 
     static object Solo(int seed)
     { return Fresh(seed, new[] { seed % 3 }, 1, 1, false); }
+    static void CheckCalendarBoundaries()
+    {
+        Type contracts = T("CompanyContracts");
+        Func<int, double> pressureAt = day => (double)C(contracts, "CalendarPressureForAge", day);
+        double day20 = pressureAt(20), day21 = pressureAt(21), day28 = pressureAt(28),
+            day35 = pressureAt(35), day42 = pressureAt(42), day100 = pressureAt(100), day1000 = pressureAt(1000), day1007 = pressureAt(1007);
+        EconomicCheck(day20 == 0 && day21 == 0, "Calendar pressure preserves the first 21 enrolled days");
+        EconomicCheck(day28 > 0 && day28 < 1 && day35 > day28, "Pressure begins gently during days 21–28 and continues rising");
+        EconomicCheck(day35 - day28 > day28 && day42 - day35 > day35 - day28,
+            "Early weekly difficulty increases accelerate rather than repeat a fixed increment");
+        EconomicCheck(Math.Abs(day100 - 4.886) < .001 && day1000 > 190 && day1007 > day1000,
+            "Provisional curve reaches moderate pressure near day 100 and extreme, increasing pressure near day 1000");
+        double encounter28 = (double)C(contracts, "RoadEncounterMultiplier", day28);
+        double encounter100 = (double)C(contracts, "RoadEncounterMultiplier", day100);
+        double encounter1000 = (double)C(contracts, "RoadEncounterMultiplier", day1000);
+        EconomicCheck(encounter28 > 1 && encounter100 > encounter28 && encounter1000 > encounter100 && encounter1000 <= 4,
+            "Road encounters receive a separate gradual calendar component with a bounded encounter-only multiplier");
+        var lateRoad = Fresh(40603, new[] { 0, 1, 2 }, 1, 1, false);
+        S(lateRoad, "ElapsedDays", 1000);
+        int oldTile = (int)G(lateRoad, "Position");
+        int travelTile = ((IEnumerable)C(T("CompanyWorldGeneration"), "Neighbors", lateRoad, oldTile)).Cast<int>()
+            .First(tile => !L(lateRoad, "Towns").Cast<object>().Any(t => (int)G(t, "Tile") == tile));
+        EconomicCheck((bool)C(lateRoad, "Move", travelTile), "Synthetic late campaign can take the triggering road move");
+        object lateRoadEvent = null;
+        for (uint seed = 1; seed < 10000 && lateRoadEvent == null; seed++)
+        {
+            S(lateRoad, "RandomState", seed); S(lateRoad, "NextRoadEventDay", 0); S(lateRoad, "RoadEvent", null);
+            C(T("CompanyRoadEvents"), "AfterTravel", lateRoad, oldTile);
+            object candidate = G(lateRoad, "RoadEvent");
+            if (candidate != null && G(candidate, "Kind").ToString() == "SpitterSlugs") lateRoadEvent = candidate;
+        }
+        EconomicCheck(lateRoadEvent != null && (int)G(lateRoadEvent, "CalendarAgeDays") == 1000 &&
+            Math.Abs((double)G(lateRoadEvent, "CalendarPressure") - day1000) < .000001 &&
+            Math.Abs((double)G(lateRoadEvent, "TargetPower") - (double)C(T("CompanyRoadEvents"), "EncounterPower", lateRoad) * encounter1000) < .000001 &&
+            L(lateRoadEvent, "EnemyIds").Count > 0 && L(lateRoadEvent, "EnemyIds").Count <= 128,
+            "A real day-1000 road move generates a recorded slug encounter against the pressure-scaled company budget");
+        int offerFloor = (int)C(contracts, "MinimumOfferRating", 500.0, 20);
+        EconomicCheck(offerFloor == 6 && (double)C(contracts, "Budget", offerFloor) >= 200 &&
+            (double)C(contracts, "Budget", offerFloor - 1) < 200, "Company-relative offer floor stays at or above the provisional 40% capability band");
+
+        var state = Fresh(40601, new[] { 0, 1, 2 }, 1, 1, false);
+        EconomicCheck((int)G(state, "CompanyRulesVersion") == 5 && (int)G(state, "CalendarDifficultyStartDay") == 0,
+            "New campaigns enroll on their first day using the current difficulty rules");
+        var town = L(state, "Towns").Cast<object>().Single(t => (int)G(t, "Tile") == (int)G(state, "Position"));
+        var initial = L(state, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(town)).ToArray();
+        EconomicCheck(initial.Length == 4 && initial.All(c => (int)G(c, "Rating") == 1 && (int)G(c, "DifficultyRevision") == 1 &&
+            (int)G(c, "CalendarAgeDays") == 0 && (double)G(c, "CalendarPressure") == 0),
+            "Opening town offers retain rating-one power and carry zero-pressure provenance");
+        var accepted = initial[0]; S(accepted, "Status", Enum.Parse(G(accepted, "Status").GetType(), "Active"));
+        int acceptedRating = (int)G(accepted, "Rating"), acceptedReward = (int)G(accepted, "Reward");
+        double acceptedPower = (double)G(accepted, "Power"); var acceptedEnemies = L(accepted, "EnemyIds").Cast<string>().ToArray();
+        S(state, "ElapsedDays", 28); S(town, "ContractRefreshDay", 0); C(contracts, "EnsureTown", state, town);
+        var refreshed = L(state, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(town) &&
+            G(c, "Status").ToString() == "Offered").ToArray();
+        EconomicCheck(refreshed.Length > 0 && refreshed.All(c => (int)G(c, "CalendarAgeDays") == 28 &&
+            Math.Abs((double)G(c, "CalendarPressure") - day28) < .000001 && (int)G(c, "DifficultyRevision") == 1),
+            "Refreshed offers record the exact calendar age, pressure and rules revision");
+        EconomicCheck((int)G(accepted, "Rating") == acceptedRating && (int)G(accepted, "Reward") == acceptedReward &&
+            (double)G(accepted, "Power") == acceptedPower && L(accepted, "EnemyIds").Cast<string>().SequenceEqual(acceptedEnemies),
+            "A refresh does not rewrite an already accepted contract, its quote or enemy roster");
+        var roundTrip = Clone(state); C(T("CompanyCampaignSave"), "RequireHealthPreserved", state, roundTrip);
+        EconomicCheck((int)G(roundTrip, "CalendarDifficultyStartDay") == 0 &&
+            L(roundTrip, "Contracts").Cast<object>().Where(c => (int)G(c, "DifficultyRevision") == 1).All(c =>
+                (int)G(c, "CalendarAgeDays") == 0 || (int)G(c, "CalendarAgeDays") == 28),
+            "Difficulty epoch and generated-offer provenance survive save/resume");
+
+        var generationTimer = Stopwatch.StartNew();
+        S(state, "ElapsedDays", 1000); S(town, "ContractRefreshDay", 0); C(contracts, "EnsureTown", state, town);
+        generationTimer.Stop(); economicReport.lateOfferGenerationMilliseconds = generationTimer.ElapsedMilliseconds;
+        var lateOffers = L(state, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(town) &&
+            G(c, "Status").ToString() == "Offered").ToArray();
+        EconomicCheck(lateOffers.Length > 0 && lateOffers.All(c => (int)G(c, "CalendarAgeDays") == 1000 &&
+            Math.Abs((double)G(c, "CalendarPressure") - day1000) < .000001) && lateOffers.Max(c => (int)G(c, "Rating")) > 100,
+            "Synthetic day-1000 offer refresh produces valid high-pressure contracts and records bounded provenance");
+        WriteEconomy();
+
+        var legacy = Clone(state); S(legacy, "CompanyRulesVersion", 4); S(legacy, "ElapsedDays", 100);
+        S(legacy, "CalendarDifficultyStartDay", 0);
+        foreach (var contract in L(legacy, "Contracts"))
+        { S(contract, "DifficultyRevision", 0); S(contract, "CalendarAgeDays", 0); S(contract, "CalendarPressure", 0.0); }
+        int legacyGold = (int)G(legacy, "Gold"); var preservedActive = L(legacy, "Contracts").Cast<object>().Single(c => G(c, "Status").ToString() == "Active");
+        int legacyRating = (int)G(preservedActive, "Rating"), legacyReward = (int)G(preservedActive, "Reward");
+        var legacyEnemies = L(preservedActive, "EnemyIds").Cast<string>().ToArray();
+        C(T("CompanyEconomy"), "Bind", legacy); C(contracts, "Validate", legacy);
+        EconomicCheck((int)G(legacy, "CompanyRulesVersion") == 5 && (int)G(legacy, "CalendarDifficultyStartDay") == 100 &&
+            (double)C(contracts, "CalendarPressure", legacy) == 0, "A pre-40F campaign receives a fresh protected enrollment without a late-game jump");
+        EconomicCheck((int)G(legacy, "Gold") == legacyGold && (int)G(preservedActive, "Rating") == legacyRating &&
+            (int)G(preservedActive, "Reward") == legacyReward && L(preservedActive, "EnemyIds").Cast<string>().SequenceEqual(legacyEnemies) &&
+            (int)G(preservedActive, "DifficultyRevision") == 0, "Legacy campaign funds, active contracts and untagged generated forces remain unchanged");
+
+        var road = Fresh(40602, new[] { 0, 1, 2 }, 1, 1, false);
+        var enemy = C(contracts, "Enemy", road, Race.SpitterSlugs, 1);
+        S(enemy, "Employment", Enum.Parse(G(enemy, "Employment").GetType(), "Unavailable")); U(enemy).Side = 1; L(road, "Characters").Add(enemy);
+        Type roadType = T("CompanyRoadEvent"); var occurrence = Activator.CreateInstance(roadType, true);
+        S(occurrence, "Id", Guid.NewGuid().ToString("N")); S(occurrence, "Kind", Enum.Parse(T("CompanyRoadEventKind"), "SpitterSlugs"));
+        S(occurrence, "Phase", Enum.Parse(T("CompanyRoadEventPhase"), "Closed")); S(occurrence, "Tile", (int)G(road, "Position"));
+        S(occurrence, "Rating", 1); S(occurrence, "DifficultyRevision", 1); S(occurrence, "CalendarAgeDays", 1000);
+        S(occurrence, "CalendarPressure", day1000); S(occurrence, "TargetPower", 250);
+        S(occurrence, "EnemyIds", new List<string> { Id(enemy) }); S(road, "RoadEvent", occurrence);
+        var roadCopy = Clone(road);
+        EconomicCheck((bool)C(T("CompanyRoadEvents"), "Same", occurrence, G(roadCopy, "RoadEvent")) &&
+            (int)G(G(roadCopy, "RoadEvent"), "CalendarAgeDays") == 1000 &&
+            Math.Abs((double)G(G(roadCopy, "RoadEvent"), "CalendarPressure") - day1000) < .000001,
+            "A generated road encounter retains its pressure and target budget after save/resume");
+    }
     static void SettleDay(object state, bool resting, EconomicHistory row = null)
     {
         PayEconomicDebts(state, row);
@@ -189,16 +304,23 @@ public static partial class CompanyBalanceAudit
         var idle = Solo(38023); int guardDay = 0;
         while (!(bool)G(idle, "Ended") && guardDay++ < 200) SettleDay(idle, false);
         EconomicCheck((bool)G(idle, "Ended") && (int)G(idle, "ElapsedDays") < 200, "Idle leader-only company reaches critical insolvency with finite capital");
-        // Ironman uses the normal autosave ending path. Deletion is intercepted by DiagnosticDirectory.
+        // 40E publishes an immutable ending record before game-owned Ironman save removal; probes remain preserved.
         var iron = Solo(38024); S(iron, "Ironman", true);
         C(T("CompanySaveSlots"), "Auto", iron, Path.Combine(report.directory, (string)G(iron, "Id")));
         S(iron, "UpkeepDebt", 1); S(iron, "UpkeepDueDay", 7); S(iron, "ElapsedDays", 6);
         C(G(view, "clock"), "EndDay", iron, false);
         string ironPath = Path.Combine(report.directory, (string)G(iron, "Id"));
         int filesBefore = Directory.GetFiles(ironPath, "*.company").Length;
-        C(T("CompanySaveSlots"), "Auto", iron, ironPath);
-        EconomicCheck(File.Exists(Path.Combine(ironPath, "fallen")) && Directory.GetFiles(ironPath, "*.company").Length == filesBefore,
-            "Ironman insolvency invalidates company saves while synthetic deletion remains suppressed");
+        var endingRecord = C(T("CompanyHistoryRecord"), "From", iron);
+        string historyPath = Path.Combine(report.directory, "HighScores");
+        C(T("CompanyHistoryStore"), "Commit", endingRecord, historyPath);
+        L(T("CompanySaveSlots"), "DiagnosticRemovals").Clear();
+        C(T("CompanySaveSlots"), "RemoveCompany", (string)G(iron, "Id"), report.directory);
+        var selectedForRemoval = L(T("CompanySaveSlots"), "DiagnosticRemovals").Cast<string>().ToArray();
+        EconomicCheck(File.Exists(Path.Combine(historyPath, (string)G(iron, "EndingId") + ".score")) &&
+            File.Exists(Path.Combine(ironPath, "fallen")) && Directory.GetFiles(ironPath, "*.company").Length == filesBefore &&
+            selectedForRemoval.Length == filesBefore && selectedForRemoval.All(File.Exists),
+            "Ironman ending is archived before save removal, and synthetic save files remain physically preserved");
         var preview = C(T("CompanyCampaign"), "Generate", 38030, false);
         C(T("CompanyCampaignSave"), "RequireHealthPreserved", preview, Clone(preview));
         EconomicCheck((int)G(preview, "EconomyVersion") == 0, "Legacy map-only preview retains serialization compatibility");
@@ -268,6 +390,9 @@ public static partial class CompanyBalanceAudit
     static EconomicDay EconomicSnapshot(object state, EconomicHistory row)
     {
         var members = Members(state);
+        var currentTown = L(state, "Towns").Cast<object>().FirstOrDefault(t => (int)G(t, "Tile") == (int)G(state, "Position"));
+        var localOffers = currentTown == null ? new object[0] : L(state, "Contracts").Cast<object>().Where(c =>
+            (string)G(c, "TownId") == Id(currentTown) && G(c, "Status").ToString() == "Offered").ToArray();
         return new EconomicDay { day = (int)G(state, "ElapsedDays"), gold = (int)G(state, "Gold"),
             upkeep = (int)C(T("CompanyEconomy"), "Upkeep", state), upkeepDebt = (int)G(state, "UpkeepDebt"),
             wages = members.Sum(c => (int)C(T("CompanyEconomy"), "Wage", state, c)), debt = members.Sum(c => (int)G(c, "Debt")),
@@ -275,6 +400,9 @@ public static partial class CompanyBalanceAudit
             losses = L(state, "Memorial").Count, reputation = (int)G(state, "Reputation"), hp = members.Sum(c => U(c).Health),
             maxHp = members.Sum(c => U(c).MaxHealth), injuries = members.Sum(c => L(U(c), "Injuries").Count),
             oldInjuries = OldCount(state), power = (double)C(T("CompanyPower"), "Force", (object)members.Select(U).ToArray()),
+            calendarPressure = (double)C(T("CompanyContracts"), "CalendarPressure", state),
+            minOfferRating = localOffers.Length == 0 ? 0 : localOffers.Min(c => (int)G(c, "Rating")),
+            maxOfferRating = localOffers.Length == 0 ? 0 : localOffers.Max(c => (int)G(c, "Rating")),
             spentOnGear = row.spentOnGear, spentOnHires = row.spentOnHires, spentOnTreatment = row.spentOnTreatment,
             departures = L(state, "Characters").Cast<object>().Count(c => G(c, "Employment").ToString() == "Former"),
             formerDebt = L(state, "Characters").Cast<object>().Where(c => G(c, "Employment").ToString() == "Former").Sum(c => (int)G(c, "Debt")) };
@@ -307,12 +435,24 @@ public static partial class CompanyBalanceAudit
             var town = L(state, "Towns").Cast<object>().FirstOrDefault(t => (int)G(t, "Tile") == position);
             if (town != null && !(bool)G(state, "Busy")) EconomicShopping(state, town, targetSize, row);
             if (travelTown == position) travelTown = -1;
-            if (G(state, "Battle") != null && G(G(state, "Battle"), "Phase").ToString() == "Deployment")
+            if (G(state, "Battle") != null)
             {
-                var run = EconomicBattle(state, row);
-                while (run.MoveNext()) yield return run.Current;
-                state = G(view, "state"); objective = null;
-                continue;
+                string phase = G(G(state, "Battle"), "Phase").ToString();
+                if (phase == "Deployment")
+                {
+                    var run = EconomicBattle(state, row);
+                    while (run.MoveNext()) yield return run.Current;
+                    state = G(view, "state"); objective = null;
+                    continue;
+                }
+                if (phase == "Summary") { C(T("CompanyBattleSession"), "Acknowledge", state); continue; }
+                if (phase == "Revival")
+                {
+                    int beforeRevival = (int)G(state, "Gold");
+                    C(T("CompanyBattleSession"), "Revive", state);
+                    row.revivals += beforeRevival - (int)G(state, "Gold"); objective = null; continue;
+                }
+                if (phase == "PostBattleEvent") { C(T("CompanyBattleSession"), "AcknowledgePostBattle", state); continue; }
             }
             if ((bool)C(T("CompanyRoadEvents"), "AwaitingChoice", state))
             { C(T("CompanyRoadEvents"), "ResolveDuel", state, false); continue; }
@@ -382,7 +522,12 @@ public static partial class CompanyBalanceAudit
             if ((int)C(state, "MoveCost", next) > (int)G(state, "Actions"))
             { SettleDay(state, false, row); row.days.Add(EconomicSnapshot(state, row)); yield return null; continue; }
             int cost = (int)C(state, "MoveCost", next);
-            if (!(bool)C(state, "Move", next)) throw new InvalidOperationException("Economic travel rejected");
+            if (!(bool)C(state, "Move", next)) throw new InvalidOperationException("Economic travel rejected: position=" + position +
+                " next=" + next + " destination=" + destination + " actions=" + G(state, "Actions") + "/" + G(state, "DailyActions") +
+                " cost=" + cost + " busy=" + G(state, "Busy") + " inBattle=" + G(state, "InBattle") +
+                " updatingDay=" + G(state, "UpdatingDay") + " decision=" + G(state, "PendingDecision") +
+                " battlePhase=" + (G(state, "Battle") == null ? "none" : G(G(state, "Battle"), "Phase").ToString()) +
+                " roadEvent=" + (G(state, "RoadEvent") == null ? "none" : G(G(state, "RoadEvent"), "Phase").ToString()));
             row.travelActions += cost;
             var reached = L(state, "Contracts").Cast<object>().FirstOrDefault(c =>
                 G(c, "Status").ToString() == "Active" && (int)G(c, "Tile") == next);
@@ -504,6 +649,17 @@ public static partial class CompanyBalanceAudit
             rating = (int)C(T("CompanyBattleSession"), "Rating", state, G(state, "Battle")),
             road = G(G(state, "Battle"), "RoadEventId") != null,
             companyPower = (double)C(T("CompanyPower"), "Force", (object)original.Select(U).ToArray()) };
+        if (G(G(state, "Battle"), "RoadEventId") != null)
+        {
+            var road = G(state, "RoadEvent"); fight.calendarPressure = (double)G(road, "CalendarPressure");
+            fight.calendarAgeDays = (int)G(road, "CalendarAgeDays");
+        }
+        else
+        {
+            var contract = L(state, "Contracts").Cast<object>().Single(c => (string)G(c, "Id") == (string)G(G(state, "Battle"), "ContractId"));
+            fight.calendarPressure = (double)G(contract, "CalendarPressure");
+            fight.calendarAgeDays = (int)G(contract, "CalendarAgeDays");
+        }
         var enemies = ((IEnumerable)C(T("CompanyBattleSession"), "Survivors", state, G(state, "Battle"))).Cast<object>();
         fight.enemyPower = (double)C(T("CompanyPower"), "Force", (object)enemies.Select(U).ToArray()); var session = Activator.CreateInstance(T("CompanyBattleSession"), Flags, null, new[] { (object)view, state }, null);
         S(view, "state", state); S(view, "saveDirectory", Path.Combine(report.directory, (string)G(state, "Id")));

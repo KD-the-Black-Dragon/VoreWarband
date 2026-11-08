@@ -1,3 +1,9 @@
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Show the renamed armor categories and support baseline Tier 0 merchant weapons.
+// 2026-11-08: Use the campaign company name as the roster heading (40E UI follow-up).
+// 2026-11-08: Collect a company name when creating a campaign (spec 40E).
+// 2026-11-07: Show projected Grudge wage growth before approving a level-up (spec 40D).
+// 2026-11-06: Keep action rollback in memory and remove action-level autosave work.
 // Added by the VoreWar mercenary-company conversion fork.
 // 2026-11-05: Fit long roster summaries with adaptive row paging and readable debt buttons (spec 38 phase C).
 // 2026-11-05: Expose leader upkeep repayment and pre-commit level-up wage previews (spec 38 phase B).
@@ -87,13 +93,16 @@ internal sealed class CompanyManagementUI
     void Change(Action operation, Action redraw)
     {
         try { view.Mutate(operation); }
-        catch { redraw(); throw; } // Rollback replaces object instances; rebuild callbacks from stable IDs.
+        catch { redraw(); throw; } // Refresh the page after a rejected action.
         redraw();
     }
-    public void StartCreator(bool ironman)
+    public void StartCreator(bool ironman, string companyName)
     {
         if (CompanyEconomy.Sapients.Length == 0) throw new InvalidOperationException(SpeciesPolicy.UnavailableMessage);
+        companyName = (companyName ?? "").Trim();
+        if (companyName.Length > 64) throw new InvalidOperationException("Company names can be up to 64 characters.");
         draftWorld = CompanyCampaign.Generate(BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), 0), ironman);
+        draftWorld.CompanyName = CompanyHistoryStore.CompanyName(companyName);
         MakeDraft(CompanyEconomy.Sapients[0]);
     }
     void MakeDraft(Race race)
@@ -164,11 +173,11 @@ internal sealed class CompanyManagementUI
         {
             draft.Unit.Name = nameField.text.Trim();
             if (string.IsNullOrWhiteSpace(draft.Unit.Name)) throw new InvalidOperationException("Choose a leader name first.");
-            byte[] before = CompanyCampaignSave.Encode(draftWorld);
+            var before = CompanySnapshot.Take(draftWorld);
             try { CompanyEconomy.Begin(draftWorld, draft); draftWorld.Validate(); }
             catch
             {
-                CompanyCampaignSave.Restore(draftWorld, before);
+                CompanySnapshot.Restore(draftWorld, before);
                 draft.Employment = CompanyEmployment.Candidate; draft.TownId = null;
                 throw;
             }
@@ -205,7 +214,7 @@ internal sealed class CompanyManagementUI
     }
     public void Company(int page = 0)
     {
-        offset = Math.Max(0, page); Clear("Company roster");
+        offset = Math.Max(0, page); Clear(CompanyHistoryStore.CompanyName(State.CompanyName));
         var roster = State.Members.Select(m => State.Characters.Find(c => c.Id == m.CharacterId)).ToArray();
         var summaries = roster.Select(RosterSummary).ToArray();
         var settings = new TextGenerationSettings
@@ -280,7 +289,7 @@ internal sealed class CompanyManagementUI
         if (c.LevelChoices == null) view.Mutate(() => CompanyEconomy.LevelChoices(State, c));
         Clear("Choose a level-up improvement — " + c.Unit.Name);
         long total = CompanyEconomy.WeeklyWages(State);
-        int oldWage = CompanyEconomy.Wage(State, c), newWage = CompanyEconomy.WageAtLevel(State, c, c.Unit.Level + 1);
+        int oldWage = CompanyEconomy.Wage(State, c), newWage = CompanyEconomy.WageForNextLevel(State, c);
         Text(Stats(c.Unit) + "\nWeekly wage " + oldWage + " → " + newWage + " from the next regular payday." +
             "\nCompany weekly bills " + (total + CompanyEconomy.Upkeep(State)) + " → " +
             (total - oldWage + newWage + CompanyEconomy.Upkeep(State)) +
@@ -342,7 +351,7 @@ internal sealed class CompanyManagementUI
     public void Shop(int page = 0)
     {
         Town(); Clear("Merchant — gold " + State.Gold, true);
-        var categories = new[] { "All", "Helmet", "Torso Armor", "Leg Armor", "Arm Armor", "Accessory", "Melee Weapon", "Ranged Weapon", "Spells" };
+        var categories = new[] { "All", "Helmet", "Tunic", "Greaves", "Bracers", "Accessory", "Melee Weapon", "Ranged Weapon", "Spells" };
         for (int i = 0; i < categories.Length; i++)
         {
             int category = i - 1;
@@ -355,7 +364,8 @@ internal sealed class CompanyManagementUI
         for (int i = 0; i < 4 && page + i < definitions.Length; i++)
         {
             var d = definitions[page + i]; int y = 235 + i * 67;
-            Text(d.Name + " — " + CompanyEquipment.SlotName(d.Slot) + " | Tier " + new[] { "I", "II", "III" }[d.Tier - 1] + "\n" + CompanyEquipment.Summary(d.Create()), 30, y, 910, 60);
+            string tierLabel = d.Tier == 0 ? "0 (Baseline)" : new[] { "I", "II", "III" }[d.Tier - 1];
+            Text(d.Name + " — " + CompanyEquipment.SlotName(d.Slot) + " | Tier " + tierLabel + "\n" + CompanyEquipment.Summary(d.Create()), 30, y, 910, 60);
             Button("Buy " + d.Cost, 1010, y, 180, () => Change(() => CompanyEquipment.Buy(State, d.Id), () => Shop(page)), State.Gold >= d.Cost && !State.Busy);
         }
         if (definitions.Length == 0) Text("No items in this category.", 30, 240, 1100, 40);

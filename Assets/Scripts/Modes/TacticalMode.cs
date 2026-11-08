@@ -1,4 +1,8 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-07: Record voluntary retreat outcomes for post-battle event evidence (spec 40D).
+// 2026-11-06: Treat ongoing ground-fire damage as a non-hit effect (spec 40C).
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Use the acting character's frozen species values in combat and previews (spec 40A).
 // 2026-11-05: Align vore targeting and chance displays with the downed-prey capacity rule.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // Modified for the VoreWar mercenary-company conversion.
@@ -911,7 +915,7 @@ public class TacticalMode : SceneBase
         Type desiredAIType;
         if (nextUnit != null)
         {
-            desiredAIType = TacticalUtilities.GetMindControlSide(nextUnit.Unit) != -1 ? GetAITypeForMindControledUnit(nextUnit.Unit) : RaceAIType.Dict[State.RaceSettings.GetRaceAI(nextUnit.Unit.Race)];
+            desiredAIType = TacticalUtilities.GetMindControlSide(nextUnit.Unit) != -1 ? GetAITypeForMindControledUnit(nextUnit.Unit) : RaceAIType.Dict[nextUnit.Unit.SpeciesSettings.GetRaceAI(nextUnit.Unit.Race)];
         }
         else
             desiredAIType = typeof(StandardTacticalAI);
@@ -2778,6 +2782,7 @@ public class TacticalMode : SceneBase
         actor.Targetable = false;
         actor.UnitSprite.gameObject.SetActive(false);
         actor.Fled = true;
+        CompanyPostBattleTraits.RecordFled(actor);
         actor.Unit.RefreshSecrecy();
         SelectedUnit = null;
     }
@@ -2923,7 +2928,7 @@ public class TacticalMode : SceneBase
             {
                 Type desiredAIType;
                 if (foreignUnits.Count() > 0)
-                    desiredAIType = TacticalUtilities.GetMindControlSide(foreignUnits[0].Unit) != -1 ? GetAITypeForMindControledUnit(foreignUnits[0].Unit) : RaceAIType.Dict[State.RaceSettings.GetRaceAI(foreignUnits[0].Unit.Race)];
+                    desiredAIType = TacticalUtilities.GetMindControlSide(foreignUnits[0].Unit) != -1 ? GetAITypeForMindControledUnit(foreignUnits[0].Unit) : RaceAIType.Dict[foreignUnits[0].Unit.SpeciesSettings.GetRaceAI(foreignUnits[0].Unit.Race)];
                 else
                     desiredAIType = typeof(StandardTacticalAI);
                 if (foreignAI == null || (foreignAI.GetType() != desiredAIType))
@@ -3298,7 +3303,7 @@ public class TacticalMode : SceneBase
     {
         if (SelectedUnit != null && SelectedUnit.Targetable)
         {
-            var voreTypes = State.RaceSettings.GetVoreTypes(SelectedUnit.Unit.Race);
+            var voreTypes = SelectedUnit.Unit.SpeciesSettings.GetVoreTypes(SelectedUnit.Unit.Race);
             StatusUI.UnitName.text = SelectedUnit.Unit.Name;
             StatusUI.HP.text = "HP:" + SelectedUnit.Unit.LastingHealth + (SelectedUnit.Unit.TemporaryHealth > 0 ? " + <color=grey>" + SelectedUnit.Unit.TemporaryHealth + " temporary</color>" : "") + "/" + SelectedUnit.Unit.MaxHealth;
             StatusUI.MP.text = "AP:" + SelectedUnit.Movement;
@@ -3566,7 +3571,7 @@ public class TacticalMode : SceneBase
             Actor_Unit unit = units[i];
             if (Config.EdibleCorpses && ActionMode == 3 && unit.Position.GetDistance(clickLocation) < 1 && unit.Targetable == false && unit.Visible && unit.Bulk() <= SelectedUnit.PredatorComponent.FreeCap())
             {
-                var voreTypes = State.RaceSettings.GetVoreTypes(SelectedUnit.Unit.Race);
+                var voreTypes = SelectedUnit.Unit.SpeciesSettings.GetVoreTypes(SelectedUnit.Unit.Race);
                 if (voreTypes.Contains(VoreType.Oral))
                     SelectedUnit.PredatorComponent.Devour(unit);
                 else
@@ -3626,7 +3631,7 @@ public class TacticalMode : SceneBase
 
     internal void VoreAttack(Actor_Unit actor, Actor_Unit unit)
     {
-        var voreTypes = State.RaceSettings.GetVoreTypes(SelectedUnit.Unit.Race);
+        var voreTypes = SelectedUnit.Unit.SpeciesSettings.GetVoreTypes(SelectedUnit.Unit.Race);
         if (voreTypes.Contains(VoreType.Oral))
             actor.PredatorComponent.Devour(unit);
         else
@@ -4096,14 +4101,13 @@ public class TacticalMode : SceneBase
 
             if (key.Value.Type == TileEffectType.Fire)
             {
-                var actor = TacticalUtilities.GetActorAt(key.Key);
-                if (actor != null)
+                var occupants = TacticalUtilities.Units.Where(actor => actor != null && actor.SelfPrey == null &&
+                    !actor.Fled && !actor.Unit.IsDead && actor.Position.x == key.Key.x && actor.Position.y == key.Key.y).ToArray();
+                foreach (var actor in occupants)
                 {
                     int damage = Mathf.RoundToInt(key.Value.Strength * actor.Unit.TraitBoosts.FireDamageTaken);
-                    if (actor.Damage(damage, true))
-                    {
+                    if (actor.Damage(damage, true, canCauseInjury: false))
                         Log.RegisterMiscellaneous($"<b>{actor.Unit.Name}</b> took <color=red>{damage}</color> points of fire damage");
-                    }
                 }
             }
             if (key.Value.RemainingDuration <= 0)

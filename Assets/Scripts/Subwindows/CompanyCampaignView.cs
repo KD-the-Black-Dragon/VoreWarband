@@ -1,4 +1,9 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Remove the overlapping setup-page Load Game action; main-menu Load Game remains available (40E UI follow-up).
+// 2026-11-08: Add company naming, retirement access and durable high-score entry points (spec 40E).
+// 2026-11-06: Keep action rollback in memory and remove action-level autosave work.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Preview/resume explored routes and animate native movement at 0.1 seconds per tile (spec 40B).
 // 2026-11-05: Show upkeep bills, debt and deadline and resume queued insolvency warnings (spec 38 phase B).
 // 2026-11-05: Render village fields with the retained strategic farm sprites (spec 36).
 // 2026-11-05: Overlay connected roads on the existing virtualized, fog-aware terrain map (spec 35).
@@ -21,6 +26,7 @@
 // 2026-11-03: Route campaign chrome through shared blue/gold surfaces while leaving terrain tiles intact (spec 28).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -33,11 +39,12 @@ public sealed class CompanyCampaignView : MonoBehaviour
     CompanyMissionsUI missions;
     internal CompanyRecoveryUI Recovery { get; private set; }
     Text contractList, financesText, conditionText, calendarText, townDetails;
+    InputField companyNameField;
     CompanyCampaign returnedCampaign;
     CompanyBattleSession returningSession;
     string returningError;
     internal static CompanyCampaignView ActiveView;
-    internal bool HasActiveCompany => state != null && !state.Preview && IsOpen && !setupPage.activeSelf;
+    internal bool HasActiveCompany => state != null && !state.Preview && IsOpen && !setupPage.activeSelf && !mainMenuHistory;
     internal string SaveDirectory { get { return saveDirectory; } }
     internal void PrepareSaveBrowser(StartMode start)
     { owner = start; if (root == null) { Build(); root.SetActive(false); } ActiveView = this; }
@@ -53,6 +60,14 @@ public sealed class CompanyCampaignView : MonoBehaviour
     Text[] tileLabels;
     Image[] townIcons;
     CompanyRoadGraphic[] roadGraphics;
+    CompanyRouteGraphic[] routeGraphics;
+    Text[] routeNumbers;
+    int[] routePath = new int[0], routeIndex, routeRemaining;
+    RectTransform companyMarker;
+    Coroutine travelRoutine;
+    bool travelling;
+    Vector2? animatedCell;
+    internal bool IsTravelling => travelling;
     Outline[] tileOutlines;
     Button[] tiles;
     const int TileSize = 42, MapColumns = 29, MapRows = 12;
@@ -62,7 +77,8 @@ public sealed class CompanyCampaignView : MonoBehaviour
     string mapCompanyId;
     int mapWidth, mapHeight, centeredTile = -1, firstMapX = int.MinValue, firstMapY = int.MinValue;
     bool optionsOpen, optionsTownServices, optionsCampaign;
-    internal bool HasCampaignOptions { get { return optionsOpen && optionsCampaign && CanNavigate && !state.Preview; } }
+    bool mainMenuHistory;
+    internal bool HasCampaignOptions { get { return optionsOpen && optionsCampaign && CanNavigate && !state.Preview && !mainMenuHistory; } }
     internal bool LeaderRevivalEnabled { get { return state.LeaderRevival; } }
     internal void SetLeaderRevival(bool enabled)
     {
@@ -70,18 +86,24 @@ public sealed class CompanyCampaignView : MonoBehaviour
         if (state.LeaderRevival != enabled) Mutate(() => state.LeaderRevival = enabled);
     }
     Toggle ironman;
-    Button saveButton, townButton, mapButton, companyButton, contractsButton, recordsButton, dayButton, restOneButton, restChosenButton, resumeRestButton, cancelRestButton, retrySaveButton;
-    bool checkpointFailed;
+    Button saveButton, townButton, mapButton, companyButton, contractsButton, recordsButton, retirementButton, dayButton, restOneButton, restChosenButton, resumeRestButton, cancelRestButton;
     string saveDirectory;
     public bool IsOpen { get { return root != null && root.activeSelf; } }
 
     public void Open(StartMode start)
     {
-        owner = start; ActiveView = this;
+        owner = start; ActiveView = this; mainMenuHistory = false;
         if (root == null) Build();
         owner.UI.SetActive(false);
         root.SetActive(true);
         ShowSetup();
+    }
+    internal void OpenHistory(StartMode start)
+    {
+        owner = start; ActiveView = this; mainMenuHistory = true;
+        if (root == null) Build();
+        owner.UI.SetActive(false); root.SetActive(true);
+        missions.HighScores(0, true);
     }
     internal void OpenSavedGames(StartMode start)
     {
@@ -90,6 +112,9 @@ public sealed class CompanyCampaignView : MonoBehaviour
     }
     public void Close()
     {
+        bool moving = travelling;
+        StopTravel();
+        if (moving && state != null) RefreshState("Travel paused.");
         if (root != null) root.SetActive(false);
         if (owner != null) owner.UI.SetActive(true);
     }
@@ -119,7 +144,7 @@ public sealed class CompanyCampaignView : MonoBehaviour
         var image = chrome ? UITheme.Surface(go, UITheme.Control, true) : go.AddComponent<Image>();
         var button = go.AddComponent<Button>(); button.targetGraphic = image;
         if (chrome) UITheme.StyleSelectable(button);
-        button.onClick.AddListener(() => Guard(callback));
+        button.onClick.AddListener(() => { if (!travelling || !chrome) Guard(callback); });
         var label = Label(go.transform, words, 3, 3, w - 6, 32, 17); label.alignment = TextAnchor.MiddleCenter;
         return button;
     }
@@ -131,7 +156,7 @@ public sealed class CompanyCampaignView : MonoBehaviour
     }
     bool CanNavigate
     {
-        get { return state != null && !state.Ended && !state.InBattle &&
+        get { return state != null && !travelling && !state.Ended && !state.InBattle &&
             (state.Battle == null || state.Battle.Phase == CompanyBattlePhase.Returned) && !CompanyRoadEvents.AwaitingChoice(state); }
     }
     void RefreshNavigation(bool townServices = false, bool campaign = true)
@@ -139,9 +164,10 @@ public sealed class CompanyCampaignView : MonoBehaviour
         if (navigation == null) return;
         bool visible = campaign && state != null && !setupPage.activeSelf;
         navigation.SetActive(visible); statusPanel.SetActive(visible);
-        bool available = CanNavigate && !checkpointFailed;
+        bool available = CanNavigate;
         mapButton.interactable = companyButton.interactable = contractsButton.interactable = recordsButton.interactable = available;
         townButton.interactable = available && !state.Busy && state.Towns.Any(t => t.Tile == state.Position) && state.Actions >= state.TownEntryCost;
+        if (retirementButton != null) retirementButton.interactable = available && !state.Busy && state.ElapsedDays >= 14 && state.Towns.Any(t => t.Tile == state.Position);
         townNavigation.SetActive(visible && townServices && !state.Preview);
         if (!visible) return;
         var roster = state.Members.Select(m => state.Characters.Single(c => c.Id == m.CharacterId)).ToArray();
@@ -173,19 +199,45 @@ public sealed class CompanyCampaignView : MonoBehaviour
             mapContent.sizeDelta = new Vector2(mapWidth * TileSize, mapHeight * TileSize);
             firstMapX = firstMapY = int.MinValue; centeredTile = -1;
         }
-        if (centeredTile != state.Position) CenterMap();
+        BuildRouteCache();
+        if (!travelling && centeredTile != state.Position) CenterMap();
+        PositionCompanyMarker();
         RefreshMapTiles(true);
+    }
+    Vector2 CenteredMapPosition(int tile)
+    {
+        float x = mapContent.rect.width / 2 - (tile % state.Width + .5f) * TileSize;
+        float y = (tile / state.Width + .5f) * TileSize - mapContent.rect.height / 2;
+        float limitX = Mathf.Max(0, (mapContent.rect.width - mapViewport.rect.width) / 2);
+        float limitY = Mathf.Max(0, (mapContent.rect.height - mapViewport.rect.height) / 2);
+        return new Vector2(Mathf.Clamp(x, -limitX, limitX), Mathf.Clamp(y, -limitY, limitY));
     }
     void CenterMap()
     {
         if (state == null) return;
         mapScroll.StopMovement();
-        float x = mapContent.rect.width / 2 - (state.Position % state.Width + .5f) * TileSize;
-        float y = (state.Position / state.Width + .5f) * TileSize - mapContent.rect.height / 2;
-        float limitX = Mathf.Max(0, (mapContent.rect.width - mapViewport.rect.width) / 2);
-        float limitY = Mathf.Max(0, (mapContent.rect.height - mapViewport.rect.height) / 2);
-        mapContent.anchoredPosition = new Vector2(Mathf.Clamp(x, -limitX, limitX), Mathf.Clamp(y, -limitY, limitY));
+        mapContent.anchoredPosition = CenteredMapPosition(state.Position);
         centeredTile = state.Position; RefreshMapTiles(true);
+    }
+    void BuildRouteCache()
+    {
+        CompanyTravel.ClearArrival(state);
+        routePath = state.TravelDestination.HasValue ? CompanyTravel.Path(state, state.TravelDestination.Value) : new int[0];
+        routeIndex = Enumerable.Repeat(-1, state.Terrain.Length).ToArray();
+        routeRemaining = new int[routePath.Length];
+        int remaining = state.Actions;
+        for (int i = 0; i < routePath.Length; i++)
+        {
+            if (i > 0) remaining -= state.MoveCost(routePath[i]);
+            routeIndex[routePath[i]] = i; routeRemaining[i] = remaining;
+        }
+    }
+    Vector2 Cell(int tile) { return new Vector2(tile % state.Width, tile / state.Width); }
+    void PositionCompanyMarker()
+    {
+        if (state == null || companyMarker == null) return;
+        Vector2 cell = animatedCell ?? Cell(state.Position);
+        companyMarker.anchoredPosition = new Vector2(cell.x * TileSize, -cell.y * TileSize);
     }
     void RefreshMapTiles(bool force = false)
     {
@@ -209,7 +261,7 @@ public sealed class CompanyCampaignView : MonoBehaviour
             int tile = tileIndices[i]; bool seen = state.Discovered[tile];
             Place(tiles[i].gameObject, x * TileSize, y * TileSize, TileSize, TileSize);
             int distance = Math.Abs(x - state.Position % state.Width) + Math.Abs(y - state.Position / state.Width);
-            tiles[i].interactable = !checkpointFailed && !state.Busy && distance == 1 && state.Actions >= state.MoveCost(tile);
+            tiles[i].interactable = !state.Busy;
             var terrainType = state.Farms != null && state.Farms[tile] ? StrategicTileType.field : (StrategicTileType)terrainTypes[state.Terrain[tile]];
             int art = StrategicTileInfo.GetTileType(terrainType, x, y);
             var image = tiles[i].GetComponent<Image>();
@@ -220,10 +272,18 @@ public sealed class CompanyCampaignView : MonoBehaviour
             townIcons[i].sprite = towns != null && towns.Length > 6 ? towns[6] : null;
             townIcons[i].gameObject.SetActive(town && townIcons[i].sprite != null);
             bool target = state.Contracts.Any(c => c.Status == CompanyContractStatus.Active && c.Tile == tile);
-            tileLabels[i].text = tile == state.Position ? "C" : target ? "!" : town && townIcons[i].sprite == null ? "T" : "";
+            tileLabels[i].text = target ? "!" : town && townIcons[i].sprite == null ? "T" : "";
             tileLabels[i].color = tile == state.Position ? new Color(.55f, .9f, 1) : target ? new Color(1, .55f, .35f) : new Color(1, .87f, .55f);
-            tileOutlines[i].enabled = tiles[i].interactable || tile == state.Position;
-            tileOutlines[i].effectColor = tile == state.Position ? new Color(1, .8f, .35f) : new Color(.55f, .9f, .65f);
+            tileOutlines[i].enabled = (tiles[i].interactable && distance == 1 && state.Actions >= state.MoveCost(tile)) || tile == state.Position || state.TravelDestination == tile;
+            tileOutlines[i].effectColor = tile == state.Position || state.TravelDestination == tile ? new Color(1, .8f, .35f) : new Color(.55f, .9f, .65f);
+            int route = routeIndex == null ? -1 : routeIndex[tile];
+            int from = route > 0 ? CompanyRouteGraphic.Direction(tile, routePath[route - 1], state.Width) : 0;
+            int to = route >= 0 && route + 1 < routePath.Length ? CompanyRouteGraphic.Direction(tile, routePath[route + 1], state.Width) : 0;
+            bool over = route >= 0 && routeRemaining[route] < 0;
+            bool nextOver = route >= 0 && route + 1 < routePath.Length && routeRemaining[route + 1] < 0;
+            routeGraphics[i].SetRoute(from, to, over, nextOver, route > 0 && route == routePath.Length - 1);
+            routeNumbers[i].text = route >= 0 ? routeRemaining[route].ToString() : "";
+            routeNumbers[i].color = over ? CompanyRouteGraphic.OverBudget : CompanyRouteGraphic.Affordable;
         }
     }
     void Guard(Action action)
@@ -251,8 +311,6 @@ public sealed class CompanyCampaignView : MonoBehaviour
         Action(frame.transform, "Main menu", 80, 746, 130, Close);
         Action(frame.transform, "Help", 222, 746, 100, () => missions.Help(0, setupPage.activeSelf || state == null, management.IsCreatingLeader));
         Action(frame.transform, "Options", 334, 746, 120, OpenOptions);
-        retrySaveButton = Action(frame.transform, "Retry save", 1045, 746, 155, () => { if (checkpointFailed) Save("Game saved; you can continue."); });
-        retrySaveButton.gameObject.SetActive(false);
         setupPage = Panel("Setup", frame.transform);
         Box(setupPage.transform, "Setup surface", 20, 104, 1240, 536, UITheme.Panel);
         Label(setupPage.transform, "Create your leader, recruit and equip a small company, then choose contracts and fight.\nNumeric tuning is provisional.", 30, 105, 1150, 90);
@@ -263,7 +321,15 @@ public sealed class CompanyCampaignView : MonoBehaviour
         ironman.graphic = mark.AddComponent<Image>(); ironman.isOn = false;
         UITheme.StyleCheckmark(ironman); UITheme.StyleSelectable(ironman);
         Label(setupPage.transform, "Ironman (locked at creation; autosaves only; recovery backups)", 70, 216, 1100, 40);
-        Action(setupPage.transform, "Create company", 30, 285, 250, () => management.StartCreator(ironman.isOn));
+        Label(setupPage.transform, "Company name", 30, 272, 220, 30, 17);
+        var companyNameGo = Panel("Company name", setupPage.transform); Place(companyNameGo, 30, 306, 440, 42);
+        UITheme.Surface(companyNameGo, UITheme.Control, true);
+        companyNameField = companyNameGo.AddComponent<InputField>(); UITheme.StyleSelectable(companyNameField);
+        companyNameField.characterLimit = 64; companyNameField.text = "";
+        companyNameField.textComponent = Label(companyNameGo.transform, "", 8, 2, 424, 36, 18);
+        var companyPlaceholder = Label(companyNameGo.transform, "Enter a company name", 8, 2, 424, 36, 18);
+        companyPlaceholder.color = UITheme.Muted; companyNameField.placeholder = companyPlaceholder;
+        Action(setupPage.transform, "Create company", 30, 370, 250, () => management.StartCreator(ironman.isOn, companyNameField.text));
         mapPage = Panel("World map", frame.transform);
         var viewport = Panel("Map viewport", mapPage.transform); Place(viewport, 80, 156, 1120, 420);
         UITheme.Surface(viewport, UITheme.Background); viewport.AddComponent<RectMask2D>();
@@ -276,6 +342,7 @@ public sealed class CompanyCampaignView : MonoBehaviour
         mapScroll.onValueChanged.AddListener(_ => RefreshMapTiles());
         int tileCount = MapColumns * MapRows;
         roadGraphics = new CompanyRoadGraphic[tileCount];
+        routeGraphics = new CompanyRouteGraphic[tileCount]; routeNumbers = new Text[tileCount];
         tileLabels = new Text[tileCount]; tiles = new Button[tileCount]; townIcons = new Image[tileCount]; tileOutlines = new Outline[tileCount]; tileIndices = new int[tileCount];
         for (int i = 0; i < tiles.Length; i++)
         {
@@ -290,7 +357,17 @@ public sealed class CompanyCampaignView : MonoBehaviour
             tileLabels[i] = tiles[i].GetComponentInChildren<Text>(); tileLabels[i].transform.SetAsLastSibling();
             Place(tileLabels[i].gameObject, 0, 0, TileSize, TileSize); tileLabels[i].fontSize = 24;
             tileLabels[i].gameObject.AddComponent<Outline>().effectColor = Color.black;
+            var route = Panel("Travel arrow", tiles[i].transform); Place(route, 0, 0, TileSize, TileSize);
+            routeGraphics[i] = route.AddComponent<CompanyRouteGraphic>(); routeGraphics[i].raycastTarget = false;
+            routeNumbers[i] = Label(tiles[i].transform, "", 1, 1, TileSize - 3, 19, 16);
+            routeNumbers[i].fontStyle = FontStyle.Bold; routeNumbers[i].alignment = TextAnchor.UpperRight;
+            routeNumbers[i].resizeTextForBestFit = true; routeNumbers[i].resizeTextMinSize = 10; routeNumbers[i].resizeTextMaxSize = 16;
+            routeNumbers[i].gameObject.AddComponent<Outline>().effectColor = Color.black;
         }
+        var marker = Label(content.transform, "C", 0, 0, TileSize, TileSize, 24);
+        marker.color = new Color(.55f, .9f, 1); marker.alignment = TextAnchor.MiddleCenter;
+        marker.gameObject.name = "Company marker"; marker.gameObject.AddComponent<Outline>().effectColor = Color.black;
+        companyMarker = marker.rectTransform;
         var mapFrame = UITheme.Node("Map border", viewport.transform);
         UITheme.Stretch(mapFrame.GetComponent<RectTransform>()); UITheme.Frame(mapFrame);
         dayButton = Action(mapPage.transform, "End turn", 80, 108, 130, EndDay);
@@ -306,7 +383,7 @@ public sealed class CompanyCampaignView : MonoBehaviour
             Rest(days);
         });
         resumeRestButton = Action(mapPage.transform, "Resume rest", 598, 108, 170, ResumeRest);
-        cancelRestButton = Action(mapPage.transform, "Cancel rest", 780, 108, 120, () => { state.RestDaysRemaining = 0; Save("Remaining rest cancelled."); ShowMap(); });
+        cancelRestButton = Action(mapPage.transform, "Cancel rest", 780, 108, 120, () => { state.RestDaysRemaining = 0; RefreshState("Remaining rest cancelled."); ShowMap(); });
         Box(mapPage.transform, "Active contracts", 80, 582, 1120, 75, UITheme.Panel);
         contractList = Label(mapPage.transform, "", 96, 588, 1088, 64, 16);
         saveButton = Action(mapPage.transform, "Save / Load", 912, 108, 140, () => CompanySaveMenu.Show(this));
@@ -320,7 +397,6 @@ public sealed class CompanyCampaignView : MonoBehaviour
         management = new CompanyManagementUI(this, frame.transform);
         missions = new CompanyMissionsUI(this, management);
         Recovery = new CompanyRecoveryUI(this, management);
-        Action(setupPage.transform, "Load Game", 310, 285, 250, () => CompanySaveMenu.Show(this));
         clock.Register(new CompanyWages()); clock.Register(new CompanyRecruitRefresh());
         clock.Register(new CompanyContractDeadlines()); clock.Register(new CompanyDailyRecovery()); clock.Register(new CompanySparring());
         navigation = Panel("Campaign navigation", frame.transform);
@@ -336,6 +412,7 @@ public sealed class CompanyCampaignView : MonoBehaviour
         Action(townNavigation.transform, "Merchant", 30, 258, 185, () => management.Shop());
         Action(townNavigation.transform, "Contracts", 30, 316, 185, () => missions.Contracts(true));
         Action(townNavigation.transform, "Treatment", 30, 374, 185, () => Recovery.Treatment());
+        retirementButton = Action(townNavigation.transform, "Retire company", 30, 432, 185, () => missions.RetirementPreview());
         statusPanel = Panel("Company status", frame.transform);
         Box(statusPanel.transform, "Status background", 80, 0, 1120, 72, UITheme.Panel);
         financesText = Label(statusPanel.transform, "", 96, 9, 330, 60, 17);
@@ -347,7 +424,6 @@ public sealed class CompanyCampaignView : MonoBehaviour
     }
     void Pages(GameObject page)
     {
-        retrySaveButton.gameObject.SetActive(checkpointFailed && state != null);
         if (management != null) management.Page.SetActive(page == management.Page);
         setupPage.SetActive(page == setupPage); mapPage.SetActive(page == mapPage);
         townPage.SetActive(page == townPage); companyPage.SetActive(page == companyPage);
@@ -356,25 +432,96 @@ public sealed class CompanyCampaignView : MonoBehaviour
     }
     internal void ShowSetup() { Pages(setupPage); heading.text = "Mercenary campaign"; message.text = ""; stageBanner.text = ""; }
 
+    void StopTravel()
+    {
+        if (travelRoutine != null) StopCoroutine(travelRoutine);
+        travelRoutine = null; travelling = false; animatedCell = null;
+        PositionCompanyMarker();
+    }
+    void OnDisable() { StopTravel(); }
     void Move(int tile)
     {
-        if (checkpointFailed || state.Busy) return;
-        var target = state.Contracts.FirstOrDefault(c => c.Status == CompanyContractStatus.Active && c.Tile == tile);
-        if (target != null && CompanyContracts.Distance(state, tile, state.Position) == 1 && state.Actions >= state.MoveCost(tile))
-        { Mutate(() => CompanyBattleSession.Prepare(state, target)); missions.Deployment(); return; }
-        int previousTile = state.Position;
-        byte[] before = CompanyCampaignSave.Encode(state);
-        string previousEvent = state.RoadEvent == null ? null : state.RoadEvent.Id;
+        if (state.Busy || tile < 0 || tile >= state.Terrain.Length) return;
+        if (travelling && state.TravelDestination == tile) return;
+        bool paused = travelling;
+        StopTravel();
+        if (paused) RefreshState("Travel paused.");
+        if (tile == state.Position) { state.TravelDestination = null; ShowMap(); return; }
+        bool adjacent = CompanyContracts.Distance(state, tile, state.Position) == 1;
+        bool confirmed = state.TravelDestination == tile;
+        if (!adjacent && !confirmed)
+        {
+            if (!CompanyTravel.Select(state, tile)) message.text = "No route through explored terrain reaches that tile.";
+            else message.text = "Click the same destination again to travel. Red shows steps beyond today's actions.";
+            ShowMap();
+            return;
+        }
+        if (adjacent && !confirmed)
+            state.TravelDestination = state.Discovered[tile] ? (int?)tile : null;
+        travelling = true; RefreshNavigation();
+        travelRoutine = StartCoroutine(TravelSteps(adjacent ? (int?)tile : null));
+    }
+    CompanyTravelStep TryTravelStep(int tile, out string failure)
+    {
+        try { failure = null; return CompanyTravel.Advance(state, tile); }
+        catch (Exception ex) { failure = "Could not travel. " + ex.Message; return CompanyTravelStep.Blocked; }
+    }
+    IEnumerator TravelSteps(int? singleTile)
+    {
+        bool changed = false;
+        string failure = null;
         try
         {
-            if (!state.Move(tile)) return;
-            CompanyRoadEvents.AfterTravel(state, previousTile);
-            state.Validate();
+            while (!state.Busy && root.activeInHierarchy && !CompanySaveMenu.IsVisible)
+            {
+                int next;
+                if (singleTile.HasValue) next = singleTile.Value;
+                else
+                {
+                    int[] path = state.TravelDestination.HasValue ? CompanyTravel.Path(state, state.TravelDestination.Value) : new int[0];
+                    if (path.Length < 2)
+                    {
+                        if (state.TravelDestination.HasValue) failure = "No route through explored terrain reaches that destination.";
+                        break;
+                    }
+                    next = path[1];
+                }
+                int previous = state.Position;
+                var result = TryTravelStep(next, out failure);
+                if (result == CompanyTravelStep.Blocked)
+                {
+                    if (failure == null) failure = "Not enough actions for the next tile. End the turn, then click the destination to resume.";
+                    break;
+                }
+                changed = true;
+                if (state.Position != previous)
+                {
+                    Vector2 cameraStart = mapContent.anchoredPosition, cameraEnd = CenteredMapPosition(state.Position);
+                    Vector2 start = Cell(previous), end = Cell(state.Position);
+                    float elapsed = 0;
+                    animatedCell = start; PositionCompanyMarker();
+                    while (elapsed < CompanyTravel.SecondsPerTile)
+                    {
+                        yield return null;
+                        elapsed += Time.unscaledDeltaTime;
+                        float fraction = Mathf.Clamp01(elapsed / CompanyTravel.SecondsPerTile);
+                        animatedCell = Vector2.Lerp(start, end, fraction); PositionCompanyMarker();
+                        mapContent.anchoredPosition = Vector2.Lerp(cameraStart, cameraEnd, fraction);
+                        RefreshMapTiles();
+                    }
+                    animatedCell = null; centeredTile = state.Position; PositionCompanyMarker();
+                    BuildRouteCache(); RefreshMapTiles(true); RefreshNavigation();
+                }
+                if (singleTile.HasValue || result != CompanyTravelStep.Moved) break;
+            }
         }
-        catch { CompanyCampaignSave.Restore(state, before); throw; }
-        if (state.RoadEvent != null && state.RoadEvent.Id != previousEvent) Save("Road event saved.");
-        else message.text = "";
-        ShowMap();
+        finally
+        {
+            travelling = false; travelRoutine = null; animatedCell = null;
+            PositionCompanyMarker(); RefreshNavigation();
+        }
+        if (changed) RefreshState(failure ?? "Travel complete.");
+        else { if (failure != null) message.text = failure; ShowMap(); }
     }
     internal void ShowMap()
     {
@@ -387,12 +534,12 @@ public sealed class CompanyCampaignView : MonoBehaviour
         contractList.text = "Active contracts: " + active.Length + "    Reputation: " + state.Reputation + "\n" +
             string.Join("    |    ", active.Take(3).Select(c => "Rating " + c.Rating + " · " + c.Reward + " gold · day " + (c.Deadline + 1) +
                 " · (" + c.Tile % state.Width + ", " + c.Tile / state.Width + ")").ToArray()) + (active.Length > 3 ? "    More in Contracts." : "");
-        saveButton.interactable = true;
-        dayButton.interactable = !checkpointFailed;
+        saveButton.interactable = !travelling;
+        dayButton.interactable = !travelling;
         dayButton.GetComponentInChildren<Text>().text = !string.IsNullOrEmpty(state.PendingDecision) ? "Review notice" : state.UpdatingDay ? "Resume turn" : "End turn";
-        restOneButton.interactable = restChosenButton.interactable = !checkpointFailed && state.CanStartRest;
-        resumeRestButton.interactable = !checkpointFailed && state.CanStartRest && state.RestDaysRemaining > 0;
-        cancelRestButton.interactable = !checkpointFailed && !state.Busy && state.RestDaysRemaining > 0;
+        restOneButton.interactable = restChosenButton.interactable = !travelling && state.CanStartRest;
+        resumeRestButton.interactable = !travelling && state.CanStartRest && state.RestDaysRemaining > 0;
+        cancelRestButton.interactable = !travelling && !state.Busy && state.RestDaysRemaining > 0;
         resumeRestButton.gameObject.SetActive(state.RestDaysRemaining > 0);
         cancelRestButton.gameObject.SetActive(state.RestDaysRemaining > 0);
         resumeRestButton.GetComponentInChildren<Text>().text = "Resume rest (" + state.RestDaysRemaining + ")";
@@ -401,9 +548,15 @@ public sealed class CompanyCampaignView : MonoBehaviour
     void EnterTown()
     {
         var town = state.Towns.Find(t => t.Tile == state.Position);
-        if (town == null || checkpointFailed || !state.Spend(state.TownEntryCost)) return;
+        if (town == null || !state.Spend(state.TownEntryCost)) return;
         CompanyEconomy.Visit(state, town);
-        if (!state.Preview) Save("Town pool saved.");
+        if (!state.Preview) RefreshState("Town pool updated.");
+        ShowCurrentTown();
+    }
+    internal void ShowCurrentTown()
+    {
+        var town = state == null ? null : state.Towns.FirstOrDefault(t => t.Tile == state.Position);
+        if (town == null) { ShowMap(); return; }
         Pages(townPage); heading.text = "Town"; stageBanner.text = ""; townHeading.text = town.Name;
         townDetails.text = state.Preview ? "Map preview town" :
             "Recruitment: " + CompanyEconomy.Offers(state, town).Count() + " candidates available\n\n" +
@@ -416,22 +569,28 @@ public sealed class CompanyCampaignView : MonoBehaviour
         Pages(companyPage);
         companyText.text = "Company preview\n\nNo leader or mercenaries have been created.\nCharacters will have stable identities shared by the roster, recruitment and battle views.\n\nTreasury: " + state.Gold + "\nFirst payday: after seven elapsed days\nElapsed days: " + state.ElapsedDays;
     }
-    bool Save(string success)
+    void RefreshState(string success)
     {
-        try { CompanyCampaignSave.Save(state, saveDirectory); checkpointFailed = false; message.text = success; return true; }
-        catch (Exception ex) { checkpointFailed = true; message.text = "Autosave failed: " + ex.Message + " Use Retry save before continuing."; return false; }
-        finally
+        message.text = success;
+        if (state != null && state.Ended)
         {
-            retrySaveButton.gameObject.SetActive(checkpointFailed && state != null);
-            if (state != null && mapPage.activeSelf) ShowMap();
+            string error = CompanyHistoryStore.ArchiveEnding(state);
+            if (!string.IsNullOrEmpty(error)) message.text = error;
         }
+        if (state != null && mapPage.activeSelf) ShowMap();
+    }
+    void QueueAutosave()
+    {
+        try { CompanySaveWorker.Enqueue(state, saveDirectory); }
+        catch (Exception error) { message.text = "Autosave failed: " + error.Message + " You can keep playing and save manually."; }
     }
     void EndDay() { if (!string.IsNullOrEmpty(state.PendingDecision)) management.Decision(); else AdvanceDay(false); }
     void AdvanceDay(bool resting)
     {
-        if (state == null || checkpointFailed || state.Ended || state.InBattle || (state.Battle != null && state.Battle.Phase != CompanyBattlePhase.Returned) || !string.IsNullOrEmpty(state.PendingDecision)) return;
+        if (state == null || state.Ended || state.InBattle || (state.Battle != null && state.Battle.Phase != CompanyBattlePhase.Returned) || !string.IsNullOrEmpty(state.PendingDecision)) return;
         clock.EndDay(state, resting);
-        Save("Day advanced; game saved."); ShowMap();
+        if (!state.Ended) QueueAutosave();
+        RefreshState("Day advanced."); ShowMap();
         if (!string.IsNullOrEmpty(state.PendingDecision)) management.Decision();
     }
     internal void ShowManagement(bool townServices = false, bool campaign = true)
@@ -439,13 +598,18 @@ public sealed class CompanyCampaignView : MonoBehaviour
         Pages(management.Page); RefreshNavigation(townServices, campaign);
         heading.text = townServices ? "Town" : "Mercenary company"; stageBanner.text = "";
     }
-    internal void LoadCheckpoint(string path)
+    internal void LoadCheckpoint(string path) { LoadCheckpoint(path, null); }
+    internal void LoadCheckpoint(string path, CompanyCampaign loaded)
     {
-        var candidate = CompanyCampaignSave.LoadForResume(path);
+        StopTravel();
+        mainMenuHistory = false;
+        var candidate = loaded ?? CompanyCampaignSave.LoadForResume(path);
+        CompanySaveWorker.Cancel(candidate.Id);
+        if (state != null) CompanySaveWorker.Cancel(state.Id);
         string directory = Path.GetDirectoryName(Path.GetFullPath(path));
         if (State.GameManager.CompanyBattle != null) State.GameManager.CompanyBattle.AbandonForLoad();
         else if (State.GameManager.CurrentScene == State.GameManager.TacticalMode) State.GameManager.ReturnFromCompanyBattle();
-        state = candidate; saveDirectory = directory; checkpointFailed = false;
+        state = candidate; saveDirectory = directory;
         ActiveView = this; root.SetActive(true); owner.UI.SetActive(false);
         if (state.InBattle)
         {
@@ -458,13 +622,14 @@ public sealed class CompanyCampaignView : MonoBehaviour
     }
     internal void Install(CompanyCampaign company)
     {
+        StopTravel();
         company.Validate(); state = company; CompanyEconomy.Bind(state);
         saveDirectory = Path.Combine(CompanyCampaignSave.DefaultDirectory, state.Id);
-        checkpointFailed = false; Save("Company created. Hire a couple of starters in this town."); ShowMap();
+        QueueAutosave(); RefreshState("Company created. Hire a couple of starters in this town."); ShowMap();
     }
     internal void LaunchBattle()
     {
-        if (checkpointFailed || state.Battle == null || state.Battle.Phase != CompanyBattlePhase.Deployment) return;
+        if (state.Battle == null || state.Battle.Phase != CompanyBattlePhase.Deployment) return;
         Mutate(() =>
         {
             var battle = state.Battle;
@@ -476,15 +641,14 @@ public sealed class CompanyCampaignView : MonoBehaviour
             }
             battle.DeployedIds = state.Members.Where(m => !m.Reserve || m.CharacterId == state.LeaderId).Select(m => m.CharacterId).ToArray();
         });
-        if (checkpointFailed) return;
-        byte[] deployment = CompanyCampaignSave.Encode(state);
+        var deployment = CompanySnapshot.Take(state);
         var session = new CompanyBattleSession(this, state); root.SetActive(false);
         try { session.Start(); }
         catch (Exception ex)
         {
-            var restored = new CompanyCampaign(); CompanyCampaignSave.Restore(restored, deployment);
+            var restored = deployment;
             QueueBattleReturn(restored, session);
-            returningError = "Could not start this battle: " + ex.Message + " The deployment save was preserved.";
+            returningError = "Could not start this battle: " + ex.Message + " Deployment has been restored.";
         }
     }
     internal void QueueBattleReturn(CompanyCampaign result, CompanyBattleSession session)
@@ -506,43 +670,41 @@ public sealed class CompanyCampaignView : MonoBehaviour
         State.GameManager.ReturnFromCompanyBattle(); returningSession.RestoreServices();
         state = returnedCampaign; returnedCampaign = null; returningSession = null;
         root.SetActive(true); owner.UI.SetActive(false);
-        checkpointFailed = false; Save("Battle results saved."); missions.Resume();
+        RefreshState("Battle results settled."); missions.Resume();
         if (!string.IsNullOrEmpty(returningError)) { message.text = returningError; returningError = null; }
     }
     internal void Mutate(Action operation)
     {
+        if (travelling) throw new InvalidOperationException("Wait for travel to finish before managing the company.");
         if (state.InBattle) throw new InvalidOperationException("Company management is unavailable during battle.");
-        if (checkpointFailed) throw new InvalidOperationException("Use Retry save before making more changes.");
-        byte[] before = CompanyCampaignSave.Encode(state);
-        try { operation(); state.Validate(); }
-        catch { CompanyCampaignSave.Restore(state, before); throw; }
-        Save("Company saved.");
+        // Domain actions check their own preconditions and perform scoped rollback where needed.
+        operation();
+        RefreshState("Company updated.");
     }
     internal void ResolveDecision()
     {
-        if (checkpointFailed) throw new InvalidOperationException("Save the current game first.");
         if (state.PendingDecisionKind == "Departures" && !string.IsNullOrEmpty(state.DeferredWageDecision))
         {
             state.PendingDecision = state.DeferredWageDecision; state.DeferredWageDecision = null;
             state.PendingDecisionKind = state.DeferredDecisionKind ?? "Payday";
             state.DeferredDecisionKind = null; state.PendingCharacterIds = new string[0];
-            Save("Departure acknowledged; a separate wage warning requires your response."); management.Decision(); return;
+            RefreshState("Departure acknowledged; a separate wage warning requires your response."); management.Decision(); return;
         }
         state.PendingDecision = null; state.PendingDecisionKind = null; state.PendingCharacterIds = new string[0];
-        clock.Resume(state); Save("Daily update settled. Any remaining rest days wait for your next rest command."); ShowMap();
+        clock.Resume(state); RefreshState("Daily update settled. Any remaining rest days wait for your next rest command."); ShowMap();
         if (!string.IsNullOrEmpty(state.PendingDecision)) management.Decision();
     }
     void Rest(int days)
     {
-        if (state == null || checkpointFailed || state.Busy) return;
+        if (state == null || state.Busy) return;
         if (!state.CanStartRest) throw new InvalidOperationException("Rest requires all daily actions. End the turn first.");
         state.RestDaysRemaining = days;
         ResumeRest();
     }
     void ResumeRest()
     {
-        if (state == null || checkpointFailed || state.Busy) return;
+        if (state == null || state.Busy) return;
         if (!state.CanStartRest) throw new InvalidOperationException("Rest requires all daily actions. End the turn first.");
-        while (state.RestDaysRemaining > 0 && !checkpointFailed && !state.Busy) AdvanceDay(true);
+        while (state.RestDaysRemaining > 0 && !state.Busy) AdvanceDay(true);
     }
 }

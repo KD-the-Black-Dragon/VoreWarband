@@ -11,6 +11,7 @@
 // 2026-11-03: Expose the company load view without reopening campaign setup (spec 19).
 // 2026-11-03: Rename the main-menu load action to Load Game (spec 20).
 // 2026-11-03: Keep developer trait-category diagnostics off the player main menu (spec 22).
+// 2026-11-08: Add High Scores access and recover Ironman cleanup after history publication (spec 40E).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using UnityEngine;
 using UnityEngine.UI;
@@ -39,6 +40,7 @@ public class StartMode : SceneBase
         State.GameManager.Menu.ContentSettings.Refresh();
         UpdatePresetsVisible();
         State.LoadRaceData();
+        CompanyHistoryStore.RecoverIronmanCleanup();
         RunTaggedTraitCheck();
     }
 
@@ -97,6 +99,7 @@ public class StartMode : SceneBase
         PlaceMainButton("Create Tactical Button", "Single Battle", 328);
         PlaceMainButton("Load Game Button", "Load Game", 236);
         PlaceMainButton("Options Button", "Options", 144);
+        PlaceHighScoresButton();
         PlaceCornerButton("Credits Button", 204);
         PlaceCornerButton("Help Button", 120);
         PlaceCornerButton("Exit Game Button", 0);
@@ -104,6 +107,23 @@ public class StartMode : SceneBase
         ReplaceTitleWithLogo();
         UITheme.StyleText(versionNumber, 28); versionNumber.color = UITheme.Muted;
         UITheme.StyleText(miscText, 24); miscText.color = UITheme.Muted;
+    }
+
+    void PlaceHighScoresButton()
+    {
+        var go = UITheme.Node("High Scores Button", UI.transform);
+        var rect = go.GetComponent<RectTransform>(); UITheme.Place(rect, 0, 52, 460, 76);
+        var image = UITheme.Surface(go, UITheme.Control, true);
+        var button = go.AddComponent<Button>(); button.targetGraphic = image; UITheme.StyleSelectable(button);
+        button.onClick.AddListener(OpenHighScores);
+        var label = UITheme.Label(go.transform, "High Scores", 8, 4, 444, 68, 32);
+        label.alignment = TextAnchor.MiddleCenter;
+    }
+
+    void OpenHighScores()
+    {
+        if (companyCampaignView == null) companyCampaignView = gameObject.AddComponent<CompanyCampaignView>();
+        companyCampaignView.OpenHistory(this);
     }
 
     void PlaceMainButton(string objectName, string caption, float bottom)

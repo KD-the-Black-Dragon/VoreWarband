@@ -1,4 +1,6 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Consider available spell alternatives and valid ally targets (spec 40C).
+// Modified for the VoreWar mercenary-company conversion.
 // 2026-11-05: Use the shared downed-prey capacity rule in prey selection and cleanup planning.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // Modified for the VoreWar mercenary-company conversion.
@@ -305,7 +307,7 @@ public abstract class TacticalAI : ITacticalAI
 
                     // Reassess the remaining route after every step/reaction. Never
                     // execute a destination action just because movement was blocked.
-                    if (!State.GameManager.TacticalMode.Opportunities.Busy && !retreating && !OpportunityAttacks.RouteAllowed(actor, path.Path, path.ChargeTarget))
+                    if (!State.GameManager.TacticalMode.Opportunities.Busy && !retreating && !(path.HazardEscape ? HazardEscapeAllowed(actor, path.Path) : OpportunityAttacks.RouteAllowed(actor, path.Path, path.ChargeTarget)))
                     {
                         path = null;
                         return true;
@@ -334,6 +336,7 @@ public abstract class TacticalAI : ITacticalAI
                 {
                     if (onlyForeignTroopsLeft)
                         HandleLeftoverForeigns(actor);
+                    if (!retreating && TryLeaveHazard(actor)) return true;
                     if (!retreating && this is StandardTacticalAI && TryOpportunityCharge(actor)) return true;
                     GetNewOrder(actor);
                     return true; 
@@ -800,7 +803,8 @@ public abstract class TacticalAI : ITacticalAI
     // Prefer a safe route. Risk is a utility check, never extra AP/terrain cost.
     protected virtual void MoveToAndAction(Actor_Unit actor, Vec2i p, int howClose, int maxDistance, Action action)
     {
-        var tempPath = TacticalPathfinder.GetPath(actor.Position, p, howClose, actor, maxDistance, avoidOpportunity: true);
+        var tempPath = TacticalPathfinder.GetPath(actor.Position, p, howClose, actor, maxDistance, avoidOpportunity: true, avoidHazard: true);
+        if (tempPath == null) tempPath = TacticalPathfinder.GetPath(actor.Position, p, howClose, actor, maxDistance, avoidOpportunity: true);
         Actor_Unit target = action == null ? null : actors.FirstOrDefault(u => u.Position.Matches(p) &&
             OpportunityAttacks.CanAct(u) && TacticalUtilities.TreatAsHostile(actor, u));
         int safeCost = tempPath == null ? int.MaxValue : tempPath.Sum(n => OpportunityAttacks.MoveCost(actor, n));
@@ -811,6 +815,48 @@ public abstract class TacticalAI : ITacticalAI
         }
         foundPath = tempPath != null && tempPath.Count > 0;
         if (foundPath) path = new AIPlottedPath { Actor = actor, Path = tempPath, Action = action, ChargeTarget = target };
+    }
+
+    bool HazardEscapeAllowed(Actor_Unit actor, IList<PathNode> route)
+    {
+        TileEffect hazard;
+        if (!State.GameManager.TacticalMode.ActiveEffects.TryGetValue(new Vec2(actor.Position.x, actor.Position.y), out hazard) ||
+            hazard.Type != TileEffectType.Fire || hazard.RemainingDuration <= 0 || route == null || route.Count == 0) return false;
+        var destination = route[route.Count - 1];
+        if (TacticalPathfinder.IsBurning(destination.X, destination.Y) ||
+            route.Sum(node => OpportunityAttacks.MoveCost(actor, node)) > actor.Movement) return false;
+        int cost;
+        float risk = OpportunityAttacks.RouteRisk(actor, actor.Position, route, actor.Movement, out cost);
+        return cost <= actor.Movement && risk < hazard.Strength * actor.Unit.TraitBoosts.FireDamageTaken * Math.Min(2, hazard.RemainingDuration);
+    }
+
+    bool TryLeaveHazard(Actor_Unit actor)
+    {
+        TileEffect hazard;
+        if (!State.GameManager.TacticalMode.ActiveEffects.TryGetValue(new Vec2(actor.Position.x, actor.Position.y), out hazard) ||
+            hazard.Type != TileEffectType.Fire || hazard.RemainingDuration <= 0) return false;
+        float payoff = actors.Where(target => OpportunityAttacks.CanAct(target) && TacticalUtilities.TreatAsHostile(actor, target) &&
+            target.Position.GetNumberOfMovesDistance(actor.Position) == 1)
+            .Select(target => OpportunityAttacks.ExpectedDamage(actor, target)).DefaultIfEmpty(0).Max();
+        float exposure = hazard.Strength * actor.Unit.TraitBoosts.FireDamageTaken * Math.Min(2, hazard.RemainingDuration);
+        if (actor.Unit.Health > exposure && payoff >= exposure) return false;
+        List<PathNode> best = null;
+        float bestRisk = float.MaxValue;
+        foreach (var destination in TacticalUtilities.TilesWithinRange(actor.Position, actor.Movement))
+        {
+            if (TacticalPathfinder.IsBurning(destination.x, destination.y) || !TacticalUtilities.OpenTile(destination, actor)) continue;
+            var route = TacticalPathfinder.GetPath(actor.Position, destination, 0, actor, actor.Movement, avoidHazard: true);
+            if (route == null) route = TacticalPathfinder.GetPath(actor.Position, destination, 0, actor, actor.Movement);
+            if (route == null || route.Count == 0 || !HazardEscapeAllowed(actor, route)) continue;
+            int cost;
+            float risk = OpportunityAttacks.RouteRisk(actor, actor.Position, route, actor.Movement, out cost);
+            if (risk + cost * .01f >= bestRisk) continue;
+            best = route; bestRisk = risk + cost * .01f;
+        }
+        if (best == null) return false;
+        path = new AIPlottedPath { Actor = actor, Path = best, HazardEscape = true, Action = () => { } };
+        foundPath = true;
+        return true;
     }
 
     bool TryOpportunityCharge(Actor_Unit actor)
@@ -830,6 +876,11 @@ public abstract class TacticalAI : ITacticalAI
             if (!OpportunityAttacks.CanAffordCharge(actor, target, route)) continue;
             int cost;
             float risk = OpportunityAttacks.RouteRisk(actor, actor.Position, route, int.MaxValue, out cost);
+            var endpoint = route[route.Count - 1];
+            TileEffect hazard;
+            if (State.GameManager.TacticalMode.ActiveEffects.TryGetValue(new Vec2(endpoint.X, endpoint.Y), out hazard) &&
+                hazard.Type == TileEffectType.Fire && hazard.RemainingDuration > 0)
+                risk += hazard.Strength * actor.Unit.TraitBoosts.FireDamageTaken * Math.Min(2, hazard.RemainingDuration);
             float value = 1.75f * OpportunityAttacks.ExpectedDamage(actor, target) - risk;
             if (value <= bestValue) continue;
             bestValue = value;
@@ -1262,113 +1313,77 @@ public abstract class TacticalAI : ITacticalAI
         return targets.OrderByDescending(t => t.utility).ToList();
     }
 
+    List<Vec2i> SummonTiles(Actor_Unit actor, Spell spell, Vec2i position)
+    {
+        if (spell == SpellList.Summon && SpeciesPolicy.GetAvailable(SpeciesUse.CreatureSummon).Length == 0)
+            return new List<Vec2i>();
+        if (spell == SpellList.SummonSpawn && (!SpeciesPolicy.IsAllowed(actor.Unit.HiddenUnit.DetermineSpawnRace(), SpeciesUse.Spawn) ||
+            !SpeciesPolicy.IsAllowed(actor.Unit.HiddenUnit.DetermineSpawnRace(), SpeciesUse.CreatureSummon)))
+            return new List<Vec2i>();
+        if (spell == SpellList.SummonDoppelganger && !SpeciesPolicy.IsAllowed(actor.Unit.Race, SpeciesUse.Copy))
+            return new List<Vec2i>();
+        var open = TacticalUtilities.TilesWithinRange(position, Math.Min(2, spell.Range.Max))
+            .Where(tile => TacticalUtilities.OpenTile(tile, null)).ToList();
+        var safe = open.Where(tile => !TacticalPathfinder.IsBurning(tile.x, tile.y)).ToList();
+        return safe.Count > 0 ? safe : open;
+    }
+
     protected virtual int CheckSpells(Actor_Unit actor, Vec2i position, int ap)
     {
-        if (actor.Unit.UseableSpells == null || actor.Unit.UseableSpells.Any() == false)
-            return -1;
-
-        var availableSpells = actor.Unit.UseableSpells.Where(sp => sp != SpellList.Resurrection && sp != SpellList.Reanimate && sp != SpellList.Bind && sp.ManaCost <= actor.Unit.Mana).ToList();
-
-        if (availableSpells == null || availableSpells.Any() == false)
-            return -1;
-
-        Spell spell = availableSpells[State.Rand.Next(availableSpells.Count())];
-
-        if (State.GameManager.TacticalMode.IsOnlyOneSideVisible())
-            return -1;
-        if (spell == SpellList.Summon || spell == SpellList.SummonDoppelganger || spell == SpellList.SummonSpawn) 
+        if (actor.Unit.UseableSpells == null || ap <= 0 || State.GameManager.TacticalMode.IsOnlyOneSideVisible()) return -1;
+        foreach (var spell in actor.Unit.UseableSpells.Where(sp => !sp.IsRetired && sp.ManaCost <= actor.Unit.Mana))
         {
-            
-                        return 1;
-                    
-        }
-        List<PotentialTarget> targets = GetListOfPotentialSpellTargets(actor, spell, position);
-        if (!targets.Any())
-            return -1;
-        Actor_Unit reserveTarget = targets[0].actor;
-        while (targets.Any())
-        {
-            if (targets[0].distance <= spell.Range.Max)
+            if (spell.IsConsumption && !actor.Unit.Predator) continue;
+            if (spell == SpellList.Summon || spell == SpellList.SummonDoppelganger || spell == SpellList.SummonSpawn)
             {
-                if (actor.Unit.Mana >= spell.ManaCost && ap > 0)
+                if (SummonTiles(actor, spell, position).Count > 0) return 1;
+                continue;
+            }
+            foreach (var target in GetListOfPotentialSpellTargets(actor, spell, position))
+            {
+                if (target.distance <= spell.Range.Max) return 1;
+                if (target.actor.Position.GetNumberOfMovesDistance(actor.Position) < actor.Movement)
                 {
-                    return 1;
+                    int distance = CheckMoveTo(actor, position, target.actor.Position, 1, actor.Movement);
+                    if (distance >= 0 && distance < ap) return distance + 1;
                 }
             }
-            else
-            {
-                if (targets[0].actor.Position.GetNumberOfMovesDistance(actor.Position) < actor.Movement) //discard the clearly impossible
-                {
-                    var distance = CheckMoveTo(actor, position, targets[0].actor.Position, 1, actor.Movement);
-                    if (distance < ap && distance >= 0)
-                        return distance + 1;
-                }
-            }
-            targets.RemoveAt(0);
         }
         return -1;
     }
 
     protected virtual void RunSpells(Actor_Unit actor)
     {
-        if (actor.Unit.UseableSpells == null || actor.Unit.UseableSpells.Any() == false)
-            return;
-        var availableSpells = actor.Unit.UseableSpells.Where(sp => sp != SpellList.Resurrection && sp != SpellList.Reanimate && sp != SpellList.Bind && sp.ManaCost <= actor.Unit.Mana).ToList();
-
-        if (availableSpells == null || availableSpells.Any() == false)
-            return;
-
-        Spell spell = availableSpells[State.Rand.Next(availableSpells.Count())];
-
-        if ((spell == SpellList.Charm || spell == SpellList.HypnoGas) && TacticalUtilities.GetMindControlSide(actor.Unit) != -1) // Charmed units should not use charm. Trust me.
-            return;
-
-        if (State.GameManager.TacticalMode.IsOnlyOneSideVisible())
-            return;
-        if (spell == SpellList.Summon || spell == SpellList.SummonDoppelganger || spell == SpellList.SummonSpawn) //Replace with better logic later
+        if (actor.Unit.UseableSpells == null || State.GameManager.TacticalMode.IsOnlyOneSideVisible()) return;
+        var spells = actor.Unit.UseableSpells.Where(sp => !sp.IsRetired && sp.ManaCost <= actor.Unit.Mana).ToList();
+        if (spells.Count == 0) return;
+        int start = State.Rand.Next(spells.Count);
+        for (int index = 0; index < spells.Count; index++)
         {
-            for (int i = 0; i < 4; i++)
+            var spell = spells[(start + index) % spells.Count];
+            if (spell.IsConsumption && !actor.Unit.Predator) continue;
+            if (spell == SpellList.Summon || spell == SpellList.SummonDoppelganger || spell == SpellList.SummonSpawn)
             {
-                int x = State.Rand.Next(actor.Position.x - 2, actor.Position.x + 3);
-                int y = State.Rand.Next(actor.Position.y - 2, actor.Position.y + 3);
-                Vec2i loc = new Vec2i(x, y);
-                if (TacticalUtilities.OpenTile(loc, null))
+                var locations = SummonTiles(actor, spell, actor.Position);
+                if (locations.Count > 0 && spell.TryCast(actor, locations[State.Rand.Next(locations.Count)]))
+                { didAction = true; return; }
+                continue;
+            }
+            foreach (var target in GetListOfPotentialSpellTargets(actor, spell, actor.Position))
+            {
+                if (!target.actor.InSight && State.World.IsNight) continue;
+                if (target.distance <= spell.Range.Max)
                 {
-                    if (spell.TryCast(actor, loc))
-                    {
-                        didAction = true;
-                        return;
-                    }
+                    if (spell.TryCast(actor, target.actor)) { didAction = true; return; }
+                }
+                else if (target.actor.Position.GetNumberOfMovesDistance(actor.Position) <= actor.Movement + spell.Range.Max)
+                {
+                    var selected = target;
+                    MoveToAndAction(actor, selected.actor.Position, spell.Range.Max, actor.Movement, () => spell.TryCast(actor, selected.actor));
+                    if (foundPath && path.Path.Count() < actor.Movement) return;
+                    foundPath = false; path = null;
                 }
             }
-        }
-        List<PotentialTarget> targets = GetListOfPotentialSpellTargets(actor, spell, actor.Position);
-        if (!targets.Any())
-            return;
-        Actor_Unit reserveTarget = targets[0].actor;
-        while (targets.Any())
-        {
-            if (targets[0].distance <= spell.Range.Max && (targets[0].actor.InSight || !State.World.IsNight))
-            {
-                if (spell.TryCast(actor, targets[0].actor))
-                    didAction = true;
-                return;
-            }
-            else
-            {
-                if (targets[0].actor.Position.GetNumberOfMovesDistance(actor.Position) <= actor.Movement + spell.Range.Max && (targets[0].actor.InSight || !State.World.IsNight)) //discard the clearly impossible
-                {
-                    MoveToAndAction(actor, targets[0].actor.Position, spell.Range.Max, actor.Movement, () => spell.TryCast(actor, targets[0].actor));
-                    if (foundPath && path.Path.Count() < actor.Movement)
-                        return;
-                    else
-                    {
-                        foundPath = false;
-                        path = null;
-                    }
-                }
-            }
-            targets.RemoveAt(0);
         }
     }
 
@@ -1417,7 +1432,7 @@ public abstract class TacticalAI : ITacticalAI
                     continue;
                 if (spell is StatusSpell statSpell)
                 {
-                    if (actor.Unit.GetStatusEffect(statSpell.Type) != null)
+                    if (unit.Unit.GetStatusEffect(statSpell.Type) != null)
                         continue;
                 }
                 if (unit.Targetable == true && unit.Surrendered == false)

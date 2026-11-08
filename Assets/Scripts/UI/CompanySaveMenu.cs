@@ -1,8 +1,10 @@
-﻿// Added by the VoreWar mercenary-company conversion fork.
+// Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-06: Load summary catalogs in the background and reuse them while paging/hovering.
 // 2026-11-05: Ellipsize long save-list captions while preserving full preview details (spec 38 phase C).
 // 2026-11-03: Unified named Save/Load browser, progress previews, confirmations and Ironman controls (spec 19).
 // See CHANGES.md and License.txt for GPL-3.0 terms; inherited notices remain applicable.
 using System;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,6 +24,9 @@ internal sealed class CompanySaveMenu : MonoBehaviour
     string saveName = "Manual save";
     bool returnToMenu, confirming;
     int page;
+    Task<List<CompanySaveSlots.Entry>> catalog;
+    Task<string> saving;
+    string catalogError;
     internal static void Show(CompanyCampaignView owner)
     {
         if (instance == null) instance = State.GameManager.gameObject.AddComponent<CompanySaveMenu>();
@@ -29,7 +34,7 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         instance.view = State.GameManager.CompanyBattle == null ? owner : State.GameManager.CompanyBattle.View;
         instance.returnToMenu = State.GameManager.Menu.UIPanel.activeSelf;
         State.GameManager.Menu.UIPanel.SetActive(false);
-        instance.page = 0; instance.selected = null; instance.Render();
+        instance.page = 0; instance.selected = null; instance.BeginCatalog();
     }
     CompanyCampaign Current => State.GameManager.CompanyBattle != null ? State.GameManager.CompanyBattle.Campaign : view != null && view.HasActiveCompany ? view.Campaign : null;
     bool CanSave => Current != null && !Current.Ironman && !Current.Ended && (!Current.InBattle || State.GameManager.TacticalMode.CanSaveCompanyBattle);
@@ -44,8 +49,19 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         {
             if (!State.GameManager.TacticalMode.CanSaveCompanyBattle) { State.GameManager.CreateMessageBox("Wait until your side is ready to act before saving."); return; }
         }
-        try { if (battle != null) battle.Capture(); CompanySaveSlots.Manual(state, "Quicksave"); }
+        try { if (battle != null) battle.Capture(); ObserveQuickSave(CompanySaveWorker.Manual(state, "Quicksave")); }
         catch (Exception ex) { State.GameManager.CreateMessageBox("Save failed: " + ex.Message); }
+    }
+    static async void ObserveQuickSave(Task<string> result)
+    {
+        try { await result; } catch { } // The worker's nonblocking notice reports failures.
+    }
+    void BeginCatalog()
+    {
+        string directory = CompanyCampaignSave.DefaultDirectory;
+        entries = new List<CompanySaveSlots.Entry>(); catalogError = null;
+        catalog = Task.Run(() => CompanySaveSlots.List(directory));
+        Render();
     }
     void Render()
     {
@@ -63,7 +79,6 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         }
         window.SetActive(true);
         foreach (Transform child in panel.transform) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
-        entries = CompanySaveSlots.List();
         if (selected != null) selected = entries.FirstOrDefault(e => e.Path == selected.Path);
         if (selected == null) selected = entries.FirstOrDefault();
         page = Mathf.Clamp(page, 0, Math.Max(0, (entries.Count - 1) / 8));
@@ -74,9 +89,9 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         for (int i = page * 8; i < Math.Min(entries.Count, page * 8 + 8); i++)
         {
             var entry = entries[i];
-            string leader = entry.State.Characters.First(c => c.Id == entry.State.LeaderId).Unit.Name;
-            var button = Button(entry.Name + " — " + leader + " — Day " + (entry.State.ElapsedDays + 1) + (entry.State.SaveKind == 3 ? "" : " [Autosave]"), 24, 122 + (i % 8) * 48, 620, 42, () =>
-            { selected = entry; if (entry.State.SaveKind == 3) saveName = entry.Name; Render(); });
+            string leader = entry.Summary.Leader;
+            var button = Button(entry.Name + " — " + leader + " — Day " + entry.Summary.Day + (entry.Summary.Kind == 3 ? "" : " [Autosave]"), 24, 122 + (i % 8) * 48, 620, 42, () =>
+            { selected = entry; if (entry.Summary.Kind == 3) saveName = entry.Name; Render(); });
             FitSaveCaption(button);
             var trigger = button.gameObject.AddComponent<EventTrigger>();
             var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
@@ -90,12 +105,12 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         {
             string path = selected.Path;
             // Read/validate before closing the active battle or installing another company.
-            CompanyCampaignSave.LoadForResume(path);
-            Close(false); view.LoadCheckpoint(path);
+            var candidate = CompanyCampaignSave.LoadForResume(path);
+            Close(false); view.LoadCheckpoint(path, candidate);
         }), selected != null);
-        Button("Delete", 896, 500, 200, 44, () => Confirm(selected.State.Ironman ? "Delete this Ironman company and its recovery saves?" : "Delete this saved game and its backup copies?", "Delete", () =>
+        Button("Delete", 896, 500, 200, 44, () => Confirm(selected.Summary.Ironman ? "Delete this Ironman company and its recovery saves?" : "Delete this saved game and its backup copies?", "Delete", () =>
         {
-            bool activeIronman = Current != null && Current.Ironman && Current.Id == selected.State.Id;
+            bool activeIronman = Current != null && Current.Ironman && Current.Id == selected.Summary.Id;
             CompanySaveSlots.Delete(selected);
             if (activeIronman)
             {
@@ -103,7 +118,7 @@ internal sealed class CompanySaveMenu : MonoBehaviour
                 if (State.GameManager.CompanyBattle != null) State.GameManager.CompanyBattle.AbandonForLoad();
                 view.ReturnToMainMenu();
             }
-            else { selected = null; Render(); }
+            else { selected = null; BeginCatalog(); }
         }), selected != null);
         Label("Save name", 24, 566, 420, 25, 16);
         var go = UITheme.Node("Save name", panel.transform); UITheme.Place(go.GetComponent<RectTransform>(), 24, 596, 420, 38);
@@ -111,9 +126,9 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         nameField.textComponent = UITheme.Label(go.transform, "", 8, 2, 404, 34, 18);
         nameField.text = saveName; nameField.characterLimit = 64; nameField.interactable = CanSave;
         nameField.onValueChanged.AddListener(value => saveName = value);
-        Button("Save", 464, 596, 180, 38, Save, CanSave);
+        Button("Save", 464, 596, 180, 38, Save, CanSave && saving == null);
         Button("Close", 896, 596, 200, 38, () => Close(true));
-        status = Label(entries.Count == 0 ? "No saved games yet." : "Select a save or hover over it to view company progress.", 24, 650, 1072, 36, 16);
+        status = Label(saving != null ? "Saving…" : catalog != null ? "Reading saved games…" : catalogError != null ? catalogError : entries.Count == 0 ? "No saved games yet." : "Select a save or hover over it to view company progress.", 24, 650, 1072, 36, 16);
     }
     void Save()
     {
@@ -121,9 +136,9 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         Action save = () =>
         {
             if (State.GameManager.CompanyBattle != null) State.GameManager.CompanyBattle.Capture();
-            CompanySaveSlots.Manual(Current, saveName); Render(); status.text = "Game saved.";
+            saving = CompanySaveWorker.Manual(Current, saveName); Render(); status.text = "Saving…";
         };
-        if (entries.Any(e => e.State.Id == Current.Id && e.State.SaveKind == 3 && string.Equals(e.Name, saveName.Trim(), StringComparison.OrdinalIgnoreCase)))
+        if (entries.Any(e => e.Summary.Id == Current.Id && e.Summary.Kind == 3 && string.Equals(e.Name, saveName.Trim(), StringComparison.OrdinalIgnoreCase)))
             Confirm("Replace the saved game named " + saveName + "?", "Save", save);
         else save();
     }
@@ -160,5 +175,21 @@ internal sealed class CompanySaveMenu : MonoBehaviour
         if (restoreMenu && returnToMenu) State.GameManager.Menu.UIPanel.SetActive(true);
         else State.GameManager.CloseMenu();
     }
-    void Update() { if (IsVisible && !confirming && !State.GameManager.ActiveInput && Input.GetButtonDown("Menu")) Close(true); }
+    void Update()
+    {
+        if (saving != null && saving.IsCompleted)
+        {
+            string result = saving.IsCanceled ? "Save cancelled." : saving.IsFaulted ? "Save failed: " + saving.Exception.GetBaseException().Message : "Game saved.";
+            saving = null;
+            if (IsVisible) { BeginCatalog(); status.text = result; }
+        }
+        if (catalog != null && catalog.IsCompleted)
+        {
+            if (catalog.IsFaulted) catalogError = "Could not read saves: " + catalog.Exception.GetBaseException().Message;
+            else entries = catalog.Result;
+            catalog = null;
+            if (IsVisible) Render();
+        }
+        if (IsVisible && !confirming && !State.GameManager.ActiveInput && Input.GetButtonDown("Menu")) Close(true);
+    }
 }

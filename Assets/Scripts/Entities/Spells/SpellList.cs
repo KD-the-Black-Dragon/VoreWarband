@@ -1,4 +1,6 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Clarify battle-only mending recovery for the spellbook catalog (spec 40C).
+// Modified for the VoreWar mercenary-company conversion.
 // 2026-10-30: Generic creature summoning requires an approved enabled animal; no fallback (spec 03A1).
 // 2026-10-30: Preflight clone and mapped summon destinations before spending cast resources (spec 03A2).
 // 2026-10-30: 04B2: Replace callback prose with neutral action and status notices.
@@ -52,6 +54,12 @@ public enum AreaOfEffectType
 
 static class SpellList
 {
+    internal static int SummonExperience(Unit caster)
+    {
+        double accumulated = CompanyProgression.Threshold(caster.Level - 1, 1) + Math.Max(0, caster.Experience);
+        return (int)(Math.Min(int.MaxValue - 1024L, accumulated) / 2);
+    }
+
     static internal readonly DamageSpell Fireball;
     static internal readonly DamageSpell PowerBolt;
     static internal readonly DamageSpell Icicle;
@@ -60,6 +68,7 @@ static class SpellList
     static internal readonly DamageSpell JoltCrash;
     static internal readonly StatusSpell Meditate;
     static internal readonly StatusSpell Shield;
+    static internal readonly DamageSpell CinderField;
     static internal readonly StatusSpell Mending;
     static internal readonly StatusSpell Speed;
     static internal readonly StatusSpell Valor;
@@ -329,7 +338,7 @@ static class SpellList
             Name = "Mending",
             Id = "mending",
             SpellType = SpellTypes.Mending,
-            Description = "Heals target over time",
+            Description = "Grants temporary health over time during battle",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Ally },
             Range = new Range(4),
             Duration = (a, t) => 1 + a.Unit.GetStat(Stat.Mind) / 10,
@@ -463,6 +472,29 @@ static class SpellList
             },
         };
         SpellDict[SpellTypes.Pyre] = Pyre;
+
+        CinderField = new DamageSpell()
+        {
+            Name = "Cinder Field", Id = "cinder-field", SpellType = SpellTypes.CinderField,
+            Description = "Damages all units in the area and leaves burning ground for three side turns.",
+            AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Enemy, AbilityTargets.Tile },
+            Range = new Range(6), AreaOfEffect = 1, Tier = 2, Resistable = true,
+            DamageType = DamageTypes.Fire,
+            Damage = (a, t) => 2 + a.Unit.GetStat(Stat.Intelligence) / 15,
+            OnExecute = (a, t) =>
+            {
+                a.CastOffensiveSpell(CinderField, t);
+                TacticalUtilities.CreateEffect(t.Position, TileEffectType.Fire, 1, 3 + a.Unit.GetStat(Stat.Intelligence) / 12, 3, a.Unit.Side);
+                State.GameManager.SoundManager.PlaySpellCast(Fireball, a);
+            },
+            OnExecuteTile = (a, location) =>
+            {
+                a.CastOffensiveSpell(CinderField, null, location);
+                TacticalUtilities.CreateEffect(location, TileEffectType.Fire, 1, 3 + a.Unit.GetStat(Stat.Intelligence) / 12, 3, a.Unit.Side);
+                State.GameManager.SoundManager.PlaySpellCast(Fireball, a);
+            },
+        };
+        SpellDict[SpellTypes.CinderField] = CinderField;
 
         CrossShock = new DamageSpell()
         {
@@ -642,7 +674,7 @@ static class SpellList
             Name = "Trance",
             Id = "trance",
             SpellType = SpellTypes.Trance,
-            Description = "Puts target to sleep, duration scales with mind",
+            Description = "Puts target to sleep; duration increases with Intelligence",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Enemy },
             Range = new Range(6),
             Duration = (a, t) => 1 + a.Unit.GetStat(Stat.Mind) / 20,
@@ -905,7 +937,7 @@ static class SpellList
             Name = "Summon",
             Id = "summon",
             SpellType = SpellTypes.Summon,
-            Description = "Summons a random enabled animal at 50 % of the caster’s experience. Requires an approved animal species.",
+            Description = "Summons an enabled animal using half the caster’s accumulated experience. Requires an approved animal species.",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Tile },
             Range = new Range(4),
             Tier = 3,
@@ -918,7 +950,7 @@ static class SpellList
                 if (TacticalUtilities.OpenTile(loc, null) && a.CastSpell(Summon, null))
                 {
                     Race summonRace = available[State.Rand.Next(available.Length)];
-                    Unit unit = new Unit(a.Unit.Side, summonRace, (int)(a.Unit.Experience * .50f), true, UnitType.Summon);
+                    Unit unit = new Unit(a.Unit.Side, summonRace, SummonExperience(a.Unit), true, UnitType.Summon);
                     var actorCharm = a.Unit.GetStatusEffect(StatusEffectType.Charmed) ?? a.Unit.GetStatusEffect(StatusEffectType.Hypnotized);
                     if (actorCharm != null)
                     {
@@ -951,7 +983,7 @@ static class SpellList
                 if (TacticalUtilities.OpenTile(loc, null) && a.CastSpell(SummonDoppelganger, null))
                 {
                     bool checkResourceful = false;
-                    Unit unit = new Unit(a.Unit.Side, a.Unit.Race, (int)(a.Unit.Experience * .50f), true, UnitType.Summon);
+                    Unit unit = new Unit(a.Unit.Side, a.Unit.Race, SummonExperience(a.Unit), true, UnitType.Summon);
                     unit.Name = a.Unit.Name;
                     foreach (Traits trait in a.Unit.GetTraits)
                     {
@@ -993,11 +1025,11 @@ static class SpellList
                 Race trueSpawnRace = a.Unit.HiddenUnit.DetermineSpawnRace();
                 if (spawnRace != trueSpawnRace)
                     spawnRace = trueSpawnRace;
-                if (!SpeciesPolicy.IsAllowed(spawnRace, SpeciesUse.Spawn))
+                if (!SpeciesPolicy.IsAllowed(spawnRace, SpeciesUse.Spawn) || !SpeciesPolicy.IsAllowed(spawnRace, SpeciesUse.CreatureSummon))
                     return;
                 if (TacticalUtilities.OpenTile(loc, null) && a.CastSpell(SummonSpawn, null))
                 {
-                    Unit unit = new Unit(a.Unit.Side, spawnRace, (int)(a.Unit.Experience * .50f), true, UnitType.Summon);
+                    Unit unit = new Unit(a.Unit.Side, spawnRace, SummonExperience(a.Unit), true, UnitType.Summon);
                     unit.AddTrait(Traits.Feral);
                     var actorCharm = a.Unit.GetStatusEffect(StatusEffectType.Charmed) ?? a.Unit.GetStatusEffect(StatusEffectType.Hypnotized);
                     if (actorCharm != null)

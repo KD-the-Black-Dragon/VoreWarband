@@ -1,4 +1,8 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Display company weapon art for the last melee or ranged weapon used.
+// 2026-11-07: Keep inborn traits out of form-based trait sharing (spec 40D).
+// 2026-11-07: Persist per-actor evidence for post-battle trait progression (spec 40D).
+// 2026-11-06: Use frozen per-character AP and body size (spec 40A).
 // 2026-11-05: Use the shared downed-prey capacity rule in special vore actions.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // Modified for the VoreWar mercenary-company conversion.
@@ -96,6 +100,15 @@ public class Actor_Unit
 
     [OdinSerialize]
     public Unit Unit { get; private set; }
+    [OdinSerialize] CompanyBattleEvidence battleEvidence = new CompanyBattleEvidence();
+    internal CompanyBattleEvidence Evidence
+    {
+        get
+        {
+            if (battleEvidence == null) battleEvidence = new CompanyBattleEvidence();
+            return battleEvidence;
+        }
+    }
     [OdinSerialize]
     public Vec2i Position { get; private set; }
     [OdinSerialize]
@@ -124,7 +137,7 @@ public class Actor_Unit
                 if (value)
                 {
                     if (Unit.Type == UnitType.Summon) { Unit.Health = 0; Unit.Downed = false; }
-                    else Unit.Downed = true;
+                    else { Unit.Downed = true; CompanyPostBattleTraits.RecordDowned(Unit); }
                     Movement = 0;
                 }
             }
@@ -380,7 +393,7 @@ public class Actor_Unit
 
     public int MaxMovement()
     {
-        return WarbandStats.BaseAP(Unit.Race);
+        return Unit.SpeciesSettings.GetBaseAP(Unit.Race);
     }
 
     public int CurrentMaxMovement()
@@ -401,6 +414,7 @@ public class Actor_Unit
         animationUpdateTime = 0;
         Position = new Vec2i(0, 0);
         Unit = unit;
+        Evidence.StartingMaxHealth = Math.Max(1, unit.MaxHealth);
         Visible = true;
         Targetable = true;
         MultifacetedCooldown = Unit.HasTrait(Traits.Multifaceted) && Unit.IsHighestStat(Stat.Agility) ? Unit.Level + 1 : 0; // Set timer for extra attacks.
@@ -415,6 +429,7 @@ public class Actor_Unit
         animationUpdateTime = 0;
         Position = reciepient.Position;
         Unit = unit;
+        Evidence.StartingMaxHealth = Math.Max(1, unit.MaxHealth);
         Visible = false;
         Targetable = false;
         MultifacetedCooldown = Unit.HasTrait(Traits.Multifaceted) && Unit.IsHighestStat(Stat.Agility) ? Unit.Level + 1 : 0; // Set timer for extra attacks.
@@ -431,6 +446,7 @@ public class Actor_Unit
         animationUpdateTime = 0;
         Position = p;
         Unit = unit;
+        Evidence.StartingMaxHealth = Math.Max(1, unit.MaxHealth);
         if (!unit.BattleActive && State.GameManager.CurrentScene == State.GameManager.TacticalMode) unit.BeginCombat();
         MultifacetedCooldown = Unit.HasTrait(Traits.Multifaceted) && Unit.IsHighestStat(Stat.Agility) ? Unit.Level + 1 : 0; // Set timer for extra attacks.
         Visible = true;
@@ -810,8 +826,30 @@ public class Actor_Unit
     public bool HasBodyWeight => Unit.Race != Race.Lizards;
 
     public int GetBodyWeight() => (Config.WeightGain || Unit.BodySizeManuallyChanged) ? Unit.BodySize : Mathf.Min(Config.DefaultStartingWeight, Races.GetRace(Unit).BodySizes);
+    internal Weapon WeaponForDisplay
+    {
+        get
+        {
+            if (Unit == null || !Unit.CompanyLoadout)
+                return BestRanged ?? (BestMelee != null && BestMelee != Unit?.ItemCatalog?.Claws ? BestMelee : null);
+
+            Weapon melee = BestMelee;
+            if (melee != null && Unit.ItemCatalog != null && melee == Unit.ItemCatalog.Claws)
+                melee = null;
+            Weapon ranged = BestRanged;
+            return Unit.CompanyLastUsedWeaponRanged ? (ranged ?? melee) : (melee ?? ranged);
+        }
+    }
+
     public int GetWeaponSprite()
     {
+        if (Unit != null && Unit.CompanyLoadout)
+        {
+            Weapon selected = WeaponForDisplay;
+            if (selected == null || selected.Graphic < 0)
+                return 0;
+            return selected.Graphic + (Mode == DisplayMode.Attacking ? 1 : 0);
+        }
         if (BestRanged != null)
         {
             if (Mode != DisplayMode.Attacking)
@@ -1748,6 +1786,7 @@ public class Actor_Unit
             if ((targetRange >= 2 || (targetRange >= 1 && weapon.Omni)) && targetRange <= weapon.Range)
             {
                 animationUpdateTime = 1.0F;
+                if (!forceBite) Unit.RecordCompanyWeaponUse(true);
                 Mode = DisplayMode.Attacking;
 
                 if (Unit.HasTrait(Traits.AwfulAim))
@@ -1762,6 +1801,7 @@ public class Actor_Unit
                 int remainingHealth = target.Unit.Health;
                 float resolvedChance;
                 int result = ResolveWeaponHit(target, true, out resolvedChance);
+                CompanyPostBattleTraits.RecordIncomingAttack(target, freeAttack);
                 grazebool = result == 3; critbool = result == 2;
                 damageMultiplier *= ResultDamageMultiplier(target, result);
                 int damage = WeaponDamageAgainstTarget(target, true, multiplier: damageMultiplier);
@@ -1771,8 +1811,11 @@ public class Actor_Unit
                 if (Unit.GetStatusEffect(StatusEffectType.Sharpness) != null)
                     damage += damage * (Unit.GetStatusEffect(StatusEffectType.Sharpness).Duration / 100);
                 State.GameManager.SoundManager.PlaySwing(this);
+                bool wasDowned = target.Unit.Downed;
                 if (target.Defend(this, ref damage, true, out float chance, canKill, result != 0, resolvedChance, result != 3))
                 {
+                    CompanyPostBattleTraits.RecordDamageDealt(this, true, Mathf.Min(damage, remainingHealth));
+                    if (!wasDowned && target.Unit.Downed) CompanyPostBattleTraits.RecordDownedBy(this, true, false);
                     EquipmentFunctions.CheckEquipment(Unit, EquipmentActivator.OnRangedHit, new object[] { this, target, damage });
 
                     foreach (IAttackStatusEffect trait in Unit.AttackStatusEffects)
@@ -1843,6 +1886,7 @@ public class Actor_Unit
             if (targetRange < 2)
             {
                 animationUpdateTime = 1.0F;
+                if (!forceBite) Unit.RecordCompanyWeaponUse(false);
                 Mode = DisplayMode.Attacking;
                 int meleeAttacks = Unit.TraitBoosts.MeleeAttacks;
                 meleeAttacks += extraAttacks + Unit.TempBoosts.ExtraAttacks;
@@ -1854,6 +1898,7 @@ public class Actor_Unit
                 int remainingHealth = target.Unit.Health;
                 float resolvedChance;
                 int result = ResolveWeaponHit(target, false, out resolvedChance);
+                CompanyPostBattleTraits.RecordIncomingAttack(target, freeAttack);
                 grazebool = result == 3; critbool = result == 2;
                 damageMultiplier *= ResultDamageMultiplier(target, result);
                 int damage = WeaponDamageAgainstTarget(target, false, multiplier: damageMultiplier, forceBite: forceBite, opportunity: freeAttack);
@@ -1885,8 +1930,11 @@ public class Actor_Unit
                     }
                     if (!freeAttack && !Surrendered && SelfPrey == null) Movement = movementholder; // Do not revive incapacitated attackers.
                 }
+                bool wasDowned = target.Unit.Downed;
                 if (target.Defend(this, ref damage, false, out float chance, canKill, result != 0, resolvedChance, result != 3))
                 {
+                    CompanyPostBattleTraits.RecordDamageDealt(this, false, Mathf.Min(damage, remainingHealth));
+                    if (!wasDowned && target.Unit.Downed) CompanyPostBattleTraits.RecordDownedBy(this, false, false);
 
                     EquipmentFunctions.CheckEquipment(Unit, EquipmentActivator.OnMeleeHit, new object[] { this, target, damage });
 
@@ -2081,7 +2129,9 @@ public class Actor_Unit
             State.GameManager.CameraCall(Position);
         chance = spell.Resistable ? GetMagicChance(attacker, spell, mod, stat) : 1;
         float r = (float)State.Rand.NextDouble();
-        return r < chance;
+        bool hit = r < chance;
+        CompanyPostBattleTraits.RecordSpellAttempt(attacker, hit);
+        return hit;
 
     }
 
@@ -2174,6 +2224,8 @@ public class Actor_Unit
             bool wasDowned = Surrendered;
             damage = Math.Max(1, damage);
             ResolveDamage(damage, true, true, spell.DamageType, true, true, out damage);
+            CompanyPostBattleTraits.RecordMagicDamage(attacker, Mathf.Min(damage, remainingHealth));
+            if (!wasDowned && Surrendered) CompanyPostBattleTraits.RecordDownedBy(attacker, false, true);
             State.GameManager.TacticalMode.TacticalStats.RegisterHit(spell, Mathf.Min(damage, remainingHealth), attacker.Unit.Side);
             State.GameManager.TacticalMode.Log.RegisterSpellHit(attacker.Unit, Unit, spell.SpellType, damage, chance);
             if (attacker.Unit.FixedSide == TacticalUtilities.GetMindControlSide(Unit))
@@ -2550,7 +2602,7 @@ public class Actor_Unit
 
     public float BodySize()
     {
-        float size = State.RaceSettings.GetBodySize(Unit.Race);
+        float size = Unit.SpeciesSettings.GetBodySize(Unit.Race);
 
         size *= Unit.GetScale(2);
 
@@ -3301,13 +3353,19 @@ public class Actor_Unit
     int ResolveWeaponHit(Actor_Unit target, bool ranged, out float chance)
     {
         chance = target.GetAttackChance(this, ranged);
+        int result;
         if (State.Rand.NextDouble() >= chance)
-            return chance >= .51f && (Unit.HasTrait(Traits.KeenEye) || State.Rand.NextDouble() < chance) ? 3 : 0;
-        float critical = CritCheck(this, target);
-        critical += Unit.TraitBoosts.Outgoing.CritRateShift - target.Unit.TraitBoosts.Incoming.CritRateShift;
-        critical *= TagConditionChecker.ApplyTagEffect(Unit, target.Unit, UnitTagModifierEffect.CritRateShift);
-        critical += TieredTraits.Amount(Unit, TierEffect.CriticalChance) - CompanyInjuries.CriticalPenalty(Unit);
-        return State.Rand.NextDouble() < Mathf.Clamp01(critical) ? 2 : 1;
+            result = chance >= .51f && (Unit.HasTrait(Traits.KeenEye) || State.Rand.NextDouble() < chance) ? 3 : 0;
+        else
+        {
+            float critical = CritCheck(this, target);
+            critical += Unit.TraitBoosts.Outgoing.CritRateShift - target.Unit.TraitBoosts.Incoming.CritRateShift;
+            critical *= TagConditionChecker.ApplyTagEffect(Unit, target.Unit, UnitTagModifierEffect.CritRateShift);
+            critical += TieredTraits.Amount(Unit, TierEffect.CriticalChance) - CompanyInjuries.CriticalPenalty(Unit);
+            result = State.Rand.NextDouble() < Mathf.Clamp01(critical) ? 2 : 1;
+        }
+        CompanyPostBattleTraits.RecordWeaponAttempt(this, ranged, result);
+        return result;
     }
     internal float ResultDamageMultiplier(Actor_Unit target, int result)
     {
@@ -3532,7 +3590,7 @@ public class Actor_Unit
 
     internal void ShareTrait(Traits trait,Traits maxTrait = Traits.Infiltrator)
     {
-        if (trait < maxTrait && !TraitsMethods.IsRaceModifying(trait))
+        if (trait < maxTrait && !TraitsMethods.IsRaceModifying(trait) && !CompanyPostBattleTraits.IsInborn(trait))
         {
             if (!Unit.HasTrait(trait))
                 Unit.AddSharedTrait(trait);
@@ -3549,7 +3607,7 @@ public class Actor_Unit
             Unit.HideRace(template.Race, template);
             foreach (Traits trait in template.GetTraits)
             {
-                if ((!Unit.HasTrait(trait) || Unit.HasSharedTrait(trait)) && !TraitsMethods.IsRaceModifying(trait))
+                if ((!Unit.HasTrait(trait) || Unit.HasSharedTrait(trait)) && !TraitsMethods.IsRaceModifying(trait) && !CompanyPostBattleTraits.IsInborn(trait))
                     if (permanent)
                         Unit.AddPermanentTrait(trait);
                     else

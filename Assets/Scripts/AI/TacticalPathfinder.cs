@@ -1,4 +1,6 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Support AI route searches that avoid active ground fire (spec 40C).
+// Modified for the VoreWar mercenary-company conversion.
 // 2026-11-04: Optional reaction-free routes and safe occupied-tile transit, separate from AP costs (spec 30).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System.Collections.Generic;
@@ -11,7 +13,14 @@ public static class TacticalPathfinder
 {
 
 
-    internal static List<PathNode> GetPath(Vec2i origin, Vec2i destination, int howClose, Actor_Unit actor, int maxDistance = 999, bool avoidOpportunity = false)
+    internal static bool IsBurning(int x, int y)
+    {
+        TileEffect effect;
+        return State.GameManager.TacticalMode.ActiveEffects.TryGetValue(new Vec2(x, y), out effect) &&
+            effect.Type == TileEffectType.Fire && effect.RemainingDuration > 0;
+    }
+
+    internal static List<PathNode> GetPath(Vec2i origin, Vec2i destination, int howClose, Actor_Unit actor, int maxDistance = 999, bool avoidOpportunity = false, bool avoidHazard = false)
     {
         if (origin.GetNumberOfMovesDistance(destination) > maxDistance) //Can't possibly get it in under this distance
             return null;
@@ -93,6 +102,7 @@ public static class TacticalPathfinder
 
             foreach (var adjacentSquare in adjacentSquares)
             {
+                if (avoidHazard && IsBurning(adjacentSquare.X, adjacentSquare.Y)) continue;
                 // A reaction-interrupted actor must not be stranded on another actor.
                 if (!TacticalUtilities.OpenTile(adjacentSquare.X, adjacentSquare.Y, actor) &&
                     (OpportunityAttacks.Threats(actor, new Vec2i(current.X, current.Y)).Any() ||

@@ -2,6 +2,7 @@
 // 2026-11-04: Apply explainable healthy power and approved capped encounter scaling (spec 34 slice 3).
 // 2026-11-02: Saved travel encounters and the approved practice-duel proof of concept (spec 13).
 // 2026-11-02: Reduce new slug encounter power budgets by 30% after player review (spec 13 feedback).
+// 2026-11-08: Apply and persist calendar pressure only on newly generated road encounters (spec 40F).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,8 @@ internal sealed class CompanyRoadEvent
     public string Id, Result;
     public CompanyRoadEventKind Kind;
     public CompanyRoadEventPhase Phase;
-    public int Tile, Rating;
+    public int Tile, Rating, DifficultyRevision, CalendarAgeDays;
+    public double CalendarPressure, TargetPower;
     public bool DuelSuccess;
     public string[] ParticipantIds = new string[0];
     public List<string> EnemyIds = new List<string>();
@@ -60,13 +62,18 @@ internal static class CompanyRoadEvents
         {
             occurrence.Kind = CompanyRoadEventKind.SpitterSlugs;
             occurrence.Phase = CompanyRoadEventPhase.Battle;
-            double budget = EncounterPower(state);
+            double pressure = CompanyContracts.CalendarPressure(state);
+            double budget = EncounterPower(state) * CompanyContracts.RoadEncounterMultiplier(pressure);
+            occurrence.DifficultyRevision = CompanyContracts.DifficultyRevision;
+            occurrence.CalendarAgeDays = CompanyContracts.CalendarAgeDays(state);
+            occurrence.CalendarPressure = pressure;
+            occurrence.TargetPower = budget;
             var first = CompanyContracts.Enemy(state, Race.SpitterSlugs, 1);
             var enemies = new List<CompanyCharacter> { first };
             double sum = CompanyContracts.Power(first.Unit);
             while(sum * CompanyPower.FormationMultiplier(enemies.Count) < budget)
             {
-                if(enemies.Count>=128)throw new InvalidOperationException("This company exceeds the road-encounter prototype's supported force size.");
+                if(enemies.Count>=128)break;
                 var next=CompanyContracts.Enemy(state,Race.SpitterSlugs,1);double nextPower=CompanyContracts.Power(next.Unit);
                 double before=sum*CompanyPower.FormationMultiplier(enemies.Count);
                 double after=(sum+nextPower)*CompanyPower.FormationMultiplier(enemies.Count+1);
@@ -126,6 +133,8 @@ internal static class CompanyRoadEvents
             (e.Phase != CompanyRoadEventPhase.Closed && e.ParticipantIds.Any(id => !state.Members.Any(m => m.CharacterId == id)))))
             throw new InvalidOperationException("Invalid practice-duel participants.");
         if (e.Kind == CompanyRoadEventKind.SpitterSlugs && (e.EnemyIds.Count == 0 || e.Rating < 1 ||
+            e.DifficultyRevision < 0 || e.CalendarAgeDays < 0 || double.IsNaN(e.CalendarPressure) || double.IsInfinity(e.CalendarPressure) || e.CalendarPressure < 0 ||
+            double.IsNaN(e.TargetPower) || double.IsInfinity(e.TargetPower) || e.TargetPower < 0 ||
             e.ParticipantIds.Length != 0 || (e.Phase != CompanyRoadEventPhase.Battle && e.Phase != CompanyRoadEventPhase.Closed) ||
             (e.Phase == CompanyRoadEventPhase.Battle && (state.Battle == null || state.Battle.RoadEventId != e.Id))))
             throw new InvalidOperationException("Invalid road-encounter battle.");
@@ -136,6 +145,8 @@ internal static class CompanyRoadEvents
     {
         if (a == null || b == null) return a == b;
         return a.Id == b.Id && a.Kind == b.Kind && a.Phase == b.Phase && a.Tile == b.Tile && a.Rating == b.Rating &&
+            a.DifficultyRevision == b.DifficultyRevision && a.CalendarAgeDays == b.CalendarAgeDays &&
+            a.CalendarPressure.Equals(b.CalendarPressure) && a.TargetPower.Equals(b.TargetPower) &&
             a.DuelSuccess == b.DuelSuccess && a.Result == b.Result && a.ParticipantIds.SequenceEqual(b.ParticipantIds) &&
             a.EnemyIds.SequenceEqual(b.EnemyIds) && a.DefeatedIds.SequenceEqual(b.DefeatedIds);
     }

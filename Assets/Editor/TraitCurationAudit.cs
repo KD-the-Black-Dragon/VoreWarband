@@ -1,3 +1,7 @@
+// 2026-11-06: Isolate and record phase 40C spellbook regression checks.
+// 2026-11-06: Keep background-save regression evidence separate (save responsiveness follow-up).
+// 2026-11-06: Keep phase-40B grouped regression evidence separate from earlier reviews.
+// 2026-11-06: Keep the 40A grouped regression result separate from accepted earlier evidence (spec 40A).
 // Added by the VoreWar mercenary-company conversion fork.
 // 2026-11-05: Preserve separate grouped regression evidence for injury validation phase D.
 // 2026-11-05: Preserve separate grouped regression evidence for display/input phase C.
@@ -40,6 +44,10 @@ public static class TraitCurationAudit
     static TraitCurationAudit() { EditorApplication.update += Update; }
     public static void Run()
     {
+        if (Environment.GetCommandLineArgs().Contains("-spellReview"))
+            Environment.SetEnvironmentVariable("VOREWAR_AUTHORING_USERDATA", Path.GetFullPath("Logs/spells40c-grouped-client"));
+        else if (Environment.GetCommandLineArgs().Contains("-saveReview"))
+            Environment.SetEnvironmentVariable("VOREWAR_AUTHORING_USERDATA", Path.GetFullPath("Logs/save41-grouped-client"));
         EditorSceneManager.OpenScene("Assets/base.unity");
         SessionState.SetBool(Key, true);
         EditorApplication.isPlaying = true;
@@ -62,7 +70,11 @@ public static class TraitCurationAudit
     {
         SessionState.SetBool(Key, false);
         var report = new Report { passed = ex == null, error = ex == null ? null : ex.ToString(), directory = directory, checks = checks };
-        string resultPath = Environment.GetCommandLineArgs().Contains("-injuryReview") ? "Logs/injury38d-runtime-result.json" :
+        string resultPath = Environment.GetCommandLineArgs().Contains("-spellReview") ? "Logs/spells40c-grouped-result.json" :
+            Environment.GetCommandLineArgs().Contains("-saveReview") ? "Logs/save41-regression-result.json" :
+            Environment.GetCommandLineArgs().Contains("-travelReview") ? "Logs/travel40b-regression-result.json" :
+            Environment.GetCommandLineArgs().Contains("-balanceAuthoringReview") ? "Logs/balance40a-regression-result.json" :
+            Environment.GetCommandLineArgs().Contains("-injuryReview") ? "Logs/injury38d-runtime-result.json" :
             Environment.GetCommandLineArgs().Contains("-displayReview") ? "Logs/display38c-runtime-result.json" :
             Environment.GetCommandLineArgs().Contains("-economyReview") ? "Logs/economy38b-runtime-result.json" :
             Environment.GetCommandLineArgs().Contains("-flightReview") ? "Logs/flight39-runtime-result.json" :
@@ -159,6 +171,7 @@ public static class TraitCurationAudit
         CheckSpellPreviews(a,b,gm);
         CheckPower(a,b);
         CheckEquipment(a,b);
+        if (Environment.GetCommandLineArgs().Contains("-spellReview")) CheckSpellProgression((CompanyCampaign)state, a, b, gm);
         Expect(!help.Contains("\nLightFrame - ") && !help.Contains("\nBlessingOfNature - "), "Help omits retired entries");
         foreach (var test in new[] {new[]{Traits.DoubleAttack},new[]{Traits.Maul},new[]{Traits.FastCaster}})
         {
@@ -640,6 +653,104 @@ public static class TraitCurationAudit
         Expect(candidates.Any(c=>ReferenceEquals(Get(c,"actor"),b) && (float)Get(c,"chance")==1f),"AI non-resistible spells use guaranteed hit chance");
         Reset(a);Reset(b);
     }
+    static void CheckSpellProgression(CompanyCampaign campaign, Actor_Unit actor, Actor_Unit enemy, GameManager gm)
+    {
+        int reputation = campaign.Reputation;
+        try
+        {
+            campaign.Reputation = 0;
+            var first = CompanyEquipment.Available(campaign).Where(d => d.Slot == CompanySlot.Spell1).Select(d => d.Id).ToArray();
+            Expect(first.Contains("spell.bolt") && first.Contains("spell.mending") && !first.Contains("spell.cinder"), "Starter spellbook tier provides bolt and temporary healing");
+            campaign.Reputation = 10;
+            var second = CompanyEquipment.Available(campaign).Where(d => d.Slot == CompanySlot.Spell1).Select(d => d.Id).ToArray();
+            Expect(second.Contains("spell.cinder") && second.Contains("spell.predation") && second.Contains("spell.poison") && !second.Contains("spell.summon"), "Reputation unlocks second-tier utility and hazard books");
+            campaign.Reputation = 25;
+            var final = CompanyEquipment.Available(campaign).Where(d => d.Slot == CompanySlot.Spell1).ToArray();
+            Expect(final.Any(d => d.Id == "spell.summon") && final.Any(d => d.Id == "spell.gatemaw") && final.Any(d => d.Id == "spell.trance"), "High tier unlocks summon, Gate Maw and control");
+            foreach (var definition in final)
+            {
+                var book = (SpellBook)CompanyEquipment.Create(definition.Id);
+                Expect(SpellList.SpellDict.ContainsKey(book.ContainedSpell) && !SpellList.SpellDict[book.ContainedSpell].IsRetired &&
+                    SpellList.SpellDict[book.ContainedSpell].ManaCost > 0 && CompanyEquipment.Value(book) == definition.Cost,
+                    "Book has a valid active spell and matching price: " + definition.Id);
+            }
+            var recruit = CompanyEconomy.Create(campaign, Race.Lizards, 2, false, 6);
+            Expect(recruit.Unit.Items[(int)CompanySlot.Spell2] is SpellBook && CompanyEquipment.GearPrice(recruit.Unit) >=
+                CompanyEquipment.Value(recruit.Unit.Items[(int)CompanySlot.Spell2]), "Experienced mage's generated book is included in equipment cost");
+            var unit = recruit.Unit;
+            Expect((int)Call(typeof(SpellList), "SummonExperience", unit) > unit.Experience / 2,
+                "Experienced summoners pass on accumulated progression rather than only current-level XP");
+            unit.SetItem(CompanyEquipment.Create("spell.mending"), (int)CompanySlot.Spell1);
+            unit.SetItem(CompanyEquipment.Create("spell.mending"), (int)CompanySlot.Spell2);
+            unit.UpdateSpells();
+            Expect(unit.UseableSpells.Count(spell => spell.SpellType == SpellTypes.Mending) == 1, "Duplicate spell sources yield one usable action");
+            bool active = actor.Unit.BattleActive;
+            actor.Unit.Health = Math.Max(1, actor.Unit.MaxHealth / 2); actor.Unit.BeginCombat();
+            int lasting = actor.Unit.LastingHealth;
+            actor.Unit.ApplyStatusEffect(StatusEffectType.Mending, 12, 2);
+            actor.Unit.TickStatusEffects();
+            Expect(actor.Unit.LastingHealth == lasting && actor.Unit.TemporaryHealth > 0, "Mending adds only temporary battle health");
+            actor.Unit.FinishCombat();
+            Expect(actor.Unit.Health == lasting && actor.Unit.TemporaryHealth == 0, "Mending health disappears after battle");
+            actor.Unit.BattleActive = active; Reset(actor);
+            unit.SetStatBase(Stat.Intelligence, 30); unit.RestoreManaPct(1);
+            unit.SetItem(CompanyEquipment.Create("spell.bolt"), (int)CompanySlot.Spell1);
+            unit.SetItem(null, (int)CompanySlot.Spell2); unit.UpdateSpells();
+            double before = CompanyPower.Healthy(unit);
+            unit.SetItem(CompanyEquipment.Create("spell.gatemaw"), (int)CompanySlot.Spell2); unit.UpdateSpells();
+            Expect(CompanyPower.Healthy(unit) > before, "Enemy power considers an added usable high-tier spell");
+        }
+        finally { campaign.Reputation = reputation; }
+        var effects = gm.TacticalMode.ActiveEffects;
+        var savedEffects = new Dictionary<Vec2, TileEffect>(effects);
+        var originalPositions = gm.TacticalMode.Export().units.ToDictionary(unit => unit, unit => unit.Position);
+        var originalRandom = State.Rand.Capture();
+        try
+        {
+            effects.Clear();
+            foreach (var unit in originalPositions.Keys) unit.SetPos(new Vec2i(1, 1));
+            actor.SetPos(new Vec2i(4, 4)); enemy.SetPos(new Vec2i(1, 1));
+            Reset(actor); Reset(enemy); actor.Unit.RestoreManaPct(1); actor.Movement = 3;
+            int mana = actor.Unit.Mana;
+            var center = new Vec2i(6, 6);
+            Expect(SpellList.CinderField.TryCast(actor, center) && actor.Unit.Mana == mana - SpellList.CinderField.ManaCost,
+                "Cinder Field uses the native casting and mana rules");
+            Expect(effects.Count == 9 && effects.Values.All(effect => effect.Type == TileEffectType.Fire && effect.OwnerSide == actor.Unit.Side && effect.RemainingDuration == 3),
+                "Cinder Field creates owned, three-turn ground fire");
+            var encoded = OdinSerializer.SerializationUtility.SerializeValue(gm.TacticalMode.Export(), OdinSerializer.DataFormat.Binary);
+            var restored = OdinSerializer.SerializationUtility.DeserializeValue<TacticalData>(encoded, OdinSerializer.DataFormat.Binary);
+            Expect(restored.activeEffects.Count == 9 && restored.activeEffects.Values.All(effect => effect.OwnerSide == actor.Unit.Side),
+                "Hazard ownership and duration survive tactical serialization");
+            actor.SetPos(center); actor.Movement = 3;
+            var ai = new StandardTacticalAI(new List<Actor_Unit> { actor, enemy }, (TacticalTileType[,])Get(gm.TacticalMode, "tiles"), actor.Unit.Side, false);
+            var escape = typeof(TacticalAI).GetMethod("TryLeaveHazard", BindingFlags.Instance | BindingFlags.NonPublic);
+            Expect((bool)escape.Invoke(ai, new object[] { actor }), "AI plans an escape from an active fire field");
+            var route = (AIPlottedPath)Get(ai, "path");
+            Expect(route.HazardEscape && route.Path.Count > 0 && !TacticalPathfinder.IsBurning(route.Path.Last().X, route.Path.Last().Y),
+                "AI escape ends on a non-burning tile");
+            var escapeAllowed = typeof(TacticalAI).GetMethod("HazardEscapeAllowed", BindingFlags.Instance | BindingFlags.NonPublic);
+            int movement = actor.Movement; actor.Movement = 0;
+            Expect(!(bool)escapeAllowed.Invoke(ai, new object[] { actor, route.Path }), "AI rejects a hazard escape it cannot afford");
+            actor.Movement = movement;
+            Reset(enemy); enemy.SetPos(center);
+            int actorHealth = actor.Unit.Health, enemyHealth = enemy.Unit.Health;
+            int injuries = actor.Unit.Injuries.Count;
+            int enemyInjuries = enemy.Unit.Injuries.Count;
+            gm.TacticalMode.ProcessTileEffects();
+            Expect(actor.Unit.Health < actorHealth && enemy.Unit.Health < enemyHealth && actor.Unit.Injuries.Count == injuries &&
+                enemy.Unit.Injuries.Count == enemyInjuries && effects.Values.All(effect => effect.RemainingDuration == 2),
+                "Ongoing fire affects all occupants without hit-based injuries and advances its duration");
+            gm.TacticalMode.ProcessTileEffects(); gm.TacticalMode.ProcessTileEffects();
+            Expect(effects.Count == 0, "Ground fire expires after its duration");
+        }
+        finally
+        {
+            effects.Clear(); foreach (var entry in savedEffects) effects.Add(entry.Key, entry.Value);
+            foreach (var entry in originalPositions) entry.Key.SetPos(entry.Value);
+            State.Rand = Rand.Resume(originalRandom); Reset(actor); Reset(enemy);
+        }
+    }
+
     static IEnumerable<object> CheckDeveloperLab(GameManager gm)
     {
         Set(gm,"CompanyBattle",null);gm.StatScreen.gameObject.SetActive(false);gm.SwitchToMainMenu();

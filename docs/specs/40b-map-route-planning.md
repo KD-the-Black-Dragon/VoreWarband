@@ -1,32 +1,27 @@
 # 40B — World-map route planning
 
-Planning draft, 2026-11-06. Part of [module 40](40-authoring-and-campaign-progression.md).
+Implementation in progress, 2026-11-06. Part of [module 40](40-authoring-and-campaign-progression.md). The user's implementation instruction replaces the earlier proposed Travel button.
 
-## Goal and current wiring
+## Accepted interaction
 
-Let the player plan travel on the existing map while retaining per-tile actions, meaningful terrain costs and manual End Turn. `CompanyCampaign.Move` currently accepts one adjacent tile. `CompanyCampaignView.Move` handles contract interception, movement, discovery, road-event checks, validation and saving. New routing must use this same entry path for each actual step.
+- One click on an adjacent tile immediately attempts that single move, including ordinary exploration into fog.
+- A first click two or more tiles away previews the lowest-action route. A second consecutive click on that destination starts travel. Selecting another distant tile replaces the preview and requires its own confirmation.
+- Routes use explored terrain only, weighted by native movement cost. A contract marker under fog does not reveal hidden geography or create a routable explored corridor.
+- Each route tile shows actions remaining from the current position. Gold marks affordable travel, red marks travel beyond today's allowance. Negative values show the additional actions that would be required today.
+- Travel commits one native adjacent step at a time and slides the company marker over 0.1 seconds per tile. Per-step discovery, terrain cost and eligible random-event rolls retain their normal rules.
+- Arrival clears the route. Insufficient actions, an event or battle deployment stops travel and retains the destination. After explicitly ending the day or resolving the interruption, one click on the same destination resumes. Travel never ends days automatically.
+- Another map destination can interrupt ongoing movement. The already committed step stays spent. The new distant destination is a fresh preview.
 
-The accepted region, six towns, grassland roads, farms, two road exits per town, six daily actions and approximately five-day nearest-town journeys stay in place. World regeneration is outside this phase.
+## Native integration and persistence
 
-## Proposed workflow
+`CompanyTravel.Path` plans explored orthogonal routes, preferring fewer steps on equal AP cost. Active enemy camps are valid destinations but cannot be traversed as intermediate tiles. `CompanyTravel.Advance` shares the native movement, discovery, contract-deployment and road-event entry points with adjacent travel. Contract entry retains the existing final deployment review before committing its target tile and cost.
 
-1. Select a destination to preview a route, action cost and an estimated number of daily movement budgets. Preview does not move the company or roll an event.
-2. Confirm travel along that route. Spend actions one adjacent step at a time through native movement. Stop at zero actions, arrival, a battle/event, invalidated route or player cancellation.
-3. Preserve the selected destination across a day boundary and save/load. The player still explicitly ends the day. Resuming travel is deliberate.
-4. Recompute when newly discovered terrain or changed objectives invalidate the route. A blocked/unreachable destination produces a useful status without spending actions.
+`CompanyCampaignView` virtualizes route arrows and labels with existing map tiles. The existing C company marker is a separate, smoothly translated overlay. No artwork is replaced. Management and day actions wait until travel stops, and save failure blocks further mutations. Ordinary movement is saved once at arrival or interruption, without writing a full save on each animation frame. Per-step rollback protects native mutations.
 
-Use weighted pathfinding over actual action costs. Roads remain ordinary one-action terrain. Off-road movement remains freely available. Route previews must not reveal undiscovered towns, terrain or enemy data through hidden-cost estimates.
+The nullable destination is persisted in the existing save foundation. Paths and AP labels are derived again from current terrain and position. Older saves default to no route. Loading does not start movement or replay a committed encounter roll.
 
-## Decisions before implementation
+The accepted map size, towns, farms, road circuit, action budgets, event frequency and world generation remain governed by their existing rules.
 
-- Choose click behavior that preserves convenient adjacent movement while distinguishing preview from commitment. Recommendation is a destination preview with an explicit Travel control, with an adjacent-tile shortcut if the user wants it.
-- Choose the unknown-terrain rule. Recommendation is routing through discovered tiles and toward a frontier destination, with exact contract markers selectable under the existing fog rules. Routes into unknown terrain need explicitly uncertain costs if supported.
-- Confirm whether a post-event continuation requires one explicit Resume action. Recommend stopping after any interrupt so new information can be reviewed.
+## Grouped acceptance
 
-## Persistence and interruption safety
-
-Persist destination and necessary route intent, with a schema default of no route for older saves. Derived path segments can be recomputed. Native position and action spending remain authoritative. Save event/battle transitions exactly once. A load cannot repeat an encounter roll for a step already committed or advance a tile twice. Ordinary travel must not become a chain of per-frame full saves beyond the existing intended checkpoint cadence.
-
-## Planned grouped acceptance
-
-Check road and rough-terrain costs, fog, exact objective markers, zero actions, manual End Turn, cancellation, changed objectives, travel-triggered events, battle deployment, save/load at interruptions and large-map responsiveness. Use generated synthetic regions and existing native movement. Calibrate actual journey time before 40F. One player handoff covers route preview, multiday continuation and interrupted travel.
+Native checks cover weighted routes against an independent shortest-cost oracle, fog, retargeting, adjacent movement, AP labels, exhausted movement, explicit day changes, event interruption, native contract deployment, save/load and full-size pathfinding. A private Windows build will support one grouped visual review of arrow readability, camera/marker animation, multiday continuation and event resumption. Recorded results belong in [the implementation report](../implementation/40b-map-route-planning.md).

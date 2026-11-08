@@ -1,3 +1,4 @@
+// 2026-11-06: Isolate developer Unit Tag persistence from normal gameplay (spec 40A).
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-11-03: Tolerate retired trait metadata and preserve developer Unit Tag identity/save paths (spec 22).
 // See CHANGES.md and License.txt for GPL-3.0 terms.
@@ -267,6 +268,21 @@ public class ExternalTraitHandler
 
     public static bool UnitTagSaver(UnitTag tag)
     {
+        if (BalanceAuthoring.IsDraft)
+        {
+            try
+            {
+                BalanceAuthoring.SaveDraft();
+                TagConditionChecker.CompileTraitTagAssociateDict();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                State.GameManager.CreateMessageBox("Unit Tag draft was not saved. " + ex.Message);
+                return false;
+            }
+        }
+
         string path;
         if (!unitTagPaths.TryGetValue(tag.id, out path))
         {
@@ -282,6 +298,8 @@ public class ExternalTraitHandler
 
     public static void UnitTagRemover(UnitTag tag)
     {
+        if (BalanceAuthoring.IsDraft) return; // Draft generations retain earlier versions.
+
         string path;
         if (!unitTagPaths.TryGetValue(tag.id, out path))
             path = Path.Combine(State.UnitTagDirectory, tag.name + ".json");
@@ -291,28 +309,9 @@ public class ExternalTraitHandler
 
     public static void UnitTagParser()
     {
-        unitTagPaths.Clear();
-        if (!Directory.Exists(State.UnitTagDirectory)) return;
-        foreach (string file in Directory.GetFiles(State.UnitTagDirectory, "*.json", SearchOption.AllDirectories).OrderBy(f => f))
-        {
-            try
-            {
-                UnitTag tag = JsonConvert.DeserializeObject<UnitTag>(File.ReadAllText(file));
-                if (tag == null || tag.id < 0 || string.IsNullOrWhiteSpace(tag.name))
-                    throw new FormatException("Missing tag name or valid ID.");
-                if (State.UnitTagList.Any(t => t.id == tag.id))
-                    throw new FormatException("Duplicate tag ID " + tag.id + ".");
-                if (tag.modifiers == null) tag.modifiers = new List<UnitTagModifier>();
-                if (tag.AssociatedTraits == null) tag.AssociatedTraits = new List<Traits>();
-                State.UnitTagList.Add(tag);
-                unitTagPaths[tag.id] = file;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("Could not load Unit Tag " + Path.GetFileName(file) + ": " + ex.Message);
-            }
-        }
+        // Official definitions load with the official profile. Legacy imports are explicit.
     }
+
 
     class RootObject
     {

@@ -1,4 +1,6 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Record the owner of newly created tactical hazards (spec 40C).
+// Modified for the VoreWar mercenary-company conversion.
 // 2026-10-30: 04B2: Replace callback prose with neutral action and status notices.
 // 2026-10-31: Retire the obsolete post-battle village conquest helper (spec 05A3B2).
 // Upstream additional narrative contributions were credited to Tatltuae; credit retained after reset.
@@ -743,7 +745,7 @@ static class TacticalUtilities
         return Units.FirstOrDefault(actor => actor.Unit == unit);
     }
 
-    static internal void CreateEffect(Vec2i location, TileEffectType type, int areaOfEffect, float strength, int duration)
+    static internal void CreateEffect(Vec2i location, TileEffectType type, int areaOfEffect, float strength, int duration, int? ownerSide = null)
     {
         for (int x = location.x - areaOfEffect; x <= location.x + areaOfEffect; x++)
         {
@@ -752,7 +754,7 @@ static class TacticalUtilities
                 if (x < 0 || y < 0 || x > tiles.GetUpperBound(0) || y > tiles.GetUpperBound(1))
                     continue;
                 Vec2 position = new Vec2(x, y);
-                TileEffect effect = new TileEffect(duration, strength, type);
+                TileEffect effect = new TileEffect(duration, strength, type) { OwnerSide = ownerSide };
                 State.GameManager.TacticalMode.ActiveEffects[position] = effect;
                 switch (type)
                 {

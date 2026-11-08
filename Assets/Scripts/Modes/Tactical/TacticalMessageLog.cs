@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Show native species weapon names in campaign battle logs while retaining generic shop names.
 // 2026-10-30: Replace typed combat prose with neutral functional feedback; remove Human dummy context (spec 04B1).
 // Upstream narrative contributions credited to Tatltuae are retained in this notice.
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
@@ -214,7 +215,8 @@ public class TacticalMessageLog
             return "Battle event unavailable.";
         string actor = StoredLogTexts.UnitName(action.Unit);
         string target = StoredLogTexts.UnitName(action.Target);
-        string weapon = action.Weapon == null ? "unarmed attack" : action.Weapon.Name;
+        string weapon = action.Weapon == null ? "unarmed attack" : action.Unit != null && action.Unit.CompanyLoadout
+            ? LogUtilities.GetWeaponTrueName(action.Weapon, action.Unit) : action.Weapon.Name;
         string message;
         switch (action.Type)
         {

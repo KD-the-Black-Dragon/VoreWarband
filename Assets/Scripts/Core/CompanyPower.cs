@@ -1,4 +1,7 @@
-﻿// Added by this fork for the VoreWar mercenary-company conversion.
+// Added by this fork for the VoreWar mercenary-company conversion.
+// 2026-11-06: Score new summon, control, healing and area-vore spell options (spec 40C).
+// Added by this fork for the VoreWar mercenary-company conversion.
+// 2026-11-06: Score the actual frozen AP of existing characters (spec 40A).
 // 2026-11-05: Remove the retired Flight capability estimate.
 // 2026-11-05: Include rescued grazes and KeenEye in expected weapon capability (spec 38 phase A).
 // 2026-11-04: Explainable healthy capability scoring, bounded health scaling and force estimates (spec 34 slice 3).
@@ -44,7 +47,7 @@ internal static class CompanyPower
         report.Strength=str;report.Agility=agi;report.Intelligence=intel;report.Voracity=vor;
         report.Parts["Combat stats (healthy)"]=(str+agi+intel+vor)*.30;
         report.Parts["Normal maximum HP"]=unit.MaxHealth*.20;
-        report.Parts["Species AP access"]=(WarbandStats.BaseAP(unit.Race)-2)*3;
+        report.Parts["Species AP access"]=(unit.SpeciesSettings.GetBaseAP(unit.Race)-2)*3;
         var melee=unit.GetBestMelee();var ranged=unit.GetBestRanged();
         double meleeStat=traits.Contains(Traits.BoundWeapon)?intel:str;
         double rangedStat=traits.Contains(Traits.BoundWeapon)?intel:agi;
@@ -66,8 +69,12 @@ internal static class CompanyPower
         double maxMana=Math.Max(0,3*unit.GetStatBase(Stat.Intelligence)*boosts.ManaMultiplier+tier(TierEffect.MaxMana)*unit.Level);
         var spells=(unit.UseableSpells??new List<Spell>()).Where(s=>!s.IsRetired && s.ManaCost<=maxMana).GroupBy(s=>s.SpellType).Select(g=>g.First()).ToArray();
         double spellAim=Math.Max(.05,Math.Min(.95,.65+tier(TierEffect.MagicAccuracy)-boosts.Outgoing.MagicShift*.10));
-        var spellScores=spells.Select(s=>s is DamageSpell?
+        var spellScores=spells.Select(s=>s.SpellType == SpellTypes.CinderField ? (8 + Math.Min(5, intel / 5)) * spellAim : s is DamageSpell?
             Math.Max(1,(3+intel*.12+Math.Min(4,s.Tier)*2)*boosts.Outgoing.MagicDamage+tier(TierEffect.MagicDamage))*(s.Resistable?spellAim:1)+Math.Min(8,s.Range.Max)*.25+Math.Min(3,s.AreaOfEffect)*2:
+            s.SpellType == SpellTypes.Summon ? 10 + Math.Min(4, intel / 5) :
+            s.SpellType == SpellTypes.GateMaw ? 12 + Math.Min(5, intel / 5) :
+            s.SpellType == SpellTypes.Trance ? 8 + Math.Min(4, intel / 8) :
+            s.SpellType == SpellTypes.Mending ? 6 + Math.Min(3, intel / 10) :
             3+Math.Min(4,s.Tier)+Math.Min(3,s.AreaOfEffect)).OrderByDescending(x=>x).ToArray();
         double magic=spellScores.Length==0?0:spellScores[0]*.8+spellScores.Skip(1).Take(3).Sum()*.20;
         // Most attacks spend all remaining AP: alternatives add flexibility, not another full attack.
@@ -118,7 +125,7 @@ internal static class CompanyPower
             Math.Max(1,healthy.Strength+healthy.Agility+healthy.Intelligence+healthy.Voracity));
         double hp=Math.Max(0,Math.Min(1,unit.LastingHealth/(double)Math.Max(1,unit.MaxHealth)));
         double readiness=Math.Max(.1,1-CompanyInjuries.AccuracyPenalty(unit))*Math.Max(.1,1-CompanyInjuries.DamagePenalty(unit)/10.0)*
-            Math.Max(1,WarbandStats.BaseAP(unit.Race)-CompanyInjuries.MovementPenalty(unit))/(double)WarbandStats.BaseAP(unit.Race);
+            Math.Max(1,unit.SpeciesSettings.GetBaseAP(unit.Race)-CompanyInjuries.MovementPenalty(unit))/(double)unit.SpeciesSettings.GetBaseAP(unit.Race);
         return Math.Round(healthy.Total*condition*Math.Sqrt(hp)*readiness,2);
     }
     internal static double FormationMultiplier(int count)=>1+Math.Min(.20,Math.Max(0,count-3)*.04);

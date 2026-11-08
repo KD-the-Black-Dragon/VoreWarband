@@ -2,6 +2,10 @@
 
 Planning draft, 2026-11-06. Foundation of [module 40](40-authoring-and-campaign-progression.md). The user confirms keeping Race Editor with export/import, and preserving existing characters when new species defaults ship.
 
+## Implementation handoff — 2026-11-06
+
+The user authorized implementation. [The implementation record](../implementation/40a-official-balance-authoring.md) documents the draft/promotion workflow, per-character snapshots, legacy-data limits, 72 focused assertions, 963 grouped checks and successful private Windows build. Curator review remains pending. The planning requirements below remain the design reference.
+
 ## Current wiring
 
 - `State.LoadRaceData`, `ChangeRaceSlotUsed`, `LoadEditedRaces` and `SaveEditedRaces` in `Assets/Scripts/Core/State.cs` select and serialize local `EditedRaces*.dat` files. Windows storage currently uses relative `UserData` paths. These edits do not update project defaults for the next build.
@@ -33,6 +37,8 @@ The editing surface is the existing password-protected Race Editor, as confirmed
 Proposed storage is one canonical, versioned JSON profile loaded as a Unity TextAsset from a dedicated project Resources folder. The exact asset path is selected during implementation. Existing Newtonsoft JSON support can provide interchange without a new dependency. Drafts and review exports are separate working files. Avoid a second editable C# copy of promoted values.
 
 The profile carries schema version, revision, modification date, parent revision and stable species/trait/spell/tag identifiers. Author four stat ranges, relevant species balance properties, trait lists and supported tag definitions explicitly. Resolve dependent metadata as a validated set. Include an effective-value review so an untouched fallback cannot accidentally change during import.
+
+Reserve a compatible extension for the Good/Bad/Neutral trait classifications and family/tier identifiers required by 40D. Its classification inventory remains a later phase. Profile validation must preserve the user's distinction between trait polarity, tier weight and old injuries.
 
 Trait assignment and existing declarative tag modifiers are data-authorable. Genuinely new trait behavior still requires code. Inventory the numeric parameters currently embedded in retained trait implementations and identify which are useful to expose through supported fields. Do not promise that a trait's arbitrary C# logic becomes editable through its display name.
 

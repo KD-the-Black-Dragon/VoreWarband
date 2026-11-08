@@ -1,4 +1,7 @@
-﻿// Added by the VoreWar mercenary-company conversion fork.
+// Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-08: Assign unique ending identities and archive scores before any Ironman cleanup (spec 40E).
+// 2026-11-07: Persist battle evidence and queue the post-battle trait scene after revival (spec 40D).
+// 2026-11-06: Queue detached battle-turn autosaves and settle outcomes without serializing live gameplay.
 // 2026-11-01: Isolated tactical adapter, transactional outcomes, revival and memorial records (spec 10).
 // 2026-11-01: Guard HP during detached battle settlement and use individual species labels in memorials (09–10 feedback).
 // 2026-11-01: Clear leader wounds on special revival and consolidate enemy recovery into the shared daily recovery stage (spec 11).
@@ -9,15 +12,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OdinSerializer;
 
-internal enum CompanyBattlePhase { Deployment, Summary, Revival, Returned }
+// Keep the original serialized enum values stable; append the new phase.
+internal enum CompanyBattlePhase { Deployment = 0, Summary = 1, Revival = 2, Returned = 3, PostBattleEvent = 4 }
 [Serializable]
 internal sealed class CompanyBattleRecord
 {
     public string Id, ContractId, RoadEventId, Summary;
     public CompanyBattlePhase Phase;
     public int ReturnTile, TargetTile, Seed;
+    public int EvidenceVersion, InitialEnemyCount;
     public bool PositionCommitted;
     public string[] DeployedIds;
     public TacticalData Tactical;
@@ -26,6 +30,7 @@ internal sealed class CompanyBattleRecord
     public float CameraX, CameraY, CameraZoom;
     public int WorldTurn;
     public bool WorldNight;
+    public CompanyPostBattleEvent PostBattleEvent;
 }
 [Serializable]
 internal sealed class CompanyMemorial
@@ -42,6 +47,7 @@ internal sealed class CompanyBattleSession
     readonly Rand previousRandom;
     readonly UnityEngine.Random.State previousUnityRandom;
     bool finished;
+    int autosavedTurn = -1, autosavedSide = -1;
     internal CompanyBattleSession(CompanyCampaignView view, CompanyCampaign state)
     {
         this.view = view; this.state = state; previousWorld = State.World; previousRandom = State.Rand;
@@ -75,6 +81,8 @@ internal sealed class CompanyBattleSession
         var defender = new Army(new Empire(), new Vec2i(0, 0), 1) { Name = "Contract target" };
         attacker.Empire.ReplacedRace = deployed[0].Unit.Race;
         var enemies = Survivors(state, state.Battle).ToArray();
+        state.Battle.EvidenceVersion = 1;
+        state.Battle.InitialEnemyCount = enemies.Length;
         defender.Empire.ReplacedRace = enemies[0].Unit.Race;
         foreach (var c in deployed) { c.Unit.Side = 0; attacker.Units.Add(c.Unit); }
         foreach (var c in enemies) { c.Unit.Side = 1; defender.Units.Add(c.Unit); }
@@ -101,7 +109,11 @@ internal sealed class CompanyBattleSession
     internal void Autosave()
     {
         if (finished) return;
-        Capture(); CompanyCampaignSave.Save(state, view.SaveDirectory);
+        Capture();
+        var tactical = state.Battle.Tactical;
+        if (!tactical.isAPlayerTurn || (autosavedTurn == tactical.currentTurn && autosavedSide == tactical.activeSide)) return;
+        CompanySaveWorker.Enqueue(state, view.SaveDirectory);
+        autosavedTurn = tactical.currentTurn; autosavedSide = tactical.activeSide;
     }
     internal void Resume()
     {
@@ -148,10 +160,9 @@ internal sealed class CompanyBattleSession
     {
         if (finished) return;
         // Reconcile a detached saved graph, then install it atomically. Actors keep the old graph until cleanup.
-        var result = SerializationUtility.DeserializeValue<CompanyCampaign>(CompanyCampaignSave.Encode(state), DataFormat.Binary);
+        var result = CompanySnapshot.Take(state);
         CompanyEconomy.Bind(result);
         CompanyBattleSnapshot.Bind(result);
-        CompanyCampaignSave.RequireHealthPreserved(state, result);
         var battle = result.Battle;
         var contract = battle.RoadEventId == null ? result.Contracts.Single(c => c.Id == battle.ContractId) : null;
         var enemyIds = EnemyIds(result, battle); var defeatedIds = DefeatedIds(result, battle);
@@ -185,8 +196,11 @@ internal sealed class CompanyBattleSession
         bool paid = contract != null && CompanyContracts.Complete(result, contract);
         if (paid) CompanyProgression.AwardContract(result, contract);
         bool companyAlive = result.Members.Any(m => !result.Characters.Single(c => c.Id == m.CharacterId).Unit.Digested);
+        if (leaderLost) result.LeaderDigestions = checked(result.LeaderDigestions + 1);
         result.Ended = !companyAlive || (leaderLost && !result.LeaderRevival);
         result.EndReason = result.Ended ? (!companyAlive ? "The company has been wiped out." : "The company leader was digested with revival disabled.") : null;
+        result.EndingKind = result.Ended ? (!companyAlive ? CompanyEndingKind.Wipeout : CompanyEndingKind.LeaderLost) : null;
+        result.EndingId = result.Ended ? Guid.NewGuid().ToString("N") : null;
         if (contract == null)
         {
             result.RoadEvent.Phase = CompanyRoadEventPhase.Closed;
@@ -194,24 +208,29 @@ internal sealed class CompanyBattleSession
             if (Survivors(result, battle).Any()) result.Position = battle.ReturnTile;
         }
         else if (!paid) result.Position = battle.ReturnTile;
+        if (!result.Ended)
+            battle.PostBattleEvent = CompanyPostBattleTraits.Resolve(state, result, actors);
         battle.Summary = (stalemate ? "Stalemate: everyone remaining fled and survived.\n" : "Battle settled.\n") +
             "Enemies defeated: " + (defeated + temporaryEnemies) + "\nMercenaries lost: " + losses.Length + "\n" +
             (contract == null ? "Road encounter settled. No gold or reputation awarded.\n" : paid ? "Contract completed: " + contract.Reward + " gold paid automatically; reputation +1. Surviving participants gained contract XP.\n" : "The surviving target remains available before its deadline.\n") +
             (leaderLost && !result.Ended ? "The leader requires revival after these results.\n" : "") + result.EndReason;
         battle.Tactical = null; battle.RandomState = null;
         battle.Phase = CompanyBattlePhase.Summary; result.InBattle = false; result.Validate();
-        if (result.Ended && result.Ironman)
-        {
-            try { CompanySaveSlots.RemoveCompany(result.Id); }
-            catch (Exception ex) { battle.Summary += "\nSave cleanup could not finish: " + ex.Message; }
-        }
+        if (result.Ended) CompanyHistoryStore.ArchiveEnding(result);
         finished = true; view.QueueBattleReturn(result, this);
     }
     internal static void Acknowledge(CompanyCampaign state)
     {
         if (state.Battle.Phase != CompanyBattlePhase.Summary) throw new InvalidOperationException("No battle summary is pending.");
         var leader = state.Characters.Single(c => c.Id == state.LeaderId);
-        state.Battle.Phase = !state.Ended && leader.Unit.Digested ? CompanyBattlePhase.Revival : CompanyBattlePhase.Returned;
+        state.Battle.Phase = !state.Ended && leader.Unit.Digested ? CompanyBattlePhase.Revival :
+            state.Battle.PostBattleEvent != null ? CompanyBattlePhase.PostBattleEvent : CompanyBattlePhase.Returned;
+    }
+    internal static void AcknowledgePostBattle(CompanyCampaign state)
+    {
+        if (state.Battle == null || state.Battle.Phase != CompanyBattlePhase.PostBattleEvent || state.Battle.PostBattleEvent == null)
+            throw new InvalidOperationException("No post-battle event is pending.");
+        state.Battle.Phase = CompanyBattlePhase.Returned;
     }
     internal static int RevivalCost(CompanyCampaign state) { return 20 * state.Characters.Single(c => c.Id == state.LeaderId).Unit.Level; }
     internal static CompanyTown RevivalTown(CompanyCampaign state)
@@ -223,7 +242,7 @@ internal sealed class CompanyBattleSession
         var town = RevivalTown(state); state.Gold = Math.Max(0, state.Gold - RevivalCost(state)); state.Position = town.Tile;
         state.Reveal(); leader.Digested = false; leader.BattleActive = false; leader.Downed = false;
         leader.TemporaryHealth = 0; leader.Health = leader.MaxHealth; leader.StatusEffects.Clear(); leader.Injuries.Clear();
-        state.Battle.Phase = CompanyBattlePhase.Returned;
+        state.Battle.Phase = state.Battle.PostBattleEvent == null ? CompanyBattlePhase.Returned : CompanyBattlePhase.PostBattleEvent;
         CompanyEconomy.Visit(state, town); // No elapsed days, wages or deadlines advance.
     }
 }

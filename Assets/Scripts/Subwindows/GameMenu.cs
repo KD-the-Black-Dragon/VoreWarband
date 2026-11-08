@@ -1,4 +1,6 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Enter explicit balance drafts behind the developer gate (spec 40A).
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Close the developer weapon art gallery when leaving or revoking a Race Editor session.
 // 2026-11-04: Add isolated password-gated developer battle/recovery controls (spec 34 slice 2).
 // 2026-10-30: Gate Race Editor sessions and nested tags; retire obsolete menu routes (spec 02B).
 // 2026-11-03: Present Esc menu as a compact overlay; omit Race Editor and shorten Help label (spec 17).
@@ -24,6 +26,11 @@ public class GameMenu : MonoBehaviour
     internal void EndRaceEditorSession()
     {
         raceEditorUnlocked = false;
+        if (RaceEditor != null)
+        {
+            var weaponGallery = RaceEditor.GetComponent<DeveloperWeaponArtGallery>();
+            if (weaponGallery != null) weaponGallery.Close();
+        }
         if (UnitTagEditor != null)
         {
             if (UnitTagEditor.UnitTagMenu != null)
@@ -43,6 +50,10 @@ public class GameMenu : MonoBehaviour
             return false;
         if (Input.GetButtonDown("Menu"))
         {
+            var balance = RaceEditor.GetComponent<DeveloperBalancePanel>();
+            if (balance != null && balance.IsVisible) { balance.Close(); return true; }
+            var weaponGallery = RaceEditor.GetComponent<DeveloperWeaponArtGallery>();
+            if (weaponGallery != null && weaponGallery.IsVisible) { weaponGallery.Close(); return true; }
             if (UnitTagEditor.UnitTagMenu.gameObject.activeSelf)
                 UnitTagEditor.UnitTagMenu.DiscardClose();
             else if (UnitTagEditor.gameObject.activeSelf)
@@ -130,7 +141,7 @@ public class GameMenu : MonoBehaviour
 
     public void OpenRaceEditor()
     {
-        RequestDeveloperAccess(() => { RaceEditor.gameObject.SetActive(true); RaceEditor.ShowPanel(); }, "Race Editor");
+        RequestDeveloperAccess(() => { BalanceAuthoring.BeginEditorSession(); RaceEditor.gameObject.SetActive(true); RaceEditor.ShowPanel(); }, "Race Editor");
     }
 
     public void OpenBattleLab()

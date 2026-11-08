@@ -4,13 +4,13 @@ Working instructions for contributors and AI agents in this VoreWar checkout. Re
 
 ## Project identity
 
-- **Project:** VoreWar, a turn-based tactical game with RPG elements in a vore-related setting. The README describes it as a continuation of darkevilme's Vore War.
+- **Project:** Vore Warband, a VoreWar total conversion and turn-based tactical game with RPG elements in a vore-related setting. The README describes it as a continuation of darkevilme's Vore War.
 - **This checkout:** The `KD-the-Black-Dragon/VoreWar` fork (`origin`). The configured source repository is `Flame-Valxsarion/VoreWar` (`upstream`). Verify `git remote -v` if repository identity or remotes matter; remotes can change.
 - **Engine:** Unity **2018.3.12f1**, recorded in `ProjectSettings/ProjectVersion.txt`.
 - **Code and content:** C# scripts and Unity assets are under `Assets/`; package dependencies are declared in `Packages/manifest.json`.
 - **License:** The repository includes GNU GPL version 3 in `License.txt`. Retain the license and upstream copyright/attribution notices. Check individual asset and dependency notices before changing or redistributing them; they may have separate terms.
 - **Open the project:** Use Unity Hub or the Unity Editor with the version recorded above. Do not assume Node, Vite, ChatGPT Sites, OpenSpec, or the previous project's release/deployment tools apply here.
-- **Build and tests:** Follow instructions found in this checkout and its installed Unity project. No root-level automated test or build workflow was identified during initial orientation; inspect the relevant code, packages, and documentation before recommending or inventing one.
+- **Build and tests:** Follow instructions found in this checkout and its installed Unity project. No root-level automated test or build workflow was identified during initial orientation; inspect the relevant code, packages, and documentation before recommending or inventing one. Whenever asked to produce a new test build, run the available Unity build workflow and provide the resulting executable path; do not hand off build instructions in place of the requested build. If the available environment, Unity license or build route blocks completion, report the specific blocker and do not claim a build succeeded. Routine changes do not require a build unless requested.
 
 ## Collaboration preferences
 
@@ -33,6 +33,17 @@ Use **herm** / **herms** in player-facing text; do not expand these to **hermaph
 - Respect the upstream project's structure, attribution, copyright notices, asset provenance, and GPL-3.0 license. Do not replace or remove license notices as part of routine changes.
 - Avoid unrelated asset reimports, package upgrades, scene/prefab rewrites, or broad formatting changes. Unity can modify serialized assets as a side effect; inspect the resulting diff and keep only changes required by the task.
 - Do not assume this fork uses the upstream project's hosting, release process, credentials, or services. Publishing, uploading, or changing external services requires explicit authorization.
+
+## Gameplay responsiveness and practical recovery
+
+User direction, 2026-11-06. This is a video game. Immediate response to player commands takes priority over exhaustive data preservation. Crashes, accidental closure and power loss may lose progress since the last completed save. Autosaves, backups and rollback are a practical soft landing.
+
+- Keep player input, visible action results and animation responsive. Do not block gameplay on autosave serialization, validation, disk writes, flushing, backup maintenance or save-browser catalog scans. Use background work with a small, consistent snapshot and avoid locks that make gameplay wait for the worker.
+- Autosave at the start of each campaign day and each player turn in battle. Do not add saves after individual moves, purchases, hires or other small actions unless the user explicitly changes this policy.
+- Do not add full-campaign copies, serialization round trips, repeated whole-graph validation or other costly per-action safeguards merely to obtain stronger recovery guarantees. Prefer cheap preconditions and appropriately scoped state updates. Any necessary snapshot capture must fit the gameplay frame budget and be measured on representative company/battle data.
+- Keep save browsing lightweight. Read summaries and load details on demand or in the background, with paging/caching where appropriate. Large save collections must not freeze the interface.
+- Keep reasonable protection against incomplete writes and some recoverable backups, but do not pursue zero data loss, exhaustive verification or transaction-style durability at the expense of play. Extra safeguards must justify their player-visible cost.
+- Treat a noticeable pause caused by added engineering safeguards as a regression. Explain any genuinely unavoidable delay and obtain design guidance before making it part of the normal gameplay loop.
 
 ## GPL-3.0 compliance for every source change
 

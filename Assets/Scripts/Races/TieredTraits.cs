@@ -1,4 +1,5 @@
 ﻿// Added by this fork for the VoreWar mercenary-company conversion.
+// 2026-11-07: Display and categorize post-battle Grudge tiers (spec 40D).
 // 2026-11-04: Define exclusive baseline trait tiers, flat modifiers and Help categories (spec 32).
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 using System;
@@ -59,7 +60,8 @@ static class TieredTraits
     static readonly Dictionary<Traits, Family> Lookup = Families.SelectMany(f => f.Tiers.Select(t => new { Trait = t, Family = f }))
         .ToDictionary(p => p.Trait, p => p.Family);
 
-    internal static Traits Canonical(Traits trait) => trait == Traits.MetalBody ? Traits.AwkwardShape : trait;
+    internal static Traits Canonical(Traits trait) => trait == Traits.MetalBody ? Traits.AwkwardShape :
+        trait == Traits.GrudgeII || trait == Traits.GrudgeIII ? Traits.Grudge : trait;
     internal static Family Find(Traits trait)
     {
         trait = Canonical(trait);
@@ -68,6 +70,9 @@ static class TieredTraits
     }
     internal static string DisplayName(Traits trait)
     {
+        if (trait == Traits.Grudge) return "Grudge I";
+        if (trait == Traits.GrudgeII) return "Grudge II";
+        if (trait == Traits.GrudgeIII) return "Grudge III";
         var family = Find(trait);
         return family == null ? null : family.Name + " " + new[] { "I", "II", "III" }[Array.IndexOf(family.Tiers, Canonical(trait))];
     }
@@ -144,6 +149,7 @@ static class TieredTraits
 
     internal static string Category(Traits trait)
     {
+        if (trait == Traits.Grudge || trait == Traits.GrudgeII || trait == Traits.GrudgeIII) return "Personal Development";
         var family = Find(trait);
         if (family != null)
         {

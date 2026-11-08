@@ -1,4 +1,7 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Identify the official or developer draft used by native scenarios (spec 40A).
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Hide retired ranged weapon variants from new Battle Lab loadout choices.
+// 2026-11-08: Hide retired evasion-granting armor from newly configured Battle Lab fixtures.
 // 2026-11-05: Separate faster general HP recovery from longer calendar-day injuries.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // Added by this fork for the VoreWar mercenary-company conversion.
@@ -170,7 +173,7 @@ public sealed class DeveloperBattleLab : MonoBehaviour
     void Draw()
     {
         if(Fighters==null || summary==null)return;
-        summary.text=string.Join("\n",Fighters.Select((a,i)=>(i==selected?"> ":"  ")+(i==0?"A":"B")+" "+SpeciesPolicy.DisplayName(a.Unit.Race)+" Lv"+a.Unit.Level+
+        summary.text=BalanceAuthoring.Identity+"\n"+string.Join("\n",Fighters.Select((a,i)=>(i==selected?"> ":"  ")+(i==0?"A":"B")+" "+SpeciesPolicy.DisplayName(a.Unit.Race)+" Lv"+a.Unit.Level+
             " | STR "+a.Unit.GetStat(Stat.Strength)+" AGI "+a.Unit.GetStat(Stat.Agility)+" INT "+a.Unit.GetStat(Stat.Intelligence)+" VOR "+a.Unit.GetStat(Stat.Voracity)+
             " | HP "+a.Unit.Health+"/"+a.Unit.MaxHealth+" (lasting "+a.Unit.LastingHealth+", temp "+a.Unit.TemporaryHealth+") | Mana "+a.Unit.Mana+"/"+a.Unit.MaxMana+" | AP "+a.Movement+"/"+a.CurrentMaxMovement()+
             "\n    "+CompanyInjuries.Summary(a.Unit)+(a.Surrendered?" | DOWNED":"")+(a.Unit.Digested?" | DIGESTED":"")));
@@ -208,7 +211,7 @@ public sealed class DeveloperBattleLab : MonoBehaviour
         {
             for(int slot=0;slot<9;slot++)
             {
-                int n=slot;var defs=CompanyEquipment.Catalog.Where(d=>(int)d.Slot==n || (n==(int)CompanySlot.Spell2 && d.Slot==CompanySlot.Spell1)).ToArray();
+                int n=slot;var defs=CompanyEquipment.Catalog.Where(d=>!d.Retired && !CompanyEquipment.IsRetiredEvasionArmor(d) && ((int)d.Slot==n || (n==(int)CompanySlot.Spell2 && d.Slot==CompanySlot.Spell1))).ToArray();
                 var names=new List<string>{"Empty"};names.AddRange(defs.Select(d=>d.Name));
                 int choice=unit.Items[n]==null?0:Array.FindIndex(defs,d=>d.Id==unit.Items[n].CompanyDefinitionId)+1;
                 Drop(parent,((CompanySlot)n).ToString(),names,choice,(slot/5)*600,(slot%5)*58,index=>Run(()=>{unit.SetItem(index==0?null:CompanyEquipment.Create(defs[index-1].Id),n);unit.UpdateSpells();Actor.UpdateBestWeapons();}));

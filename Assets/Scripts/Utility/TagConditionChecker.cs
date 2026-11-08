@@ -1,3 +1,4 @@
+// 2026-11-06: Preserve per-character Unit Tag definitions and associations (spec 40A).
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-11-03: Remove permanently retired identity branches/entries while preserving shared behavior (spec 21).
 // 2026-11-03: Correct legacy category conditions and retain trait-derived tags without species overrides (spec 22).
@@ -190,34 +191,11 @@ public class TagConditionChecker
     {
         List<UnitTag> combinedTagLsit = new List<UnitTag>();
 
-        //Get tags from race editor IDs
-        List<int> editorTags = State.RaceSettings.GetRaceTags(unit.Race);
-        if (editorTags == null) editorTags = new List<int>();
-
-        foreach (int tagID in editorTags)
-        {
-            UnitTag newTag = State.UnitTagList.FirstOrDefault(x => x.id == tagID);
-            if (newTag != null)
-            {
-                combinedTagLsit.Add(newTag);
-            }
-        }
-
-        //Get tags from race editor IDs
-        foreach (Traits trait in unit.GetTraits)
-        {
-            if (State.UnitTagAssociatedTraitDictionary.ContainsKey(trait))
-            {
-                foreach (int tagID in State.UnitTagAssociatedTraitDictionary[trait])
-                {
-                    UnitTag newTag = State.UnitTagList.FirstOrDefault(x => x.id == tagID);
-                    if (newTag != null)
-                    {
-                        combinedTagLsit.Add(newTag);
-                    }
-                }
-            }
-        }
+        var definitions = unit.SpeciesBalance == null ? State.UnitTagList : unit.SpeciesBalance.UnitTags;
+        var ids = unit.SpeciesSettings.GetRaceTags(unit.Race) ?? new List<int>();
+        foreach (var definition in definitions)
+            if (ids.Contains(definition.id) || definition.AssociatedTraits.Any(unit.GetTraits.Contains))
+                combinedTagLsit.Add(definition);
 
         return combinedTagLsit.Distinct().ToList();
     }

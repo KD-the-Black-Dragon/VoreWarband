@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Resolve per-character frozen species metadata (spec 40A).
 // 2026-11-05: Remove Flight from every species baseline at the user's direction.
 // 2026-11-01: Resolve species metadata directly without constructing a randomized dummy Unit (spec 05A7).
 // 2026-11-01: Retire all 90 rejected stat prototypes and reject retired metadata lookups (spec 03B3D).
@@ -83,7 +84,7 @@ static class RaceParameters
     {
         if (unit == null && Config.RaceTraitsEnabled == false)
             return Default;
-        return GetRaceTraits(unit.Race);
+        return unit.SpeciesBalance != null && unit.SpeciesBalance.Species == unit.Race ? unit.SpeciesBalance.Metadata() : GetRaceTraits(unit.Race);
     }
 
     // Metadata reads must not construct units, roll stats or consume gameplay RNG.
@@ -2016,6 +2017,7 @@ static class RaceParameters
 
 internal class RaceTraits
 {
+    internal RaceTraits Copy() { return (RaceTraits)MemberwiseClone(); }
     /// <summary>
     /// Controls the size of the body, used for determining how much space they take up in a belly
     /// </summary>

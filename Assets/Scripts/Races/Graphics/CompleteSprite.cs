@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Hide held-weapon sprites for company loadouts with no assigned weapon art.
 // 2026-11-03: Remove permanently retired identity branches/entries while preserving shared behavior (spec 21).
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 using System;
@@ -150,12 +151,15 @@ class CompleteSprite
     internal void SetSprite(SpriteType spriteType, SpriteExtraInfo sprite)
     {
         int typeInt = (int)spriteType;
-        if (sprites[typeInt] != null && (sprite == null || sprite.GetSprite == null || sprite.GetSprite(actor) == null))
+        bool companyWeaponHasNoArt = spriteType == SpriteType.Weapon && actor != null && actor.Unit != null && actor.Unit.CompanyLoadout &&
+            (actor.WeaponForDisplay == null || actor.WeaponForDisplay.Graphic < 0);
+        Sprite resolvedSprite = sprite == null || sprite.GetSprite == null || companyWeaponHasNoArt ? null : sprite.GetSprite(actor);
+        if (sprites[typeInt] != null && resolvedSprite == null)
         {
             sprites[typeInt].GameObject.SetActive(false);
             return;
         }
-        if (sprites[typeInt] == null && (sprite == null || sprite.GetSprite == null || sprite.GetSprite(actor) == null))
+        if (sprites[typeInt] == null && resolvedSprite == null)
             return;
         if (sprites[typeInt] == null)
         {
@@ -183,7 +187,7 @@ class CompleteSprite
         }
 
         sprites[typeInt].GameObject.SetActive(true);
-        sprites[typeInt].Sprite = sprite.GetSprite(actor);
+        sprites[typeInt].Sprite = resolvedSprite;
         int sortOrder = sprite.layer + actor.spriteLayerOffset;
         sprites[typeInt].SortOrder = sortOrder;
 

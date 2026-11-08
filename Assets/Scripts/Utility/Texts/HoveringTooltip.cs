@@ -1,4 +1,8 @@
 ﻿// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-07: Add Spartan's stat bonus to its no-flee tooltip (40D review).
+// 2026-11-07: Align Juggernaut's fallback tooltip with its skipped-turn effect (40D review).
+// 2026-11-07: Clarify the downed-unit tooltip wording.
+// 2026-11-06: Use the acting character's frozen species values in combat and previews (spec 40A).
 // 2026-11-05: Clamp hover panels to both screen axes using actual canvas geometry (spec 38 phase C).
 // 2026-11-05: Remove the obsolete Flight exception from the RangedVore tooltip.
 // 2026-11-04: Implement exclusive baseline trait tiers, flat combat modifiers and categorized Help (spec 32).
@@ -166,16 +170,16 @@ public class HoveringTooltip : MonoBehaviour
             foreach (var active in WarbandStats.Active)
                 if (words[2] == WarbandStats.ShortName(active) || words[2] == WarbandStats.Name(active))
                     return WarbandStats.Description(active) + "\n" + StatData(active) +
-                        (active == Stat.Agility ? "\nBase AP: " + WarbandStats.BaseAP(unit.Race) : "");
-        string STRDef = $"Affects melee accuracy and damage, also has a lesser impact on health, has minor effects on vore defense and vore escape\n{StatData(Stat.Strength)}";
-        string DEXDef = $"Affects ranged accuracy and damage, has minor effect on vore escape\n{StatData(Stat.Dexterity)}";
-        string VORDef = $"Affects vore odds, also has a minor effect on keeping prey down, also affects digestion damage to a minor degree\n{StatData(Stat.Voracity)}";
-        string AGIDef = $"Affects melee and ranged evasion\n{StatData(Stat.Agility)}\nMovement: {actor?.MaxMovement() ?? WarbandStats.BaseAP(unit.Race)} tiles";
-        string WLLDef = $"Affects vore defense, escape rate, mana capacity, and magic defense\n{StatData(Stat.Will)}";
+                        (active == Stat.Agility ? "\nBase AP: " + unit.SpeciesSettings.GetBaseAP(unit.Race) : "");
+        string STRDef = $"Affects melee accuracy and damage; lesser impact on health, vore defense, and vore escape\n{StatData(Stat.Strength)}";
+        string DEXDef = $"Affects ranged accuracy and damage; lesser effect on vore escape\n{StatData(Stat.Dexterity)}";
+        string VORDef = $"Affects vore odds and stomach capacity; lesser impact on resisting prey escape and digestion damage inflicted\n{StatData(Stat.Voracity)}";
+        string AGIDef = $"Affects melee and ranged evasion\n{StatData(Stat.Agility)}\nMovement: {actor?.MaxMovement() ?? unit.SpeciesSettings.GetBaseAP(unit.Race)} tiles";
+        string WLLDef = $"Affects vore defense, swallowed escape rate, mana capacity, and magic defense\n{StatData(Stat.Will)}";
         string MNDDef = $"Affects spell damage, success odds, and duration with a minor amount of mana capacity\n{StatData(Stat.Mind)}";
         string ENDDef = $"Affects total health, also reduces damage from acid, has a minor role in escape chance.\n{StatData(Stat.Endurance)}";
         string STMDef = $"Affects stomach capacity and digestion rate.  Also helps keep prey from escaping.\n{StatData(Stat.Stomach)}\n" +
-                     (State.World?.ItemRepository == null ? $"" : $"{(!unit.Predator ? "" : $"Capacity: {(actor?.PredatorComponent != null ? $"{Math.Round(actor.PredatorComponent.GetBulkOfPrey(), 2)} / " : "")}{Math.Round(State.RaceSettings.GetStomachSize(unit.Race) * (unit.GetStat(Stat.Stomach) / 12f * unit.TraitBoosts.CapacityMult), 1)}")}");
+                     (State.World?.ItemRepository == null ? $"" : $"{(!unit.Predator ? "" : $"Capacity: {(actor?.PredatorComponent != null ? $"{Math.Round(actor.PredatorComponent.GetBulkOfPrey(), 2)} / " : "")}{Math.Round(unit.SpeciesSettings.GetStomachSize(unit.Race) * (unit.GetStat(Stat.Stomach) / 12f * unit.TraitBoosts.CapacityMult), 1)}")}");
         string LDRDef = $"Provides a stat boost for all friendly units\nStat value: {unit.GetStatBase(Stat.Leadership)}";
         if (Enum.TryParse(words[2], out Stat stat) && unit != null)
         {
@@ -206,20 +210,20 @@ public class HoveringTooltip : MonoBehaviour
             if (unit == null) //Protector for the add a race screen
                 return "";
             var racePar = RaceParameters.GetTraitData(unit);
-            var bodySize = State.RaceSettings.GetBodySize(race);
-            var stomachSize = State.RaceSettings.GetStomachSize(race);
-            //return $"{race}\n{racePar.RaceDescription}\nBody Size: {State.RaceSettings.GetBodySize(race)}\nBase Stomach Size: {State.RaceSettings.GetStomachSize(race)}\nFavored Stat: {racePar.FavoredStat}\nDefault Traits:\n{State.RaceSettings.ListTraits(race)}";
-            return $"{race}\n{racePar.RaceDescription}\nRace Body Size: {bodySize}\nCurrent Bulk: {actor?.Bulk()}\nBase Stomach Size: {stomachSize}\nFavored Stat: {State.RaceSettings.GetFavoredStat(race)}\nDeployment Cost: {State.RaceSettings.GetDeployCost(race) * unit.TraitBoosts.DeployCostMult}\nUpkeep: {State.RaceSettings.GetUpkeep(race) * unit.TraitBoosts.UpkeepMult}";
+            var bodySize = unit.SpeciesSettings.GetBodySize(race);
+            var stomachSize = unit.SpeciesSettings.GetStomachSize(race);
+            //return $"{race}\n{racePar.RaceDescription}\nBody Size: {unit.SpeciesSettings.GetBodySize(race)}\nBase Stomach Size: {unit.SpeciesSettings.GetStomachSize(race)}\nFavored Stat: {racePar.FavoredStat}\nDefault Traits:\n{unit.SpeciesSettings.ListTraits(race)}";
+            return $"{race}\n{racePar.RaceDescription}\nRace Body Size: {bodySize}\nCurrent Bulk: {actor?.Bulk()}\nBase Stomach Size: {stomachSize}\nFavored Stat: {unit.SpeciesSettings.GetFavoredStat(race)}\nDeployment Cost: {unit.SpeciesSettings.GetDeployCost(race) * unit.TraitBoosts.DeployCostMult}\nUpkeep: {unit.SpeciesSettings.GetUpkeep(race) * unit.TraitBoosts.UpkeepMult}";
         }
 
         if (unit != null && words[2] == InfoPanel.RaceSingular(unit))
         {
             race = unit.Race;
             var racePar = RaceParameters.GetTraitData(unit);
-            var bodySize = State.RaceSettings.GetBodySize(race);
-            var stomachSize = State.RaceSettings.GetStomachSize(race);
-            //return $"{race}\n{racePar.RaceDescription}\nBody Size: {State.RaceSettings.GetBodySize(race)}\nBase Stomach Size: {State.RaceSettings.GetStomachSize(race)}\nFavored Stat: {racePar.FavoredStat}\nDefault Traits:\n{State.RaceSettings.ListTraits(race)}";
-            return $"{race}\n{racePar.RaceDescription}\nRace Body Size: {bodySize}\nCurrent Bulk: {actor?.Bulk()}\nBase Stomach Size: {stomachSize}\nFavored Stat: {State.RaceSettings.GetFavoredStat(race)}\nDeployment Cost: {State.RaceSettings.GetDeployCost(race) * unit.TraitBoosts.DeployCostMult}\nUpkeep: {State.RaceSettings.GetUpkeep(race) * unit.TraitBoosts.UpkeepMult}";
+            var bodySize = unit.SpeciesSettings.GetBodySize(race);
+            var stomachSize = unit.SpeciesSettings.GetStomachSize(race);
+            //return $"{race}\n{racePar.RaceDescription}\nBody Size: {unit.SpeciesSettings.GetBodySize(race)}\nBase Stomach Size: {unit.SpeciesSettings.GetStomachSize(race)}\nFavored Stat: {racePar.FavoredStat}\nDefault Traits:\n{unit.SpeciesSettings.ListTraits(race)}";
+            return $"{race}\n{racePar.RaceDescription}\nRace Body Size: {bodySize}\nCurrent Bulk: {actor?.Bulk()}\nBase Stomach Size: {stomachSize}\nFavored Stat: {unit.SpeciesSettings.GetFavoredStat(race)}\nDeployment Cost: {unit.SpeciesSettings.GetDeployCost(race) * unit.TraitBoosts.DeployCostMult}\nUpkeep: {unit.SpeciesSettings.GetUpkeep(race) * unit.TraitBoosts.UpkeepMult}";
         }
 
         if (TraitsMethods.TryParse(words[2], out Traits trait))
@@ -393,7 +397,7 @@ public class HoveringTooltip : MonoBehaviour
         switch (words[2])
         {
             case "surrendered":
-                return "This unit is downed and cannot act for the rest of the battle. Vore succeeds with a 100% chance and costs 2 AP, subject to capacity.";
+                return "This unit cannot act for the rest of the battle and is easy to vore.";
 
             case "Imprinted":
                 return $"This unit is imprinted in the village of {unit.SavedVillage.Name}, at level {unit.SavedCopy?.Level ?? 0} with {Math.Round(unit.SavedCopy?.Experience ?? 0)} exp.  " +
@@ -649,7 +653,7 @@ public class HoveringTooltip : MonoBehaviour
             case Traits.AntPheromones:
                 return "Unit will summon some friendly ants, depending on how many units have this trait.";
             case Traits.Fearless:
-                return "Unit cannot flee.";
+                return "Unit cannot flee. All stats are increased by 15%.";
             case Traits.Inedible:
                 return "Unit can not be vored by other units.  (It makes their effective size so big that no one has the capacity to eat them)\n(Cheat Trait)";
             case Traits.AllOutFirstStrike:
@@ -817,7 +821,7 @@ public class HoveringTooltip : MonoBehaviour
             case Traits.Slacker:
                 return "Unit's MP regeneration is delayed by one turn after it regenerates MP.";
             case Traits.Juggernaut:
-                return "Unit's stats are increased by 100%, but MP regeneration is delayed by one turn after it regenerates MP.";
+                return "Unit's stats are increased by 100%, but it skips every other turn and receives no AP on those turns.";
             case Traits.PoorConstitution:
                 return "When attacked in melee, unit has a 10% chance to be afflicted with sleep for 2 turns";
             case Traits.IntrusiveAppetite:

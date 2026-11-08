@@ -1,4 +1,5 @@
 ﻿// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-07: Add Grudge I–III trait identifiers and display names (spec 40D).
 // 2026-11-05: Retire Flight globally for existing units and future species defaults (flight removal).
 // 2026-11-04: Implement exclusive baseline trait tiers, flat combat modifiers and categorized Help (spec 32).
 // 2026-11-04: Permanently retire the user-approved round-one traits from gameplay and Help (spec 31).
@@ -757,6 +758,9 @@ public enum Traits
     Brutish = 670,
     BrutishII = 671,
     BrutishIII = 672,
+    Grudge = 673,
+    GrudgeII = 674,
+    GrudgeIII = 675,
 
 }
 
@@ -764,7 +768,7 @@ static class TraitsMethods
 {
 
     // Retain serialized IDs; this list controls active conversion abilities.
-    public static string DisplayName(Traits trait) => TieredTraits.DisplayName(trait) ?? (trait == Traits.AdaptiveTactics ? "QuickLearner" : trait == Traits.DoubleAttack ? "DoubleShot" : trait == Traits.PackDexterity ? "PackAgility" : trait == Traits.AccuteDodge ? "Dodger" : trait == Traits.Defenseless ? "EasyPrey" : trait == Traits.MadScience ? "MadMage" : trait == Traits.DyingStrike ? "Vindication" : trait == Traits.AdeptLearner ? "Talented" : trait == Traits.EvasiveBattler ? "SmokeOut" : trait == Traits.MetalBody ? "HardPrey" : trait == Traits.HealingBlood ? "Regeneration" : trait == Traits.Fearless ? "Spartan" : trait == Traits.Cowardly ? "Opossum" : trait.ToString());
+    public static string DisplayName(Traits trait) => TieredTraits.DisplayName(trait) ?? (trait == Traits.Grudge ? "Grudge I" : trait == Traits.GrudgeII ? "Grudge II" : trait == Traits.GrudgeIII ? "Grudge III" : trait == Traits.AdaptiveTactics ? "QuickLearner" : trait == Traits.DoubleAttack ? "DoubleShot" : trait == Traits.PackDexterity ? "PackAgility" : trait == Traits.AccuteDodge ? "Dodger" : trait == Traits.Defenseless ? "EasyPrey" : trait == Traits.MadScience ? "MadMage" : trait == Traits.DyingStrike ? "Vindication" : trait == Traits.AdeptLearner ? "Talented" : trait == Traits.EvasiveBattler ? "SmokeOut" : trait == Traits.MetalBody ? "HardPrey" : trait == Traits.HealingBlood ? "Regeneration" : trait == Traits.Fearless ? "Spartan" : trait == Traits.Cowardly ? "Opossum" : trait.ToString());
 
     public static bool TryParse(string name, out Traits trait)
     {

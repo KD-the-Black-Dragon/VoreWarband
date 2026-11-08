@@ -1,4 +1,11 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Persist company identity and terminal-history state (spec 40E).
+// 2026-11-08: Persist the calendar-difficulty enrollment day for safe campaign migration (spec 40F).
+// 2026-11-07: Persist permanent Grudge wage raises after post-battle events (spec 40D).
+// 2026-11-06: Keep action rollback in memory and remove action-level autosave work.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Persist optional travel destination intent with safe old-save defaults (spec 40B).
+// 2026-11-06: Record balance identity on new campaigns (spec 40A).
 // 2026-11-05: Persist upkeep enrollment, debt and deadline and stop daily processing on insolvency (spec 38 phase B).
 // 2026-11-05: Persist cultivated fields, clear saved road terrain and use a provisional six-action new-campaign day (spec 36).
 // 2026-11-05: Generate larger six-town regions with saved roads while preserving older campaign geography (spec 35).
@@ -26,6 +33,7 @@ internal sealed class CompanyCharacter
     public string Biography;
     public int Debt;
     public int BaseWage = 18;
+    public int GrudgeWageSurcharge;
     public int DebtDueDay = -1;
     public int WarningShownDay = -1;
     public CompanyEmployment Employment;
@@ -57,6 +65,8 @@ internal sealed class CompanyMember
 internal sealed class CompanyCampaign
 {
     public int Schema = 1;
+    public string BalanceRevision;
+    public bool DeveloperBalance;
     public string Id = Guid.NewGuid().ToString("N");
     public bool Preview = true;
     public bool Ironman;
@@ -69,6 +79,7 @@ internal sealed class CompanyCampaign
     public bool[] Roads; // Null in older campaigns: preserve their existing geography without generating roads on load.
     public bool[] Farms; // Saved presentation mask over cultivated grassland, excluding road and town tiles.
     public int Position;
+    public int? TravelDestination;
     public int ElapsedDays;
     public int DailyActions = 6; // Provisional tuning, not a finalized design value.
     public int Actions = 6;
@@ -85,10 +96,15 @@ internal sealed class CompanyCampaign
     public string SaveSlot, SaveLabel;
     public int SaveKind;
 
-    public int CompanyRulesVersion = 4;
+    public int CompanyRulesVersion = 5;
+    // Existing saves enroll here on upgrade, so loading them cannot jump straight into late pressure.
+    public int CalendarDifficultyStartDay;
     public bool LeaderRevival = true;
     public bool Ended;
     public string EndReason;
+    public string CompanyName;
+    public string EndingId, EndingKind;
+    public int LeaderDigestions;
     public int TotalGoldEarned, MercenariesHired, ContractsCompleted, EnemiesDefeated;
     public List<CompanyContract> Contracts = new List<CompanyContract>();
     public List<CompanyMemorial> Memorial = new List<CompanyMemorial>();
@@ -113,7 +129,8 @@ internal sealed class CompanyCampaign
 
     public static CompanyCampaign Generate(int seed, bool ironman)
     {
-        var state = new CompanyCampaign { Seed = seed, RandomState = unchecked((uint)seed) | 1u, Ironman = ironman };
+        var state = new CompanyCampaign { Seed = seed, RandomState = unchecked((uint)seed) | 1u, Ironman = ironman,
+            BalanceRevision = BalanceAuthoring.OfficialRevision, DeveloperBalance = BalanceAuthoring.IsDraft };
         CompanyWorldGeneration.Generate(state);
         state.Reveal();
         return state;
@@ -163,15 +180,18 @@ internal sealed class CompanyCampaign
             Terrain == null || Discovered == null || Terrain.Length != Width * Height || Discovered.Length != Terrain.Length ||
             (Roads != null && Roads.Length != Terrain.Length) || (Farms != null && Farms.Length != Terrain.Length) ||
             Position < 0 || Position >= Terrain.Length || DailyActions < 2 || DailyActions > 100 || Actions < 0 || Actions > DailyActions ||
-            ElapsedDays < 0 || NextPayday < 7 || TownEntryCost < 0 || Gold < 0 || RestDaysRemaining < 0 || RestDaysRemaining > 365 ||
+            ElapsedDays < 0 || CalendarDifficultyStartDay < 0 || CalendarDifficultyStartDay > ElapsedDays ||
+            NextPayday < 7 || TownEntryCost < 0 || Gold < 0 || RestDaysRemaining < 0 || RestDaysRemaining > 365 ||
             DailyStage < 0 || DailyStage > 5 || RandomState == 0 || Characters == null || Members == null || Towns == null || Towns.Count == 0 ||
             Terrain.Any(t => t < 0 || t > 3)) throw new InvalidOperationException("Invalid company campaign state.");
+        if (TravelDestination.HasValue && (TravelDestination.Value < 0 || TravelDestination.Value >= Terrain.Length))
+            throw new InvalidOperationException("Invalid travel destination.");
         foreach (var character in Characters) CompanyInjuries.Validate(character.Unit);
         if (RestingDay && !UpdatingDay) throw new InvalidOperationException("Rest recovery must belong to an active daily update.");
         var ids = new HashSet<string>();
         var units = new HashSet<Unit>();
         foreach (var c in Characters)
-            if (c == null || string.IsNullOrEmpty(c.Id) || !ids.Add(c.Id) || c.Unit == null || !units.Add(c.Unit) || SpeciesPolicy.IsRetired(c.Unit.Race) || c.Debt < 0)
+            if (c == null || string.IsNullOrEmpty(c.Id) || !ids.Add(c.Id) || c.Unit == null || !units.Add(c.Unit) || SpeciesPolicy.IsRetired(c.Unit.Race) || c.Debt < 0 || c.GrudgeWageSurcharge < 0)
                 throw new InvalidOperationException("Invalid character registry.");
         var members = new HashSet<string>();
         foreach (var m in Members)
@@ -211,14 +231,14 @@ internal sealed class CompanyClock
         while (!state.Ended && state.UpdatingDay && string.IsNullOrEmpty(state.PendingDecision) && state.DailyStage < 5)
         {
             // Commit a stage only after it succeeds; rollback all campaign mutations on error.
-            var backup = CompanyCampaignSave.Encode(state);
+            var backup = CompanySnapshot.Take(state);
             try
             {
                 ICompanyDailySystem system;
                 if (systems.TryGetValue((CompanyDailyStage)state.DailyStage, out system)) system.Apply(state);
                 state.DailyStage++;
             }
-            catch { CompanyCampaignSave.Restore(state, backup); throw; }
+            catch { CompanySnapshot.Restore(state, backup); throw; }
         }
         if (state.Ended)
         {

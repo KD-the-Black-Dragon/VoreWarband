@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-07: Refresh selected option tooltips for concise, accurate wording.
 // 2026-11-03: Remove obsolete OC tooltip example (spec 21).
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // Modified for the VoreWar mercenary-company conversion.
@@ -177,29 +178,29 @@ If off, tail size is controlled by bodysize / affected by weightgain";
 Note that this fluff hides the seams, which look fine for half-furries, but are more noticeable on fully furries";
 
             case 67:
-                return @"If you have the AI take your turn for you, it will take this long to move between squares to allow you to see what's going on at your preferred pace";
+                return @"If you have the AI take your turn for you, it will take this long to move between squares";
             case 68:
                 return @"Player units take this long to move between squares";
             case 69:
-                return @"The tactical AI will wait this long after every square moved to allow you to see what's going on at your preferred pace";
+                return @"The tactical AI will wait this long after every square moved";
             case 70:
-                return @"The tactical AI will wait this long after every attack action to allow you to see what's going on at your preferred pace";
+                return @"The tactical AI will wait this long after every attack action";
             case 71:
-                return @"The tactical AI will wait this long after every devour action to allow you to see what's going on at your preferred pace";
+                return @"The tactical AI will wait this long after every devour action";
             case 72:
-                return @"The strategic AI will wait this long after every square moved to allow you to see what's going on at your preferred pace";
+                return @"The strategic AI will wait this long after every square moved";
             case 73:
                 return @"Displays damage numbers when units are damaged, if this is off, they will simply flash red";
             case 74:
                 return @"Allows game to run while in the background (window not in focus, or minimized)";
             case 75:
-                return @"Displays the unit's level just under its healthbar";
+                return @"Displays the unit's level just under its health bar";
             case 77:
-                return "Uses green and red for base colors instead of blue and red.  Not recommended with subtle colors as green blends in with the grass";
+                return "Uses green and red for base colors instead of blue and red. Not recommended with subtle colors as green blends in with the grass";
             case 78:
                 return "Asks if you're sure if you try to end your turn in tactical mode while units are still capable of moving";
             case 79:
-                return "The battle will automatically pause at the very end of any battle that you're watching so that you can review the battlefield";
+                return "The battle will automatically pause at the very end of any battle that you're watching";
             case 80:
                 return @"Enable unbirth
 

@@ -1,3 +1,4 @@
+// 2026-11-06: Explicit developer drafts, validated saves and balance workflow controls (spec 40A).
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-10-30: Require an authorized editor session and revoke it on close (spec 02B).
 // 2026-10-30: Exclude retired metadata catalogs/previews and preserve unchanged mapping values (spec 03B1).
@@ -120,6 +121,8 @@ public class RaceEditorPanel : MonoBehaviour
 
     Race PreviousRace = (Race)(-1);
     bool loadingRace;
+    internal bool LastSaveSucceeded;
+    internal Race SelectedSpecies => PreviousRace;
 
     private void OnEnable()
     {
@@ -132,7 +135,8 @@ public class RaceEditorPanel : MonoBehaviour
                 if (label.text.Trim().TrimEnd(':') == "Mind" || label.text.Trim().TrimEnd(':') == "MND") label.text = "Intelligence";
 
         if (State.GameManager == null || State.GameManager.Menu == null || !State.GameManager.Menu.HasRaceEditorAccess)
-            gameObject.SetActive(false);
+        { gameObject.SetActive(false); return; }
+        DeveloperBalancePanel.Attach(this);
     }
 
     private void OnDisable()
@@ -144,7 +148,7 @@ public class RaceEditorPanel : MonoBehaviour
     // Metadata inspection is broader than gameplay approval, but never includes retired species.
     static bool IsEditableSpecies(Race race)
     {
-        return (int)race >= 0 && Enum.IsDefined(typeof(Race), race) && !SpeciesPolicy.IsRetired(race);
+        return (int)race >= 0 && Enum.IsDefined(typeof(Race), race) && !SpeciesPolicy.IsRetired(race) && BalanceAuthoring.HasMetadata(race);
     }
 
     static Race[] GetEditableSpecies()
@@ -484,8 +488,10 @@ public class RaceEditorPanel : MonoBehaviour
 
     internal void SaveRace()
     {
+        LastSaveSucceeded = false;
         if (loadingRace || !State.GameManager.Menu.IsRaceEditorSessionActive)
             return;
+        var backup = BalanceAuthoring.Copy(State.RaceSettings);
         try
         {
             if (IsEditableSpecies(PreviousRace))
@@ -614,10 +620,12 @@ public class RaceEditorPanel : MonoBehaviour
                 item.HermTraits = TextToTraitList(HermTraits.text);
                 item.SpawnTraits = TextToTraitList(SpawnTraits.text);
                 item.LeaderTraits = TextToTraitList(LeaderTraits.text);
+                LastSaveSucceeded = true;
             }
         }
         catch
         {
+            State.RaceSettings = backup;
             State.GameManager.CreateMessageBox("There's an input box that's not filled in");
         }
 
@@ -961,60 +969,19 @@ public class RaceEditorPanel : MonoBehaviour
     public void CloseAndSave()
     {
         SaveRace();
-        State.SaveEditedRaces();
-        gameObject.SetActive(false);
-        if (State.GameManager.CurrentScene == State.GameManager.Start_Mode)
-            return;
-        if (State.World.Villages != null)
+        if (!LastSaveSucceeded) return;
+        try
         {
-            var units = StrategicUtilities.GetAllUnits();
-            foreach (Unit unit in units)
-            {
-                unit.ReloadTraits();
-            }
+            BalanceAuthoring.SaveDraft();
+            BalanceAuthoring.UpdateStatus();
+            gameObject.SetActive(false);
         }
-        else
-        {
-            foreach (Actor_Unit actor in TacticalUtilities.Units)
-            {
-                actor.Unit.ReloadTraits();
-                actor.Unit.InitializeTraits();
-                actor.Unit.UpdateSpells();
-            }
-        }
-        if (State.World.AllActiveEmpires != null)
-        {
-            foreach (Empire emp in State.World.AllActiveEmpires)
-            {
-                if (emp.Side > 300)
-                    continue;
-                var raceFlags = State.RaceSettings.GetRaceTraits(emp.ReplacedRace);
-                if (raceFlags != null)
-                {
-                    if (raceFlags.Contains(Traits.Prey))
-                        emp.CanVore = false;
-                    else
-                        emp.CanVore = true;
-                }
-            }
-            foreach (Empire emp in State.World.MainEmpires)
-            {
-                if (emp.Side > 300)
-                    continue;
-                if (State.RaceSettings.Exists(emp.Race))
-                {
-                    emp.BannerType = State.RaceSettings.GetExisting(emp.Race).BannerType;
-                }
-                else
-                    emp.BannerType = 0;
-            }
-        }
-
+        catch (Exception ex) { State.GameManager.CreateMessageBox("Balance draft was not saved. " + ex.Message); }
     }
 
     public void CloseWithoutSave()
     {
-        State.LoadEditedRaces();
+        BalanceAuthoring.CancelEditorSession();
         gameObject.SetActive(false);
     }
 
@@ -1022,14 +989,15 @@ public class RaceEditorPanel : MonoBehaviour
     {
         if (!IsEditableSpecies(PreviousRace))
             return;
-        State.RaceSettings.Reset(PreviousRace);
+        BalanceAuthoring.ResetSpecies(PreviousRace);
         LoadRace();
         UpdateInteractable();
     }
 
     public void ResetAllRaces()
     {
-        State.RaceSettings.ResetAll();
+        BalanceAuthoring.UseOfficial();
+        BalanceAuthoring.BeginDraft();
         LoadRace();
         UpdateInteractable();
     }

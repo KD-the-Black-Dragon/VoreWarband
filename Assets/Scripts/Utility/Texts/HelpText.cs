@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Update equipment guidance for renamed armor and tiered weapon progression.
 // 2026-11-05: Describe upkeep-first payday, insolvency and prospective wage changes (spec 38 phase B).
 // 2026-11-05: Update cleared-road/farm, new daily allowance and 10/20/30 HP recovery information (spec 36).
 // 2026-11-05: Separate faster general HP recovery from longer calendar-day injuries.
@@ -82,13 +83,13 @@ Injuries and equipment still modify combat. Head/arm/leg/abdomen injuries reduce
 
     public static string Items = @"Company equipment
 
-Nine slots: Helmet, Torso armor, Leg armor, Arm armor, Accessory, Melee weapon, Ranged weapon and two spells.
+Nine slots: Helmet, Tunic, Greaves, Bracers, Accessory, Melee weapon, Ranged weapon and two spells.
 
 Buy gear at a town merchant, then equip it through Company > Manage. Equipment can change outside battle. The company inventory owns unequipped items and members' equipped items; sell spare unequipped gear at a merchant. Dismissed or departing members keep their gear.
 
 An HP-granting item changes current and maximum HP by the same amount when equipped/removed. If removing one would leave its wearer without positive HP, recover first.
 
-Armor also reduces injury risk for its covered body part. Helmets protect Head/Eyes, torso armor Chest/Abdomen, leg armor Leg/Knee and arm armor Arm/Hand. There is no armor appearance system in this version.
+Armor also reduces injury risk for its covered body part. Helmets protect Head/Eyes, tunics Chest/Abdomen, greaves Leg/Knee and bracers Arm/Hand. There is no armor appearance system in this version.
 
 Digested mercenaries' equipped gear is lost with them. The initial contract reward is gold only. Pure Tactical keeps its original equipment setup.";
 

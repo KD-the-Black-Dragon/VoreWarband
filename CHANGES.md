@@ -1,18 +1,192 @@
 # VoreWar fork changes
 
+## 2026-11-08 — Normalize company weapon classes and native art families (spec 34e follow-up)
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` to use generic Sword/Bow tier labels, retire duplicate tier-II/tier-III melee options from new stock, and assign heavy native art to the strongest floor-half of each active class by damage × accuracy rating. Stable definition IDs remain available to load existing equipment.
+- Modified `Assets/Scripts/Core/CompanyEconomy.cs`, `Assets/Scripts/Entities/Items/Weapon.cs` and `Assets/Scripts/Entities/Units/Unit.cs` so saved inventory and equipped items refresh generic names/art families by definition ID without changing weapon combat stats.
+- Modified `Assets/Scripts/Modes/Tactical/Log/LogUtilities.cs` and `Assets/Scripts/Modes/Tactical/TacticalMessageLog.cs` so company battle logs use known species-native weapon names while shop/inventory names remain generic. Added known Avian weapon names and the reviewed Lizard/Gnoll ranged names.
+- Added dated fork modification notices to every changed source file. Reviewed actual `License.txt` sections 4–5 and preserved existing upstream license, copyright and attribution notices. This change uses existing source and species-specific art; no third-party code, assets or dependencies were added. A Unity compile/build and gameplay review were not run for this change. Separate binary/source distribution obligations remain to be reviewed before distribution.
+
+## 2026-11-08 — Add the weapon-art transplant trial
+
+- Modified `Assets/Scripts/Subwindows/DeveloperWeaponArtGallery.cs` to let the developer gallery place each discovered numbered weapon sprite onto Avian, Lizard or Gnoll paper dolls. The view supports target body form and idle/attack frames and uses the target species' normal slot placement. It does not alter equipment assignments or shop availability. Temporary renderer delegates, layers and offsets are restored after the preview is rendered.
+- Updated `docs/implementation/34e-gear-progression.md` to describe the implemented trial and retain the user's identifications for entries 1–120.
+- The changed C# file carries a dated VoreWarband modification notice. Reviewed actual `License.txt` sections 4–5; the fork's GPL terms and existing upstream notices remain intact. This uses existing project artwork and code; no third-party code, assets or dependencies were introduced. Unity 2018.3.12f1 compiled and built `Builds/Warband-Test-20261108-weapon-art-transplant-v2/Win64/Vore Warband.exe` with no C# errors. Existing compiler warnings remain; gallery runtime/manual visual review is pending. This is a private test build, not a public-release package; review all applicable GPL and third-party terms before redistribution.
+
+## 2026-11-08 — Record weapon-art identifications
+
+- Updated `docs/implementation/34e-gear-progression.md` with the user's complete identification of weapon-art gallery entries 1–120, preserving uncertain and non-weapon entries, and recorded the proposed Avian/Lizard/Gnoll visual transplant trial. Documentation-only update; no gameplay source was changed.
+
+## 2026-11-08 — Expand and correct the weapon-art reference gallery
+
+- Modified `Assets/Scripts/Core/CompanyWeaponArtCatalog.cs` to discover weapon sprites by calling each non-retired species' actual renderer for every company graphic slot, including non-curated species. The catalog detects species whose breast/no-breast forms use different weapon art and records species/slot preview failures separately from species with no mapped weapon art.
+- Modified `Assets/Scripts/Subwindows/DeveloperWeaponArtGallery.cs` to show large numbered idle/attack previews and identify the species and graphic slot without guessing the weapon's real-world identity. Species with no mapped weapon art are listed separately.
+- Added dated VoreWarband modification notices to both changed source files. Reviewed `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. The gallery uses existing project artwork and code; no third-party code, assets or dependencies were added. Unity 2018.3.12f1 compiled and built `Builds/Warband-Test-20261108-weapon-art-gallery-all-species-v2/Win64/Vore Warband.exe`; the build includes project and third-party notices. The gallery still needs an in-game visual review. This testing build is not a public-release package; review all applicable GPL requirements before redistribution.
+
+## 2026-11-08 — Add curated species weapon poses to developer gallery
+
+- Modified `Assets/Scripts/Core/CompanyWeaponArtCatalog.cs` and `Assets/Scripts/Subwindows/DeveloperWeaponArtGallery.cs` so the password-gated gallery compares shared fallback artwork with the current Avian, Lizard and Gnoll weapon poses. It now includes the Avian heavy-ranged/crossbow art and Gnoll's two full-body sprite variants, alongside idle/attack pairs for each catalog family. Missing frames are shown as unavailable, and the existing Lizard frame suppression is reflected in the preview. No gameplay weapon availability or stats changed.
+- Both modified source files have dated VoreWarband notices. Reviewed actual `License.txt` sections 4–5 and preserved existing copyright, license and attribution notices. The gallery uses existing project art; no third-party code, assets or dependencies were added. No compile, build or in-game visual check was run for this follow-up.
+
+## 2026-11-08 — Campaign weapon artwork and developer gallery
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` to give company weapon definitions explicit shared artwork-family IDs and retain the alternate light-melee art as a retired dagger stub. Added `Assets/Scripts/Core/CompanyWeaponArtCatalog.cs` and its `.meta` file to name and preview the existing idle/attack sprite pairs. Modified `Assets/Scripts/Races/Graphics/DefaultRaceData.cs` so legacy randomized light-melee variants do not override the explicit company weapon selection.
+- Modified `Assets/Scripts/Entities/Units/Unit.cs` and `Assets/Scripts/Entities/Units/Actor_Unit.cs` to save the last melee/ranged category used and select that weapon for company paper-doll rendering, falling back when a category is not equipped. Modified `Assets/Scripts/Races/Graphics/CompleteSprite.cs` to hide the hand-held weapon when a company attack has no assigned art, while retaining each species' own positioning and layering.
+- Modified `Assets/Scripts/Subwindows/DeveloperBalancePanel.cs` and `Assets/Scripts/Subwindows/GameMenu.cs`; added `Assets/Scripts/Subwindows/DeveloperWeaponArtGallery.cs` and its `.meta` file. The read-only gallery sits beside Balance Workflow inside the password-gated Race Editor and lists every current company weapon-art family and its shop/enemy-only/retired definitions. It closes on Escape and when the Race Editor session ends.
+- Updated `docs/implementation/34e-gear-progression.md`. Dated notices were added to each changed or new C# source. Reviewed `License.txt` sections 4–5 and preserved existing copyright, license, attribution and warranty notices. The gallery uses existing project sprites; no third-party code, assets or dependencies were introduced. No compile, Unity build, or manual gameplay test was run. Separate source/binary distribution obligations remain to be reviewed before distribution.
+
+## 2026-11-08 — Standardize ranged weapon choices
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` to standardize the four shop/generated ranged choices—Simple bow, Hunting bow, Compound bow and Masterwork bow—to range 6 and 1.0× accuracy. Modified `Assets/Scripts/Subwindows/DeveloperBattleLab.cs` to hide the retired variants from new lab fixtures as well. Fine bow, War bow and Masterwork war bow are retired from shop availability and new generated gear. Their catalog definitions remain so existing saved equipment can still be loaded, used and sold. The Mace's existing 1.25× accuracy remains intact.
+- Added a dated source modification notice. Reviewed `License.txt` sections 4–5; existing copyright, license and attribution notices remain. No third-party material was introduced. No build or gameplay checks were run.
+
+## 2026-11-08 — Lower ranged weapon damage
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` to reduce Simple bow damage by 1 and all other shop ranged weapon damage by 2. Melee weapon values, attack ranges, accuracy modifiers and enemy-only Spitter Slug weapon are unchanged. New gear and generated forces use the adjusted values; saved weapon instances retain their serialized damage.
+- Added a dated source modification notice. Reviewed `License.txt` sections 4–5; existing copyright, license and attribution notices remain. No third-party material was introduced. No build or gameplay checks were run.
+
+## 2026-11-08 — Armor naming and tiered weapon damage
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` to rename torso/arm/leg armor as Tunic/Bracers/Greaves, raise armor stat bonuses by tier (non-torso +2/+4/+6; tunic +4/+6/+8), remove “Guarded” from generated armor names, and define weapon damage as Tier 0 baseline 4, Tier I 11, Tier II 18 and Tier III 25. This matches full-set armor AC totals of 0/5/10/15 plus a provisional +2 damage premium per tier for enemy health growth. Tier-0 Mace and Simple bow retain their existing damage.
+- Modified `Assets/Scripts/Subwindows/CompanyManagementUI.cs` to show the new armor categories and a safe Tier 0 label. Modified `Assets/Scripts/Utility/Texts/HelpText.cs` to use the new armor terminology.
+- Modified `Assets/Scripts/Entities/Items/Item.cs` and `Assets/Scripts/Entities/Units/Unit.cs` so loading a company save refreshes catalog-owned item names without rewriting the saved item statistics.
+- Updated `docs/implementation/34e-gear-progression.md` with the current catalog values, rationale and existing-save behavior.
+- Each changed C# source carries a dated modification notice. Reviewed `License.txt` sections 4–5; existing upstream copyright, license and attribution notices remain. No third-party code, assets or dependencies were introduced. No build or gameplay checks were run.
+
+## 2026-11-08 — Retire evasion-granting armor from new availability
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` so armor that grants evasion no longer appears in the shop or in newly generated recruit equipment. Modified `Assets/Scripts/Subwindows/DeveloperBattleLab.cs` to hide those items from new lab fixtures as well. Their catalog definitions remain resolvable so current campaigns retain the stats and injury protection of already-owned/equipped pieces.
+- Added a dated source modification notice. Reviewed actual `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. No third-party material was introduced. No build or gameplay checks were requested or run; future binary distribution still requires its own GPL review.
+
+## 2026-11-08 — Phase 40F acceptance recorded (documentation only)
+
+- Updated the Phase 40F implementation/spec, Module 40 status, roadmap and resume checkpoint to record user acceptance at the documented scope. The calendar values remain provisional for future balance feedback.
+- Documentation only; no gameplay-source, asset, test or build-output changes were made in this entry. GPL source modification notices do not apply to this acceptance record.
+
+## 2026-11-08 — Phase 40F calendar difficulty progression
+
+- Modified `Assets/Scripts/Core/CompanyCampaign.cs`, `Assets/Scripts/Core/CompanyEconomy.cs`, `Assets/Scripts/Core/CompanyCampaignSave.cs`, `Assets/Scripts/Core/CompanyContracts.cs` and `Assets/Scripts/Core/CompanyRoadEvents.cs` to add a protected 21-day opening followed by provisional accelerating pressure on newly generated contract offers and new Spitter Slug road encounters. New offers retain fixed rating-based force and reward rules, include a company-relative easy-work floor, and record their calendar revision/age/pressure. Existing offers, accepted forces, quotes and saved roster state remain unchanged. Older campaigns enroll at their saved day rather than receiving an immediate late-game jump.
+- Modified `Assets/Editor/CompanyBalanceEconomyAudit.cs` to verify curve boundaries, generated day-1000 offers/encounters, legacy enrollment, save/resume stability, and current Ironman ending order. Connected native simulations were run across 14 policy/seed histories.
+- Each changed C# file carries its dated fork modification notice. The notice coverage and actual `License.txt` sections 4–5 were checked; existing copyright, license, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced. No standalone player build or manual playtest was performed for this packet; distribution obligations remain a separate review.
+
+## 2026-11-08 — Test-build handoff instruction (documentation only)
+
+- Updated `AGENTS.md` to make Codex responsible for running the available Unity build workflow whenever a new test build is requested, providing the executable path, and clearly reporting any blocker instead of substituting manual build instructions.
+- Documentation only; no gameplay source, assets, tests or build outputs changed. Source modification notices and source-specific GPL checks do not apply. Existing GPL-3.0 license and attribution materials are unchanged.
+
+## 2026-11-08 — Campaign setup and modal layering fixes (40E UI follow-up)
+
+- Modified `Assets/Scripts/Subwindows/CompanyCampaignView.cs` to remove the setup-page Load Game button; the main-menu Load Game entry remains the single load entry from outside an active campaign.
+- Modified `Assets/Scripts/UI/DialogBox.cs` so confirmation dialogs sort above campaign, save-browser and other active screen canvases. This covers retirement confirmation and the standalone player's quit confirmation.
+- Modified `Assets/Scripts/Subwindows/CompanyManagementUI.cs` to show the campaign's company name as the roster page heading, with the existing `Unnamed Company` fallback.
+- Each changed source has a dated fork modification notice. `License.txt` sections 4–5 were checked; existing upstream copyright, license and attribution notices remain intact. No third-party material was introduced.
+
+## 2026-11-08 — Retirement confirmation build fix (spec 40E)
+
+- Modified `Assets/Scripts/Subwindows/CompanyMissionsUI.cs` to qualify the global `State.GameManager` reference where the UI's `State` property shadows the class name. This fixes the C# compile error that blocked the requested test build. Existing legal notices and attribution are preserved; `License.txt` sections 4–5 were checked for this source change. No third-party code or assets were introduced.
+
+## 2026-11-08 — Company endings, retirement and High Scores (spec 40E)
+
+- Added `Assets/Scripts/Core/CompanyHistory.cs` and its Unity metadata. The independent archive stores immutable ending records with the provisional score breakdown and detail/memorial data. History publication runs in the background; recoverable staging records are promoted on read, duplicate ending IDs are ignored, and malformed records do not hide valid entries.
+- Modified `Assets/Scripts/Core/CompanyCampaign.cs`, `Assets/Scripts/Core/CompanyCampaignSave.cs`, `Assets/Scripts/Core/CompanySaveSummary.cs` and `Assets/Scripts/Subwindows/CompanyManagementUI.cs` to persist the company name and ending identity, show the company in save previews and accept a campaign company name. Empty names display as `Unnamed Company`.
+- Modified `Assets/Scripts/Subwindows/CompanyCampaignView.cs`, `Assets/Scripts/Subwindows/CompanyMissionsUI.cs` and `Assets/Scripts/Modes/StartMode.cs` to expose the Day-14 town retirement flow, score projection/confirmation, ended-company details and memorial, and a main-menu High Scores viewer with detail pages.
+- Modified `Assets/Scripts/Core/CompanyBattle.cs` and `Assets/Scripts/Core/CompanyEconomy.cs` to identify battle and insolvency endings and count leader digestions. Modified `Assets/Scripts/Core/CompanySaveSlots.cs`, `Assets/Scripts/Core/CompanySaveWorker.cs` and `Assets/Scripts/Modes/StartMode.cs` so Ironman campaign data is not removed before its separate ending record has been published, and interrupted post-publication cleanup is retried in the background at startup.
+- Older ended saves without a 40E ending ID are not backfilled. Every changed/new C# source has a dated modification/addition notice; the new `.meta` companion is covered here. Actual `License.txt` sections 4–5 were reviewed; original copyright, license and attribution notices are retained, and no external code, assets or dependencies were introduced. No build or gameplay checks were run. GPL obligations for any later binary distribution still require their separate review.
+
+Implementation details and the grouped player checklist are recorded in `docs/implementation/40e-ending-scoreboard-and-history.md`.
+
+## 2026-11-08 — Phase 40E design decisions recorded (documentation only)
+
+- Updated `docs/specs/40e-ending-scoreboard-and-history.md` with the curator's provisional score formula, Day 15 onward Town retirement flow, confirmation behavior, `Unnamed Company` fallback and no-backfill rule for older ended saves.
+- Updated `docs/conversion-roadmap.md`, `docs/specs/40-authoring-and-campaign-progression.md` and `docs/implementation/resume-checkpoint.md` to reflect 40D's accepted event-firing scope and 40E's readiness for implementation. No gameplay source, Unity assets, tests or build outputs were changed.
+- This is a documentation-only update; source modification notices and source-specific GPL checks are not applicable. Existing GPL-3.0 license and attribution materials are unchanged.
+
+## 2026-11-07 - Project identity and build destination
+
+- `ProjectSettings/ProjectSettings.asset`: disconnected the inherited Unity cloud project and organization identifiers and named the local project and product Vore Warband, separating its data from VoreWar.
+- `Assets/MultiBuild/MultiBuildSettings.asset`: replaced the inherited developer Desktop output path with the project-relative `Builds` folder.
+- `README.md` and `AGENTS.md`: documented the project identity and build destination. Existing license and attribution notices are retained.
+
 This checkout is developing a mercenary-company total conversion of VoreWar. The original project is described in [README.md](README.md) as a continuation of darkevilme's Vore War. This record distinguishes this fork's work from that earlier work; original copyright, attribution, license, and warranty notices remain applicable.
 
 The covered derivative work continues under the applicable GNU GPL version 3 terms in [License.txt](License.txt). This record does not change existing license grants or the separate terms of third-party code, dependencies, or assets.
 
+## 2026-11-07 — Post-battle evidence and balanced trait outcomes (spec 40D)
+
+- Added `Assets/Scripts/Core/CompanyPostBattleTraits.cs` and its Unity metadata file. Modified `Assets/Scripts/Core/CompanyBattle.cs`, `Assets/Scripts/Core/CompanyBattleSnapshot.cs`, `Assets/Scripts/Core/CompanyCampaign.cs`, `Assets/Scripts/Core/CompanyCampaignSave.cs`, `Assets/Scripts/Core/CompanyEconomy.cs`, and `Assets/Scripts/Core/CompanyInjuries.cs` to collect and preserve battle evidence, settle one event, persist Grudge wage raises, and preserve exactly-once post-battle flow.
+- Modified `Assets/Scripts/Entities/Units/Actor_Unit.cs`, `Assets/Scripts/Entities/Units/PredatorComponent.cs`, `Assets/Scripts/Entities/Units/Unit.cs`, and `Assets/Scripts/Modes/TacticalMode.cs` to record resolved battle actions, fates, injuries, escapes, digestion and retreat evidence. `Assets/Scripts/Utility/AssimilateList.cs` and legacy extraction, shared, temporary and conditional trait paths prevent inborn traits from being transferred, added or stripped mid-campaign; the unit trait-removal guard and obsolete size-shrink helper preserve generated size traits.
+- Modified `Assets/Scripts/Enums/Tags.cs`, `Assets/Scripts/Races/TieredTraits.cs`, and `Assets/Scripts/Races/Traits.cs` for Grudge I–III and the approved Regeneration/ManaDynamo effects. Modified `Assets/Scripts/Subwindows/CompanyManagementUI.cs` and `Assets/Scripts/Subwindows/CompanyMissionsUI.cs` for the wage preview and revival/event notices.
+- The implementation record and provisional grouped review checklist are in `docs/implementation/40d-post-battle-trait-progression.md`; the rule and outcome catalog is in `docs/specs/40d-post-battle-trait-progression.md` and `docs/specs/40d-trait-classification-and-outcome-proposal.md`. No Unity build or gameplay tests were run for this handoff.
+- Added/modified source files carry dated 40D notices; the new non-commentable Unity `.meta` path is identified here. GPL-3.0 sections 4–5 were checked against `License.txt`; existing legal, copyright, and attribution notices were preserved. No third-party code, assets, or dependencies were introduced. Distribution obligations remain subject to the separate GPL review required before publishing.
+
+## 2026-11-07 — Spartan stat bonus (40D review)
+
+- Modified `Assets/Scripts/Races/Traits.cs` to give Spartan (the retained Fearless trait ID) a 15% multiplier to all four combat stats while preserving its no-flee behavior. Modified `Assets/Scripts/Utility/Texts/HoveringTooltip.cs` so the fallback description matches. The curator classifies Spartan as Bad despite its compensating bonus. Existing notices and attribution are preserved. GPL-3.0 sections 4–5 were reviewed for this change; no third-party material was introduced.
+
+## 2026-11-07 — Juggernaut tooltip consistency
+
+- Modified `Assets/Scripts/Utility/Texts/HoveringTooltip.cs` so the fallback tooltip describes Juggernaut's doubled stats and skipped turns, matching the active trait definition and turn logic. Existing copyright, license and attribution notices are preserved. GPL-3.0 sections 4–5 were checked for this source change; no new code or third-party material was introduced.
+
+## 2026-11-07 — Curator wording corrections
+
+- Updated selected option tooltips in `Assets/Scripts/Utility/Texts/DefaultTooltips.cs` and the downed-unit description in `Assets/Scripts/Utility/Texts/HoveringTooltip.cs` using the curator's intentional edits. Other tooltip text is retained.
+
 ## Recording changes
 
 Record completed source changes by actual date, affected paths, and a short description, with a related spec where useful. Modified source files also receive dated notices under the workflow in [AGENTS.md](AGENTS.md). Mark additions as this fork's additions. Preserve previous entries and do not describe planned removals or features as implemented.
+
+## 2026-11-06 — Spellbook progression, phase 40C
+
+- Modified `Assets/Scripts/Core/CompanyEquipment.cs` and `Assets/Scripts/Core/CompanyEconomy.cs` to add provisional utility, poison, control, summon and Gate Maw books across reputation tiers and generate eligible secondary books for experienced mages. Existing IDs and first-level starting gear remain.
+- Modified `Assets/Scripts/AI/TacticalAI.cs` to consider affordable non-retired spell alternatives and check the intended ally's status. Modified `Assets/Scripts/Core/CompanyPower.cs` with provisional estimates for several new spell roles.
+- Modified `Assets/Scripts/Entities/Spells/SpellList.cs` to identify Mending's temporary battle healing and `Assets/Scripts/Entities/Units/Unit.cs` to prevent ongoing poison/virus ticks from rolling hit-based injuries.
+- Added Cinder Field's spell identity and ground-fire effect in `Assets/Scripts/Enums/SpellTypes.cs` and `Assets/Scripts/Entities/Spells/SpellList.cs`. Modified `Assets/Scripts/Modes/Tactical/TileEffect.cs`, `Assets/Scripts/Modes/Tactical/TacticalUtilities.cs`, `Assets/Scripts/Modes/TacticalMode.cs` and `Assets/Scripts/Core/CompanyBattleSnapshot.cs` to retain hazard ownership and treat ongoing fire as non-hit damage.
+- Modified `Assets/Scripts/AI/TacticalPathfinder.cs` and `Assets/Scripts/AI/AIPlottedPath.cs` for hazard-avoidance routes and risk-assessed escape. These changes supplement the AI edits above.
+- Modified `Assets/Editor/TraitCurationAudit.cs` to isolate phase 40C regression results/settings and check new books, temporary healing, hazard persistence, AI escape and expiry.
+- Modified `Assets/Editor/CompanyBalanceAudit.cs` to compare synthetic spellbook and bow loadouts in native battles.
+- Modified `Assets/Editor/CompanySavePersistenceAudit.cs` to verify hazard ownership in a saved and resumed battle.
+- Grouped synthetic Unity checks passed 1,004 assertions, and the native battle-save audit passed 51. Nine seeded AI battles compared bolt, Cinder and bow loadouts; their small sample does not establish final balance. See `docs/implementation/40c-spellbook-progression.md`. No external code, artwork or dependencies were introduced. Existing license and attribution notices are retained.
+
+## 2026-11-06 — Responsive turn-boundary autosaves and lightweight save browsing
+
+- Added fork sources `Assets/Scripts/Core/CompanySnapshot.cs`, `Assets/Scripts/Core/CompanySaveWorker.cs` and `Assets/Scripts/Core/CompanySaveSummary.cs`, with their `.meta` companions. They provide detached save capture, ordered background writes with cancellation and compact progress previews.
+- Modified `Assets/Scripts/Core/CompanyCampaignSave.cs` and `Assets/Scripts/Core/CompanySaveSlots.cs` for backward-readable version-2 envelopes, verified staging-file publication, filename-based backup selection and summary-only catalogs. Disk work and backup maintenance run on the autosave worker. Named manual saves and game-owned deletion remain available.
+- Modified `Assets/Scripts/Subwindows/CompanyCampaignView.cs`, `Assets/Scripts/Core/CompanyBattle.cs`, `Assets/Scripts/Core/CompanyTravel.cs`, `Assets/Scripts/Core/CompanyCampaign.cs` and `Assets/Scripts/Subwindows/CompanyManagementUI.cs` to remove per-action autosaves, use day/player-turn boundaries and avoid serialization for rollback. Movement records only its changed fields. Existing domain-action preconditions and scoped equipment rollback handle expected rejection. Daily-stage and battle-transition copies use in-memory graphs.
+- Modified `Assets/Scripts/Core/UnitSpeciesBalance.cs` to document immutable published records and complete legacy enrollment before publication. Detached snapshots share these read-only records, copying mutable gameplay data.
+- Modified `Assets/Scripts/UI/CompanySaveMenu.cs` to scan summaries in the background, reuse the catalog while paging/hovering, queue explicit Save/Quicksave requests and avoid duplicate full loads. Modified `Assets/Editor/CompanySavePersistenceAudit.cs`, `Assets/Editor/CompanyTravelAudit.cs` and `Assets/Editor/TraitCurationAudit.cs` for focused concurrency/cadence checks and separate follow-up evidence.
+- Every changed/new C# source has a 2026-11-06 conversion notice. This record covers the three new source `.meta` companions. Existing license, copyright, attribution and dependency notices are preserved. No external code, art or dependency was introduced. Actual License.txt sections 4–5 are reviewed. Public-distribution provenance and Corresponding Source gates remain open. Native checks passed 51 focused, 937 route and 963 grouped assertions, all with actual Unity exit 0. A fresh Windows review player built successfully at `Builds/Warband-Review-20261106-save41-facf910b/Win64/`, with actual Unity exit 0. Build/review details are tracked in `docs/implementation/41-save-responsiveness.md`.
+
+## 2026-11-06 — Contributor performance policy
+
+- Documentation-only update to `AGENTS.md` records the user's responsiveness-first rule. Completed autosaves provide practical recovery, with possible loss of newer progress accepted. Normal gameplay must avoid blocking save work, excessive per-action snapshots/validation and full-state save catalog scans. This entry describes contributor instructions, with no gameplay implementation claimed.
+
+## 2026-11-06 — Explored world-map routes and animated travel, phase 40B
+
+- Added fork sources `Assets/Scripts/Core/CompanyTravel.cs`, `Assets/Scripts/UI/CompanyRouteGraphic.cs` and `Assets/Editor/CompanyTravelAudit.cs`, with their `.meta` companions. These provide deterministic lowest-action explored routes, outlined gold/red arrow segments and focused native route/input/persistence checks.
+- Modified `Assets/Scripts/Core/CompanyCampaign.cs` and `Assets/Scripts/Core/CompanyCampaignSave.cs` to persist optional destination intent and validate its save round trip. Older saves default to no route.
+- Modified `Assets/Scripts/Subwindows/CompanyCampaignView.cs` for single-click adjacent movement, two-click distant travel, AP labels, interruption/resumption and 0.1-second marker interpolation. Native per-tile movement, discovery, road events and contract deployment remain authoritative.
+- Modified `Assets/Editor/TraitCurationAudit.cs` to preserve separate phase-40B grouped regression evidence. All changed/new C# sources carry dated conversion notices. Associated `.meta` paths are covered by this entry. Existing upstream and dependency notices are preserved. Actual License.txt sections 4–5 reviewed, with no new external code, artwork or dependency. Existing public-distribution provenance and Corresponding Source gates remain open.
+- Native checks passed 937 focused and 963 grouped assertions with actual Unity exit 0. A fresh private Windows player built successfully at `Builds/Warband-Review-20261106-40b-70790a95/Win64/`, with packaged inherited notices. Implementation and actual check/build results are recorded in `docs/implementation/40b-map-route-planning.md`. Earlier accepted 40A work and the Balance workflow footer adjustment are included in the next private player.
+
+## 2026-11-06 — Official species balance authoring, phase 40A
+
+- Curator layout feedback moves the Balance workflow entry to the bottom-left Race Editor action bar in `Assets/Scripts/Subwindows/DeveloperBalancePanel.cs`. Its entry canvas now fills the editor and the button uses a bottom-left anchor. The centered workflow window retains its existing placement. This follow-up is source-only, with no additional Unity check or replacement player build.
+
+- Added fork runtime sources `Assets/Scripts/Core/BalanceAuthoring.cs`, `Assets/Scripts/Core/UnitSpeciesBalance.cs`, `Assets/Scripts/Core/EditorAccess.cs` and `Assets/Scripts/Subwindows/DeveloperBalancePanel.cs`, with their `.meta` companions. Added editor sources `Assets/Editor/BalancePublishingWindow.cs` and `Assets/Editor/BalanceAuthoringAudit.cs`, with their `.meta` companions. These implement versioned four-stat/species/tag packages, explicit developer drafts, review/import/export, official promotion and focused native validation. Existing Newtonsoft.Json and Odin Serializer dependencies are reused.
+- Modified `Assets/Scripts/Core/State.cs`, `Assets/Scripts/Utility/Stored/RaceSettings.cs`, `Assets/Scripts/Utility/ExternalTraitHandler.cs`, `Assets/Scripts/Subwindows/RaceEditorPanel.cs` and `Assets/Scripts/Subwindows/GameMenu.cs` to load packaged official defaults, isolate draft/tag editing behind the existing developer gate, retain original legacy files, reject invalid imports and avoid unavailable-metadata hydration. An editor-only diagnostic directory isolates startup settings from personal UserData.
+- Modified `Assets/Scripts/Entities/Units/Unit.cs`, `Assets/Scripts/Races/RaceParameters.cs`, `Assets/Scripts/Core/WarbandStats.cs`, `Assets/Scripts/Utility/TagConditionChecker.cs`, `Assets/Scripts/Entities/Units/Actor_Unit.cs`, `Assets/Scripts/Entities/Units/PredatorComponent.cs`, `Assets/Scripts/Modes/TacticalMode.cs`, `Assets/Scripts/Core/CompanyPower.cs` and `Assets/Scripts/Utility/Texts/HoveringTooltip.cs` to retain per-character species settings/tag definitions and use them in actual traits, AP, spells, vore, AI and previews.
+- Modified `Assets/Scripts/Core/CompanyCampaign.cs`, `Assets/Scripts/Core/CompanyCampaignSave.cs` and `Assets/Scripts/Core/CompanyEconomy.cs` to record rules identity, enroll old characters without rerolling their stored stats/health and verify snapshot preservation. Modified `Assets/Scripts/Subwindows/DeveloperBattleLab.cs` to identify the active profile/draft. Modified `Assets/Editor/TraitCurationAudit.cs` to retain separate phase 40A regression evidence.
+- Added `Assets/Resources/WarbandBalance/Profiles/legacy-pre40a.json`, `Assets/Resources/WarbandBalance/Profiles/balance-40a-initial.json`, `Assets/Resources/WarbandBalance/active.txt`, `Assets/Resources/WarbandBalance/NOTICE.txt` and associated file/folder `.meta` companions. The JSON profiles snapshot retained pre-40A defaults. The notice and dated promotion records identify exact data paths. Future promotions preserve immutable revisions, prepare change records and commit an append-only checksum catalog, with original/prepared record copies retained under Logs.
+- All changed/added C# files carry dated conversion notices. Actual License.txt sections 4–5 and existing dependency notices reviewed. Upstream copyright, attribution, licensing and warranty notices preserved. No external code, artwork or dependency was introduced. Existing public-distribution provenance and Corresponding Source gates remain open. Native check evidence and remaining handoff limits are recorded in `docs/implementation/40a-official-balance-authoring.md`.
+- Final native checks passed 72 focused assertions and 963 grouped regression checks, all with actual Unity exit 0. A fresh private Windows player built successfully at `Builds/Warband-Review-20261106-40a-62e4c791/Win64/VoreWar.exe`. Curator interaction review remains pending. Older local-only numerical overrides absent from saved campaigns require deliberate migration, while new characters preserve full supported species snapshots.
 
 ## 2026-11-06 — Module 40 planning documentation
 
 - Added `docs/specs/40-authoring-and-campaign-progression.md` and its six linked phase specifications for official balance authoring/settings reliability, route planning, spellbook progression, post-battle traits, ending history and calendar difficulty.
 - Recorded the confirmed Race Editor export/import workflow, preservation of existing characters under new species defaults, and automatic post-battle trait polarity rules. Remaining design choices are explicitly open.
 - Incorporated the later trait clarifications in module 40, phase 40D, roadmap and checkpoint. Good/Bad/Neutral classification includes species and personal traits, Featherweight is Neutral, old injuries remain separate, trait counts are uncapped and event subjects with fewer traits receive a selection preference. Exact selection weights remain design work.
+- Incorporated the subsequent twelve design answers across module 40 and phases 40A–40F. Recorded explored-only routing, utility/control-focused magic and hazard-aware AI, tier-weighted polarity counts, leader exclusion, gated trait removal/downgrades, company naming, scores plus details, distinct reloaded endings, retirement and accelerating calendar pressure around a rough 100-day campaign horizon. Illustrative day-21 onset, eight-trait removal threshold, pressure curves and score/retirement values remain tuning work. These are planning records, with no implementation in this entry.
+- Recorded the final tier-count clarification in the master, phase 40D, roadmap and checkpoint. Tier I/II/III counts as 1/2/3 throughout subject preference, polarity totals and removal eligibility, with Neutral excluded only from polarity totals. Removal reduces a higher tier by one step and removes tier I outright. The provisional threshold therefore uses eight weighted trait points. Documentation only.
 - Updated `docs/conversion-roadmap.md`, `docs/technical-opportunities.md` and `docs/implementation/resume-checkpoint.md` to identify this planning module and interruption handoff. Documentation only. No gameplay-source changes, new tests or build in this entry.
 
 ## 2026-11-05 — Phase D injury validation
@@ -1312,3 +1486,37 @@ Completed slice1 verification:499 native checks passed (457 prior regression che
 Added the main-menu password-gated isolated two-unit Single Battle lab with controlled stats/resources, traits, nine-slot gear, injuries/old complications, treatment/recovery, native combat/vore actions, round stepping and scrollable log. In-memory seeded fixture bookmark/restore does not create save files. Clone/restore world settings and preserve original world/RNG; pause native input/AI progression while the lab is open; relock on close. Reuse production treatment/recovery through small extracted helpers, preserving campaign checks/costs. Extended existing native audit. No new third-party code/assets/dependencies, source legal notices preserved, no files deleted/moved or personal saves exercised. Slice3 and later remain unstarted. Final build verification recorded below.
 
 Slice2 completed verification:524 native checks passed (499 prior plus25 developer-lab lifecycle/action/UI-property checks), actual editor exit0. Standalone Warband-Review-20261104-4d064098 built exit0/noC#shadererrors/newcompilerwarnings; prior compile/diagnostic errors retained as failed attempts. Source/date/change-record and scoped diff reviewed; no scenes/prefabs/art/packages changed. No visual playtest claimed; no save-file writes by lab checks, original world/config/RNG restored and developer access relocked. Seven existing notices packaged in local build. Existing distribution/provenance gates remain open; no later slice begun.
+
+
+## 2026-11-06 — Official balance legacy-pre40a
+
+- Promoted species balance for the VoreWar mercenary-company conversion from the pre-40A baseline.
+- Data paths are `Assets/Resources/WarbandBalance/Profiles/legacy-pre40a.json`, `Assets/Resources/WarbandBalance/active.txt` and `Assets/Resources/WarbandBalance/NOTICE.txt`. See spec 40A.
+- Existing copyright, attribution and GPL-3.0 terms in License.txt are preserved. This data promotion does not establish release readiness.
+
+
+## 2026-11-06 — Official balance balance-40a-initial
+
+- Promoted species balance for the VoreWar mercenary-company conversion from legacy-pre40a.
+- Data paths are `Assets/Resources/WarbandBalance/Profiles/balance-40a-initial.json`, `Assets/Resources/WarbandBalance/active.txt` and `Assets/Resources/WarbandBalance/NOTICE.txt`. See spec 40A.
+- Existing copyright, attribution and GPL-3.0 terms in License.txt are preserved. This data promotion does not establish release readiness.
+
+
+## 2026-11-06 — Official balance balance-20261106-f5c113757d3d4a77b53c1d0a51a1bf50
+
+- Promoted species balance for the VoreWar mercenary-company conversion from balance-40a-initial.
+- Data paths are `Assets/Resources/WarbandBalance/Profiles/balance-20261106-f5c113757d3d4a77b53c1d0a51a1bf50.json`, `Assets/Resources/WarbandBalance/active.txt` and `Assets/Resources/WarbandBalance/NOTICE.txt`. See spec 40A.
+- Existing copyright, attribution and GPL-3.0 terms in License.txt are preserved. This data promotion does not establish release readiness.
+
+
+## 2026-11-07 — 40D build compile correction
+
+- Modified `Assets/Scripts/Core/CompanyPostBattleTraits.cs` to use the retained `Traits.Cowardly` enum identity for the player-facing Opossum trait in post-battle outcome pools. The enum identity remains unchanged for serialized compatibility; its display name remains Opossum.
+- Preserved the existing source addition/modification notices and upstream attribution. No outside code, assets or dependencies were introduced. Related spec: 40D.
+
+
+## 2026-11-08 — Species-specific weapon names
+
+- Modified `Assets/Scripts/Modes/Tactical/Log/LogUtilities.cs` to use weapon-type names without descriptive modifiers in species-specific combat labels, including the curated Avian, Lizard and Gnoll company loadouts. Added Lizard Macuahuitl/Axe and Gnoll Club/Cleaver melee labels.
+- Updated `docs/implementation/34e-gear-progression.md` to distinguish the user's descriptive art-identification notes from player-facing weapon names.
+- Preserved existing copyright and attribution notices. No external code, assets or dependencies were introduced; GPL-3.0 terms remain in `License.txt`.

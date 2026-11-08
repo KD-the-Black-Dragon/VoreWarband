@@ -1,4 +1,5 @@
-﻿// Added by the VoreWar mercenary-company conversion fork.
+// Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-06: Resolve species AP from official or explicitly selected draft balance (spec 40A).
 // 2026-11-04: Apply approved injury tiers, base-STR HP, healing ceilings and recovery rules (spec 33).
 // 2026-11-03: Four active stats, compatibility mapping, fixed species AP and combat tuning (spec 29).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
@@ -38,7 +39,11 @@ internal static class WarbandStats
     }
     internal static int BaseAP(Race race)
     {
-        // Species specialty, independent of the individual's equipment or chosen focus.
+        return State.RaceSettings == null ? BuiltinAP(race) : State.RaceSettings.GetBaseAP(race);
+    }
+    internal static int BuiltinAP(Race race)
+    {
+        // Seed for initial migration and unsupported legacy species.
         return race == Race.Avians || race == Race.Lizards || race == Race.SpitterSlugs ? 2 : 3;
     }
     internal static int Average(int a, int b) { return Math.Max(1, (int)Math.Round((a + b) / 2.0)); }

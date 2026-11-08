@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Validate metadata safely and store authored AP/weapon access without loading graphics (spec 40A).
 // 2026-10-30: Preserve retired override records without hydration; use correct new mapping defaults (spec 03B3A).
 // 2026-11-01: Separate stored species reads from intentional override creation (spec 03B3C).
 // 2026-11-03: Remove permanently retired identity branches/entries while preserving shared behavior (spec 21).
@@ -15,43 +16,42 @@ class RaceSettings
     [OdinSerialize]
     private Dictionary<Race, RaceSettingsItem> Races;
 
-    public RaceSettings()
+    public RaceSettings(bool seedLegacy = true)
     {
         Races = new Dictionary<Race, RaceSettingsItem>();
-        Races[Race.FeralBats] = new RaceSettingsItem(Race.FeralBats);
+        if (!seedLegacy) return;
+        Races[Race.FeralBats] = new RaceSettingsItem(Race.FeralBats, false);
         Races[Race.FeralBats].MaleTraits = new List<Traits> { Traits.Small };
     }
 
+    internal IEnumerable<KeyValuePair<Race, RaceSettingsItem>> Entries => Races;
+    internal void Set(Race race, RaceSettingsItem item) { Races[race] = item; }
+    internal int GetBaseAP(Race race)
+    {
+        var item = GetExisting(race);
+        return item != null && item.BaseAP > 0 ? item.BaseAP : WarbandStats.BuiltinAP(race);
+    }
     internal void Sanitize()
     {
-        foreach (KeyValuePair<Race, RaceSettingsItem> entry in Races)
+        if (Races == null) throw new System.IO.InvalidDataException("Missing race settings dictionary.");
+        foreach (var entry in Races)
         {
-            // Preserve legacy records without rebuilding defaults for retired content.
-            if (SpeciesPolicy.IsRetired(entry.Key))
-                continue;
-            if (entry.Value.ConversionRace == Race.none) entry.Value.ConversionRace = RaceParameters.GetRaceTraits(entry.Key).ConversionRace;
-            if (entry.Value.LeaderRace == Race.none) entry.Value.LeaderRace = RaceParameters.GetRaceTraits(entry.Key).LeaderRace;
-            if (entry.Value.SpawnRace == Race.none) entry.Value.SpawnRace = RaceParameters.GetRaceTraits(entry.Key).SpawnRace;
-            if (entry.Value.MorphRace == Race.none) entry.Value.MorphRace = RaceParameters.GetRaceTraits(entry.Key).MorphRace;
-        }
-        foreach (KeyValuePair<Race, RaceSettingsItem> entry in Races)
-        {
-            if (SpeciesPolicy.IsRetired(entry.Key))
-                continue;
-            RaceSettingsItem item = entry.Value;
-            if (item.Stats.Strength.Roll < 1) item.Stats.Strength.Roll = 1;
-            if (item.Stats.Dexterity.Roll < 1) item.Stats.Dexterity.Roll = 1;
-            if (item.Stats.Agility.Roll < 1) item.Stats.Agility.Roll = 1;
-            if (item.Stats.Endurance.Roll < 1) item.Stats.Endurance.Roll = 1;
-            if (item.Stats.Mind.Roll < 1) item.Stats.Mind.Roll = 1;
-            if (item.Stats.Will.Roll < 1) item.Stats.Will.Roll = 1;
-            if (item.Stats.Stomach.Roll < 1) item.Stats.Stomach.Roll = 1;
-            if (item.Stats.Strength.Roll < 1) item.Stats.Strength.Roll = 1;
-        }
-        if (Races.ContainsKey(Race.FeralBats) == false)
-        {
-            Races[Race.FeralBats] = new RaceSettingsItem(Race.FeralBats);
-            Races[Race.FeralBats].MaleTraits = new List<Traits> { Traits.Small };
+            // Preserve unavailable records for explicit import review without hydrating them.
+            if (SpeciesPolicy.IsRetired(entry.Key)) continue;
+            var metadata = RaceParameters.GetRaceTraits(entry.Key);
+            if (metadata == null) continue;
+            var item = entry.Value;
+            if (item == null || item.Stats == null) throw new System.IO.InvalidDataException("Incomplete settings for " + entry.Key);
+            if (item.ConversionRace == Race.none) item.ConversionRace = metadata.ConversionRace;
+            if (item.LeaderRace == Race.none) item.LeaderRace = metadata.LeaderRace;
+            if (item.SpawnRace == Race.none) item.SpawnRace = metadata.SpawnRace;
+            if (item.MorphRace == Race.none) item.MorphRace = metadata.MorphRace;
+            item.Stats.Consolidate();
+            item.Stats.Strength.Roll = Math.Max(1, item.Stats.Strength.Roll);
+            item.Stats.Agility.Roll = Math.Max(1, item.Stats.Agility.Roll);
+            item.Stats.Mind.Roll = Math.Max(1, item.Stats.Mind.Roll);
+            item.Stats.Voracity.Roll = Math.Max(1, item.Stats.Voracity.Roll);
+            item.Stats.Mirror();
         }
     }
 
@@ -343,6 +343,10 @@ class RaceSettings
 
 class RaceSettingsItem
 {
+    [OdinSerialize] internal int BaseAP;
+    [OdinSerialize] internal bool? CanUseMeleeWeapons;
+    [OdinSerialize] internal bool? CanUseRangedWeapons;
+
 
     [OdinSerialize]
     internal bool OverrideGender;
@@ -442,7 +446,7 @@ class RaceSettingsItem
     //[OdinSerialize]
     //internal Race DisplayGraphics;
 
-    public RaceSettingsItem(Race race)
+    public RaceSettingsItem(Race race, bool loadAppearance = true)
     {
         if (SpeciesPolicy.IsRetired(race))
             throw new InvalidOperationException("Cannot create settings for retired species: " + race);
@@ -454,7 +458,8 @@ class RaceSettingsItem
         furryFraction = Config.FurryFraction;
 
         var racePar = RaceParameters.GetRaceTraits(race);
-        var raceData = Races.GetRace(race);
+        var raceData = loadAppearance ? Races.GetRace(race) : null;
+        if (racePar == null) throw new InvalidOperationException("Species metadata is unavailable: " + race);
 
         BodySize = racePar.BodySize;
         StomachSize = racePar.StomachSize;
@@ -472,6 +477,7 @@ class RaceSettingsItem
 
         Stats = new RaceStats() //Generates a clean copy instead of a reference.  
         {
+            FourStatVersion = baseStats.FourStatVersion,
             Strength = baseStats.Strength,
             Dexterity = baseStats.Dexterity,
             Endurance = baseStats.Endurance,
@@ -492,13 +498,13 @@ class RaceSettingsItem
         overrideDick = false;
 
         MinBoob = 0;
-        MaxBoob = Math.Max(raceData.BreastSizes - 1, 0);
+        MaxBoob = Math.Max((raceData == null ? 1 : raceData.BreastSizes) - 1, 0);
 
         MinDick = 0;
-        MaxDick = Math.Max(raceData.DickSizes - 1, 0);
+        MaxDick = Math.Max((raceData == null ? 1 : raceData.DickSizes) - 1, 0);
 
         MinWeight = 0;
-        MaxWeight = Math.Max(raceData.BodySizes - 1, 0);
+        MaxWeight = Math.Max((raceData == null ? 1 : raceData.BodySizes) - 1, 0);
 
         MaleTraits = new List<Traits>();
         FemaleTraits = new List<Traits>();
@@ -510,6 +516,9 @@ class RaceSettingsItem
         FavoredStat = racePar.FavoredStat;
 
         RaceAI = racePar.RaceAI;
+        BaseAP = WarbandStats.BuiltinAP(race);
+        CanUseMeleeWeapons = racePar.CanUseMeleeWeapons;
+        CanUseRangedWeapons = racePar.CanUseRangedWeapons;
 
         PowerAdjustment = racePar.PowerAdjustment;
         Upkeep = racePar.Upkeep;

@@ -1,4 +1,13 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Rebind loaded company weapon names and native art families from stable catalog IDs.
+// 2026-11-08: Persist the last weapon category used by company campaign characters.
+// 2026-11-08: Refresh saved company gear display names from the current catalog without changing item values.
+// 2026-11-07: Preserve inborn traits through campaign changes and disable size alteration (spec 40D).
+// 2026-11-07: Keep Grudge tiers distinct while applying permanent post-battle traits (spec 40D).
+// 2026-11-07: Record lasting battle damage, incapacitation and mana use for post-battle evidence (spec 40D).
+// 2026-11-06: Keep ongoing poison and virus damage from rolling hit-based body-part injuries (spec 40C).
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Freeze generated species settings and preserve them through unit copies (spec 40A).
 // 2026-11-04: Add isolated password-gated developer battle/recovery controls (spec 34 slice 2).
 // 2026-11-04: Correct caster targeting and share side-effect-free spell damage estimates (spec 34 slice 1).
 // 2026-11-04: Apply approved injury tiers, base-STR HP, healing ceilings and recovery rules (spec 33).
@@ -106,7 +115,9 @@ public class Unit
     {
         int before = LastingHealth;
         Health -= amount;
-        if (canCauseInjury) CompanyInjuries.RecordDamage(this, Math.Max(0, before - LastingHealth));
+        int lastingDamage = Math.Max(0, before - LastingHealth);
+        CompanyPostBattleTraits.RecordDamageTaken(this, Math.Max(0, amount));
+        if (canCauseInjury) CompanyInjuries.RecordDamage(this, lastingDamage);
     }
     public int Health
     {
@@ -117,7 +128,12 @@ public class Unit
             {
                 if (value < health) TemporaryHealth = Math.Max(0, TemporaryHealth - (health - value));
                 else if (value > health && !lastingHealing) TemporaryHealth += value - health;
-                if (value <= 0 && Type != UnitType.Summon) { health = 0; Downed = true; TemporaryHealth = 0; return; }
+                if (value <= 0 && Type != UnitType.Summon)
+                {
+                    health = 0; Downed = true; TemporaryHealth = 0;
+                    CompanyPostBattleTraits.RecordReducedToZero(this);
+                    return;
+                }
             }
             health = value;
         }
@@ -610,6 +626,7 @@ public class Unit
         if (Mana >= ModifiedManaCost)
         {
             Mana -= ModifiedManaCost;
+            CompanyPostBattleTraits.RecordManaSpent(this, ModifiedManaCost);
             return true;
         }
         return false;
@@ -777,12 +794,33 @@ public class Unit
     /// </summary>
     [System.NonSerialized] ItemRepository companyItems;
     [OdinSerialize] internal bool CompanyLoadout;
+    [OdinSerialize] internal bool CompanyLastUsedWeaponRanged;
     internal ItemRepository ItemCatalog { get { return companyItems ?? State.World?.ItemRepository; } }
-    internal void BindCompanyItems(ItemRepository catalog) { companyItems = catalog; }
+    internal void RecordCompanyWeaponUse(bool ranged)
+    {
+        if (CompanyLoadout) CompanyLastUsedWeaponRanged = ranged;
+    }
+    internal void BindCompanyItems(ItemRepository catalog)
+    {
+        companyItems = catalog;
+        if (!CompanyLoadout || Items == null) return;
+        foreach (var item in Items)
+            CompanyEquipment.BindCompanyItem(item);
+    }
+
+    [OdinSerialize] internal UnitSpeciesBalance SpeciesBalance;
+    internal RaceSettings SpeciesSettings => SpeciesBalance != null && SpeciesBalance.Species == Race ? SpeciesBalance.Settings : State.RaceSettings;
+    internal List<Traits> StoredSpeciesTraits()
+    {
+        return (Tags ?? new List<Traits>()).Except(TemporaryTraits ?? new List<Traits>())
+            .Except(SharedTraits ?? new List<Traits>()).Except(PersistentSharedTraits ?? new List<Traits>())
+            .Where(t => !TraitsMethods.IsRetired(t)).Distinct().ToList();
+    }
 
     public Unit(Race race)
     {
         Race = race;
+        if (BalanceAuthoring.HasMetadata(race)) SpeciesBalance = UnitSpeciesBalance.Capture(race);
         Stats = new int[(int)Stat.None];
         Stats[(int)Stat.Strength] = 6 + State.Rand.Next(9);
         Stats[(int)Stat.Dexterity] = 6 + State.Rand.Next(9);
@@ -805,6 +843,7 @@ public class Unit
         CompanyLoadout = companyLoadout;
         Stats = new int[(int)Stat.None];
         Race = race;
+        if (BalanceAuthoring.HasMetadata(race)) SpeciesBalance = UnitSpeciesBalance.Capture(race);
         Side = side;
         experience = startingXP;
         level = 1;
@@ -988,7 +1027,7 @@ public class Unit
                 if (Items[i] != null && ItemCatalog.ItemIsUnique(Items[i]))
                     Items[i] = null;
             }
-            if (RaceParameters.GetRaceTraits(race).CanUseRangedWeapons == false && RaceParameters.GetRaceTraits(race).CanUseMeleeWeapons == true)
+            if (RaceParameters.GetTraitData(this).CanUseRangedWeapons == false && RaceParameters.GetTraitData(this).CanUseMeleeWeapons == true)
             {
                 for (int i = 0; i < Items.Length; i++)
                 {
@@ -1004,7 +1043,7 @@ public class Unit
                     }
                 }
             }
-            if (RaceParameters.GetRaceTraits(race).CanUseRangedWeapons == true && RaceParameters.GetRaceTraits(race).CanUseMeleeWeapons == false)
+            if (RaceParameters.GetTraitData(this).CanUseRangedWeapons == true && RaceParameters.GetTraitData(this).CanUseMeleeWeapons == false)
             {
                 for (int i = 0; i < Items.Length; i++)
                 {
@@ -1206,7 +1245,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     internal void RandomizeNameAndGender(Race race, DefaultRaceData raceData, bool skipTraits = false)
     {
-        var raceStats = State.RaceSettings.GetExisting(race);
+        var raceStats = SpeciesSettings.GetExisting(race);
         float maleFraction;
         float hermFraction;
         bool isMale = false;
@@ -1283,7 +1322,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     internal void RandomizeGender(Race race, DefaultRaceData raceData, bool skipTraits = false)
     {
-        var raceStats = State.RaceSettings.GetExisting(race);
+        var raceStats = SpeciesSettings.GetExisting(race);
         float maleFraction;
         float hermFraction;
         if (raceStats != null && raceStats.OverrideGender)
@@ -1792,7 +1831,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
         if (Health <= 0)
             return;
         int actual = Math.Min(Health - 1, amount);
-        ApplyCombatDamage(actual);
+        ApplyCombatDamage(actual, false);
         State.GameManager.TacticalMode.Log.RegisterMiscellaneous($"<b>{Name}</b> took <color=red>{actual}</color> points of {type} damage");
 
     }
@@ -1830,7 +1869,10 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
     // An explicit grant upgrades/replaces its family rather than stacking tier effects.
     bool PrepareTierGrant(ref Traits trait)
     {
-        trait = TieredTraits.Canonical(trait);
+        // Grudge tiers alter future wage raises but share no TierEffect slot.
+        // Keep their exact enum value so I/II/III remain separate saved tiers.
+        if (trait == Traits.Grudge || trait == Traits.GrudgeII || trait == Traits.GrudgeIII)
+            return !GetTraits.Any(t => t == Traits.Grudge || t == Traits.GrudgeII || t == Traits.GrudgeIII);
         var family = TieredTraits.Find(trait);
         if (family == null) return true;
         int tier = System.Array.IndexOf(family.Tiers, trait);
@@ -1891,6 +1933,9 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     public void RemoveTrait(Traits traitToRemove)
     {
+        if (CompanyPostBattleTraits.IsInborn(traitToRemove))
+            return;
+
         if (Tags == null)
             return;
 
@@ -2078,6 +2123,9 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     internal void AddTemporaryTrait(Traits trait)
     {
+        if (CompanyPostBattleTraits.IsInborn(trait))
+            return;
+
         if (TemporaryTraits == null)
             TemporaryTraits = new List<Traits>();
         if (TemporaryTraits.Contains(trait) == false)
@@ -2097,6 +2145,9 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     public void AddSharedTrait(Traits trait)
     {
+        if (CompanyPostBattleTraits.IsInborn(trait))
+            return;
+
         if (TieredTraits.Find(trait) != null)
         {
             trait = TieredTraits.Canonical(trait);
@@ -2143,6 +2194,9 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     public void AddPersistentSharedTrait(Traits trait)
     {
+        if (CompanyPostBattleTraits.IsInborn(trait))
+            return;
+
         if (TieredTraits.Find(trait) != null)
         {
             trait = TieredTraits.Canonical(trait);
@@ -2189,6 +2243,9 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     public void AddActiveConditionalTrait(Traits trait)
     {
+        if (CompanyPostBattleTraits.IsInborn(trait))
+            return;
+
         if (TieredTraits.Find(trait) != null)
         {
             trait = TieredTraits.Canonical(trait);
@@ -2294,37 +2351,37 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
         if (AllConditionalTraits == null)
             AllConditionalTraits = new Dictionary<ConditionalTraitContainer, bool>();
         if (Config.RaceTraitsEnabled)
-            Tags.AddRange(State.RaceSettings.GetRaceTraits(HiddenUnit.Race));
+            Tags.AddRange(SpeciesSettings.GetRaceTraits(HiddenUnit.Race));
         if (HiddenUnit.HasBreasts && HiddenUnit.HasDick == false)
         {
-            var femaleTraits = State.RaceSettings.GetFemaleRaceTraits(HiddenUnit.Race);
+            var femaleTraits = SpeciesSettings.GetFemaleRaceTraits(HiddenUnit.Race);
             if (femaleTraits != null) Tags.AddRange(femaleTraits);
             femaleTraits = Config.FemaleTraits;
             if (femaleTraits != null) Tags.AddRange(femaleTraits);
         }
         else if (!HiddenUnit.HasBreasts && HiddenUnit.HasDick)
         {
-            var maleTraits = State.RaceSettings.GetMaleRaceTraits(HiddenUnit.Race);
+            var maleTraits = SpeciesSettings.GetMaleRaceTraits(HiddenUnit.Race);
             if (maleTraits != null) Tags.AddRange(maleTraits);
             maleTraits = Config.MaleTraits;
             if (maleTraits != null) Tags.AddRange(maleTraits);
         }
         else
         {
-            var hermTraits = State.RaceSettings.GetHermRaceTraits(HiddenUnit.Race);
+            var hermTraits = SpeciesSettings.GetHermRaceTraits(HiddenUnit.Race);
             if (hermTraits != null) Tags.AddRange(hermTraits);
             hermTraits = Config.HermTraits;
             if (hermTraits != null) Tags.AddRange(hermTraits);
         }
         if (Type == UnitType.Leader)
         {
-            var leaderTraits = State.RaceSettings.GetLeaderRaceTraits(HiddenUnit.Race);
+            var leaderTraits = SpeciesSettings.GetLeaderRaceTraits(HiddenUnit.Race);
             if (leaderTraits != null) Tags.AddRange(leaderTraits);
             if (Config.LeaderTraits != null) Tags.AddRange(Config.LeaderTraits);
         }
         else if (Type == UnitType.Spawn)
         {
-            var spawnTraits = State.RaceSettings.GetSpawnRaceTraits(HiddenUnit.Race);
+            var spawnTraits = SpeciesSettings.GetSpawnRaceTraits(HiddenUnit.Race);
             if (spawnTraits != null) Tags.AddRange(spawnTraits);
             spawnTraits = Config.SpawnTraits;
             if (spawnTraits != null) Tags.AddRange(spawnTraits);
@@ -2391,6 +2448,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
         if (!SpeciesPolicy.IsAllowed(race, SpeciesUse.Transformation))
             return;
         Race = race;
+        if (BalanceAuthoring.HasMetadata(race)) SpeciesBalance = UnitSpeciesBalance.Capture(race);
         fixedPredator = false;
     }
 
@@ -2400,6 +2458,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
             return;
         _hiddenUnit = Clone();
         Race = race;
+        if (BalanceAuthoring.HasMetadata(race)) SpeciesBalance = UnitSpeciesBalance.Capture(race);
         fixedPredator = false;
         if (appearance != null)
             CopyAppearance(appearance);
@@ -2485,7 +2544,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
         }
         if (randomPick == Traits.PredConverter || randomPick == Traits.PredRebirther || randomPick == Traits.PredGusher)
         {
-            if (RaceParameters.GetRaceTraits(Race).AllowedVoreTypes.Contains(VoreType.Unbirth))
+            if (RaceParameters.GetTraitData(this).AllowedVoreTypes.Contains(VoreType.Unbirth))
                 HasVagina = true;
         }
         if (randomPick == Traits.HeavyPounce)
@@ -2697,7 +2756,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     void RandomSkills()
     {
-        var ranges = State.RaceSettings.GetRaceStats(Race) ?? new RaceStats();
+        var ranges = SpeciesSettings.GetRaceStats(Race) ?? new RaceStats();
         ranges.Consolidate();
         Stats = new int[(int)Stat.None];
         Stats[(int)Stat.Strength] = ranges.Strength.Minimum + State.Rand.Next(ranges.Strength.Roll);
@@ -2914,7 +2973,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
             }
         }
 
-        var grantedSpell = State.RaceSettings.GetInnateSpell(Race);
+        var grantedSpell = SpeciesSettings.GetInnateSpell(Race);
         if (grantedSpell != SpellTypes.None)
         {
             if (SpellList.SpellDict.TryGetValue(grantedSpell, out Spell spell))
@@ -3282,7 +3341,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
 
     internal void TriggerMorph(int duration)
     {
-        Race destination = MorphUnit == null ? State.RaceSettings.GetMorphRace(Race) : MorphUnit.Race;
+        Race destination = MorphUnit == null ? SpeciesSettings.GetMorphRace(Race) : MorphUnit.Race;
         if (!SpeciesPolicy.IsAllowed(destination, SpeciesUse.Transformation))
             return;
         var wkns = GetStatusEffect(StatusEffectType.Morphed);
@@ -3386,6 +3445,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
     internal void HardCopyUnit(Unit unit)
     {
         Race = unit.Race;
+        SpeciesBalance = BalanceAuthoring.Copy(unit.SpeciesBalance);
         Name = unit.Name;
         level = unit.level;
         unit.EnsureFourStats();
@@ -3622,45 +3682,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
     }
     public void Shrink()
     {
-        if (HasTrait(Traits.Titanic) && HasTrait(Traits.Colossal) && HasTrait(Traits.Huge) && HasTrait(Traits.Large))
-            RemoveTrait(Traits.Large);
-        else if (HasTrait(Traits.Titanic) && HasTrait(Traits.Colossal) && HasTrait(Traits.Huge))
-            RemoveTrait(Traits.Huge);
-        else if (HasTrait(Traits.Titanic) && HasTrait(Traits.Colossal))
-        {
-            RemoveTrait(Traits.Titanic);
-            AddTrait(Traits.Huge);
-        }
-        else if (HasTrait(Traits.Colossal) && HasTrait(Traits.Huge))
-        {
-            RemoveTrait(Traits.Colossal);
-            RemoveTrait(Traits.Huge);
-            AddTrait(Traits.Titanic);
-        }
-        else if (HasTrait(Traits.Titanic))
-        {
-            AddTrait(Traits.Colossal);
-            RemoveTrait(Traits.Titanic);
-        }
-        else if (HasTrait(Traits.Colossal))
-        {
-            RemoveTrait(Traits.Colossal);
-            AddTrait(Traits.Huge);
-        }
-        else if (HasTrait(Traits.Huge))
-        {
-            RemoveTrait(Traits.Huge);
-            AddTrait(Traits.Large);
-        }
-        else if (HasTrait(Traits.Large))
-            RemoveTrait(Traits.Large);
-        else if (HasTrait(Traits.Small))
-        {
-            RemoveTrait(Traits.Small);
-            AddTrait(Traits.Tiny);
-        }
-        else
-            AddTrait(Traits.Small);
+        // Size traits are inborn in Warband and can only be assigned during generation.
     }
 
     public Race DetermineSpawnRace()
@@ -3671,7 +3693,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
         }
 
         else
-            return State.RaceSettings.GetSpawnRace(Race);
+            return SpeciesSettings.GetSpawnRace(Race);
     }
 
     public Race DetermineConversionRace()
@@ -3679,7 +3701,7 @@ internal void SetGenderRandomizeName(Race race, Gender gender)
         if (ConversionRace != Race)
             return ConversionRace;
         else
-            return State.RaceSettings.GetConversionRace(Race);
+            return SpeciesSettings.GetConversionRace(Race);
     }
 
     public void TriggerEeveelution()

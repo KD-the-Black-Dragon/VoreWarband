@@ -1,4 +1,7 @@
-﻿public enum SpellTypes
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-06: Add the area-denial Cinder Field spell identity (spec 40C).
+// See CHANGES.md and License.txt for GPL-3.0 terms.
+public enum SpellTypes
 {
     None = 0,
     Fireball = 1,
@@ -78,5 +81,6 @@
     Explode = 118,
     SweepingSwallow = 119,
     DivineNova = 120,
+    CinderField = 121,
 }
 

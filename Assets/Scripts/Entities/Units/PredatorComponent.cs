@@ -1,4 +1,7 @@
-﻿// Modified for the VoreWar mercenary-company conversion.
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-07: Protect inborn traits from assimilation and extraction (spec 40D).
+// 2026-11-07: Record escapes and completed digestions for post-battle event evidence (spec 40D).
+// 2026-11-06: Use the acting character's frozen species values in combat and previews (spec 40A).
 // 2026-11-05: Share the empty-predator/downed-prey capacity exception; remove overcapacity self-damage.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // Modified for the VoreWar mercenary-company conversion.
@@ -937,7 +940,7 @@ public class PredatorComponent
 
     public float TotalCapacity()
     {
-        float c = State.RaceSettings.GetStomachSize(unit.Race);
+        float c = unit.SpeciesSettings.GetStomachSize(unit.Race);
 
         if (unit.GetStatusEffect(StatusEffectType.Gorging) != null)
         {
@@ -1030,6 +1033,7 @@ public class PredatorComponent
     internal void FreeGreatEscapePrey(Prey preyUnit)
     {
         TacticalUtilities.Log.LogGreatEscapeFlee(unit, preyUnit.Unit, Location(preyUnit));
+        CompanyPostBattleTraits.RecordEscape(preyUnit.Actor);
         RemovePrey(preyUnit);
         preyUnit.Actor.SelfPrey = null;
     }
@@ -1042,6 +1046,9 @@ public class PredatorComponent
 
     internal void FreePrey(Prey preyUnit, bool forcePop)
     {
+
+        bool livingEscape = preyUnit != null && preyUnit.Actor != null && !preyUnit.Unit.Digested && !preyUnit.Unit.IsDead;
+        if (preyUnit == null || preyUnit.Actor == null) return;
 
         if (actor.Visible || forcePop || actor.Fled)
         {
@@ -1094,6 +1101,7 @@ public class PredatorComponent
         preyUnit.Actor.Unit.RestoreStamPct(0.1f);
         RemovePrey(preyUnit);
         UpdateFullness();
+        if (livingEscape) CompanyPostBattleTraits.RecordEscape(preyUnit.Actor);
 
     }
 
@@ -1410,8 +1418,8 @@ public class PredatorComponent
 
     float CalculateGrowthValue(Prey preyUnit)
     {
-        float preyMass = preyUnit.Unit.TraitBoosts.BulkMultiplier * State.RaceSettings.GetBodySize(preyUnit.Unit.Race);
-        float predMass = unit.TraitBoosts.BulkMultiplier * State.RaceSettings.GetBodySize(unit.Race);
+        float preyMass = preyUnit.Unit.TraitBoosts.BulkMultiplier * preyUnit.Unit.SpeciesSettings.GetBodySize(preyUnit.Unit.Race);
+        float predMass = unit.TraitBoosts.BulkMultiplier * unit.SpeciesSettings.GetBodySize(unit.Race);
         float sizeDiff = (preyUnit.Unit.GetScale(2) * preyMass) / (unit.GetScale(2) * predMass);
         float preyBoosts = (((preyUnit.Unit.TraitBoosts.Outgoing.Nutrition - 1) * .2f) + 1f) * preyUnit.Unit.TraitBoosts.Outgoing.GrowthRate;
         float predBoosts = (((unit.TraitBoosts.Incoming.Nutrition - 1) * .2f) + 1f) * unit.TraitBoosts.Incoming.GrowthRate * Config.GrowthMod;
@@ -1588,8 +1596,8 @@ public class PredatorComponent
             if (unit.HasDick)
             {
                 unit.DickSize = Math.Min(unit.DickSize + 1, Races.GetRace(unit).DickSizes - 1);
-                if (Config.RaceSizeLimitsWeightGain && State.RaceSettings.GetOverrideDick(unit.Race))
-                    unit.DickSize = Math.Min(unit.DickSize, State.RaceSettings.GetExisting(unit.Race).MaxDick);
+                if (Config.RaceSizeLimitsWeightGain && unit.SpeciesSettings.GetOverrideDick(unit.Race))
+                    unit.DickSize = Math.Min(unit.DickSize, unit.SpeciesSettings.GetExisting(unit.Race).MaxDick);
             }
         }
         else if (Location(preyUnit) == PreyLocation.breasts || Location(preyUnit) == PreyLocation.leftBreast || Location(preyUnit) == PreyLocation.rightBreast)
@@ -1597,8 +1605,8 @@ public class PredatorComponent
             if (unit.HasBreasts)
             {
                 unit.SetDefaultBreastSize(Math.Min(unit.DefaultBreastSize + 1, Races.GetRace(unit).BreastSizes - 1), unit.BreastSize == unit.DefaultBreastSize);
-                if (Config.RaceSizeLimitsWeightGain && State.RaceSettings.GetOverrideBreasts(unit.Race))
-                    unit.SetDefaultBreastSize(Math.Min(unit.DefaultBreastSize, State.RaceSettings.GetExisting(unit.Race).MaxBoob));
+                if (Config.RaceSizeLimitsWeightGain && unit.SpeciesSettings.GetOverrideBreasts(unit.Race))
+                    unit.SetDefaultBreastSize(Math.Min(unit.DefaultBreastSize, unit.SpeciesSettings.GetExisting(unit.Race).MaxBoob));
             }
         }
         else
@@ -1608,8 +1616,8 @@ public class PredatorComponent
                 if (unit.HasDick)
                 {
                     unit.DickSize = Math.Min(unit.DickSize + 1, Races.GetRace(unit).DickSizes - 1);
-                    if (Config.RaceSizeLimitsWeightGain && State.RaceSettings.GetOverrideDick(unit.Race))
-                        unit.DickSize = Math.Min(unit.DickSize, State.RaceSettings.GetExisting(unit.Race).MaxDick);
+                    if (Config.RaceSizeLimitsWeightGain && unit.SpeciesSettings.GetOverrideDick(unit.Race))
+                        unit.DickSize = Math.Min(unit.DickSize, unit.SpeciesSettings.GetExisting(unit.Race).MaxDick);
                 }
             }
 
@@ -1618,16 +1626,16 @@ public class PredatorComponent
                 if (unit.HasBreasts)
                 {
                     unit.SetDefaultBreastSize(Math.Min(unit.DefaultBreastSize + 1, Races.GetRace(unit).BreastSizes - 1), unit.BreastSize == unit.DefaultBreastSize);
-                    if (Config.RaceSizeLimitsWeightGain && State.RaceSettings.GetOverrideBreasts(unit.Race))
-                        unit.SetDefaultBreastSize(Math.Min(unit.DefaultBreastSize, State.RaceSettings.GetExisting(unit.Race).MaxBoob));
+                    if (Config.RaceSizeLimitsWeightGain && unit.SpeciesSettings.GetOverrideBreasts(unit.Race))
+                        unit.SetDefaultBreastSize(Math.Min(unit.DefaultBreastSize, unit.SpeciesSettings.GetExisting(unit.Race).MaxBoob));
                 }
             }
 
             if (Races.GetRace(unit).WeightGainDisabled == false && State.Rand.NextDouble() < Config.WeightGainFraction)
             {
                 unit.BodySize = Math.Max(Math.Min(unit.BodySize + 1, Races.GetRace(unit).BodySizes - 1), 0);
-                if (Config.RaceSizeLimitsWeightGain && State.RaceSettings.GetOverrideWeight(unit.Race))
-                    unit.BodySize = Math.Min(unit.BodySize, State.RaceSettings.GetExisting(unit.Race).MaxWeight);
+                if (Config.RaceSizeLimitsWeightGain && unit.SpeciesSettings.GetOverrideWeight(unit.Race))
+                    unit.BodySize = Math.Min(unit.BodySize, unit.SpeciesSettings.GetExisting(unit.Race).MaxWeight);
             }
 
             
@@ -1645,14 +1653,16 @@ public class PredatorComponent
         {
             if (preyUnit.Unit.GetTraits.Any())
             {
-                var trait = preyUnit.Unit.GetTraits[State.Rand.Next(preyUnit.Unit.GetTraits.Count)];
-                var possibleTraits = preyUnit.Unit.GetTraits.Where(s => unit.GetTraits.Contains(s) == false && State.AssimilateList.CanGet(s)).ToArray();
+                var removableTraits = preyUnit.Unit.GetTraits.Where(s => !CompanyPostBattleTraits.IsInborn(s)).ToArray();
+                Traits? traitToRemove = null;
+                var possibleTraits = removableTraits.Where(s => unit.GetTraits.Contains(s) == false && State.AssimilateList.CanGet(s)).ToArray();
                 if (possibleTraits.Any())
                 {
-                    trait = possibleTraits[State.Rand.Next(possibleTraits.Length)];
+                    var trait = possibleTraits[State.Rand.Next(possibleTraits.Length)];
+                    traitToRemove = trait;
                     if (unit.HasTrait(Traits.SynchronizedEvolution))
                     {
-                        RaceSettingsItem item = State.RaceSettings.GetOrCreate(unit.Race);
+                        RaceSettingsItem item = unit.SpeciesSettings.GetOrCreate(unit.Race);
                         item.RaceTraits.Add(trait);
                         UpdateRaceTraits();
                     }
@@ -1674,8 +1684,11 @@ public class PredatorComponent
                 {
                     unit.GiveRawExp(5);
                     actor.UnitSprite.DisplayDamage(5, false, true);
+                    if (removableTraits.Length > 0)
+                        traitToRemove = removableTraits[State.Rand.Next(removableTraits.Length)];
                 }
-                preyUnit.Unit.RemoveTrait(trait);
+                if (traitToRemove.HasValue)
+                    preyUnit.Unit.RemoveTrait(traitToRemove.Value);
             }            
         }
         if (unit.HasTrait(Traits.Annihilation) && !TacticalUtilities.IsPreyEndoTargetForUnit(preyUnit, unit))
@@ -1732,6 +1745,7 @@ public class PredatorComponent
             TacticalUtilities.Log.RegisterDigest(unit, preyUnit.Unit, Location(preyUnit));
             preyUnit.Actor.KilledByDigestion = true;
             preyUnit.Unit.Digested = true;
+            CompanyPostBattleTraits.RecordCompletedDigestion(actor);
             if (preyUnit.Unit.HasTrait(Traits.CursedMark))
             {
                 unit.AddPermanentTrait(Traits.CursedMark);
@@ -2067,7 +2081,7 @@ public class PredatorComponent
                 preyUnit.Unit.RemoveTrait(trait);
                 updated = true;
             }
-            foreach (Traits trait in preyUnit.Unit.GetTraits)
+            foreach (Traits trait in preyUnit.Unit.GetTraits.Where(t => !CompanyPostBattleTraits.IsInborn(t)).ToArray())
             {
                 preyUnit.Unit.RemoveTrait(trait);
                 unit.GiveRawExp(5);
@@ -2096,7 +2110,7 @@ public class PredatorComponent
                     unit.RemoveTrait(Traits.Assimilate);
                 if (unit.HasTrait(Traits.SynchronizedEvolution))
                 {
-                    RaceSettingsItem item = State.RaceSettings.GetOrCreate(unit.Race);
+                    RaceSettingsItem item = unit.SpeciesSettings.GetOrCreate(unit.Race);
                     item.RaceTraits.Add(possibleTraits[State.Rand.Next(possibleTraits.Length)]);
                     UpdateRaceTraits();
                 }
@@ -2428,10 +2442,10 @@ public class PredatorComponent
 
         }
 
-        float stomachSize = State.RaceSettings.GetStomachSize(unit.Race);
-        if (State.RaceSettings.Exists(unit.Race))
+        float stomachSize = unit.SpeciesSettings.GetStomachSize(unit.Race);
+        if (unit.SpeciesSettings.Exists(unit.Race))
         {
-            stomachSize = State.RaceSettings.GetStomachSize(unit.Race);
+            stomachSize = unit.SpeciesSettings.GetStomachSize(unit.Race);
         }
         float newStomach = fullnessFactor * stomachFullness / stomachSize;
         if (newStomach > 0)
@@ -2603,7 +2617,7 @@ public class PredatorComponent
 
     public bool UsePreferredVore(Actor_Unit target)
     {
-        List<VoreType> allowedVoreTypes = State.RaceSettings.GetVoreTypes(unit.Race);
+        List<VoreType> allowedVoreTypes = unit.SpeciesSettings.GetVoreTypes(unit.Race);
 
         switch (unit.PreferredVoreType)
         {
@@ -3454,7 +3468,7 @@ public class PredatorComponent
             return null;
         }
 
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral) || State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Unbirth))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral) || actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Unbirth))
         {
             foreach (Prey preyUnit in target.PredatorComponent.balls)
             {
@@ -3466,7 +3480,7 @@ public class PredatorComponent
 
         }
         var data = Races.GetRace(target.Unit.Race);
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
         {
             if (data.ExtendedBreastSprites)
             {
@@ -3497,7 +3511,7 @@ public class PredatorComponent
             }
 
         }
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
         {
             foreach (Prey preyUnit in target.PredatorComponent.stomach)
             {
@@ -3508,7 +3522,7 @@ public class PredatorComponent
             }
 
         }
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
         {
             foreach (Prey preyUnit in target.PredatorComponent.stomach2)
             {
@@ -3519,7 +3533,7 @@ public class PredatorComponent
             }
 
         }
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
         {
             foreach (Prey preyUnit in target.PredatorComponent.womb)
             {
@@ -3530,7 +3544,7 @@ public class PredatorComponent
             }
 
         }
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
         {
             foreach (Prey preyUnit in target.PredatorComponent.tail)
             {
@@ -3541,7 +3555,7 @@ public class PredatorComponent
             }
 			
         }
-        if (State.RaceSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
+        if (actor.Unit.SpeciesSettings.GetVoreTypes(actor.Unit.Race).Contains(VoreType.Oral))
         {
             foreach (Prey preyUnit in target.PredatorComponent.bladder)
             {
@@ -3725,12 +3739,12 @@ public class PredatorComponent
 
     private int expBoostCalc(Prey preyUnit)
     {
-        int cap = State.RaceSettings.GetBodySize(preyUnit.Actor.Unit.Race);
+        int cap = preyUnit.Actor.Unit.SpeciesSettings.GetBodySize(preyUnit.Actor.Unit.Race);
         int bonus = Mathf.Clamp(preyUnit.Unit.Level, 1, cap);
         if (preyUnit.Predator.Unit.HasTrait(Traits.Honeymaker))
             bonus = Mathf.RoundToInt(bonus * (1f + (Mathf.Min((float)preyUnit.Unit.Level, (float)cap) / cap)));
         return bonus;
-        // return Mathf.RoundToInt(Mathf.Clamp(preyUnit.Unit.Experience / 20, 0, (State.RaceSettings.GetBodySize(preyUnit.Actor.Unit.Race) * ((preyUnit.Predator.Unit.HasTrait(Traits.Honeymaker) ? 1 : 0) + 1))) * preyUnit.Unit.TraitBoosts.Outgoing.Nutrition);
+        // return Mathf.RoundToInt(Mathf.Clamp(preyUnit.Unit.Experience / 20, 0, (preyUnit.Actor.Unit.SpeciesSettings.GetBodySize(preyUnit.Actor.Unit.Race) * ((preyUnit.Predator.Unit.HasTrait(Traits.Honeymaker) ? 1 : 0) + 1))) * preyUnit.Unit.TraitBoosts.Outgoing.Nutrition);
     }
 
     public bool Feed(Actor_Unit target)
@@ -4257,7 +4271,7 @@ public class PredatorComponent
         forcePrey.Movement = 0;
         Prey preyref = new Prey(forcePrey, actor, forcePrey.PredatorComponent?.prey);
 
-        List<VoreType> allowedVoreTypes = State.RaceSettings.GetVoreTypes(unit.Race);
+        List<VoreType> allowedVoreTypes = unit.SpeciesSettings.GetVoreTypes(unit.Race);
 
         if (State.GameManager.TacticalMode.turboMode) //When turboing, just pick the fast solution.
         { AddToStomach(preyref, 1f); return; }

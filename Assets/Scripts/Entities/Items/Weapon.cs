@@ -1,7 +1,12 @@
 ﻿using OdinSerializer;
 
+// Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Allow company catalog binding to refresh weapon art families without changing combat stats.
+// See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 public class Weapon : Item
 {
+
+    internal void SetCompanyGraphic(int graphic) { Graphic = graphic; }
 
     [OdinSerialize]
     public int Graphic { get; private set; }

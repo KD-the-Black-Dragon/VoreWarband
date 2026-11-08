@@ -1,4 +1,7 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-08: Qualify the global GameManager in retirement confirmation to avoid member-name shadowing (spec 40E build fix).
+// 2026-11-08: Show retirement projections, terminal scores and persistent company history (spec 40E).
+// 2026-11-07: Present concise revival and persisted post-battle trait outcomes (spec 40D).
 // 2026-11-01: Contracts, final deployment, saved results/revival and active-campaign record views (specs 09–10).
 // 2026-11-01: Show individual species labels in enemy and deployment rosters (09–10 feedback).
 // 2026-11-01: Show recovering and old injuries during every final deployment review (spec 11).
@@ -9,6 +12,7 @@
 // 2026-11-03: Use the shared Help overlay without replacing the originating company or creator page (spec 20).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System;
+using System.Globalization;
 using System.Linq;
 
 internal sealed class CompanyMissionsUI
@@ -137,10 +141,18 @@ internal sealed class CompanyMissionsUI
         if (State.Battle != null && State.Battle.Phase == CompanyBattlePhase.Revival)
         {
             ui.Clear("Company leader lost"); var town = CompanyBattleSession.RevivalTown(State); int cost = CompanyBattleSession.RevivalCost(State);
-            ui.Text("In the leader's absence, the remaining company headed straight to " + town.Name + " as quickly as possible and arranged revival services.\n\nThe fee is " + cost + " gold (20 × leader level). Treasury: " + State.Gold + ".\n" +
-                (State.Gold < cost ? "All available gold will be spent; revival still succeeds, with no revival debt." : "The fee will be paid from the treasury.") +
-                "\n\nThe leader returns at full health. No campaign days pass.", 30, 150, 1170, 350);
-            ui.Button("Revive and continue", 30, 540, 300, () => Change(() => CompanyBattleSession.Revive(State), Resume)); return;
+            var leader = State.Characters.Single(c => c.Id == State.LeaderId).Unit;
+            ui.Text(leader.Name + " was digested during the last battle. The surviving company members travel swiftly to " + town.Name +
+                " and pay " + cost + " gold for revival services.", 30, 180, 1170, 150);
+            ui.Button("OK", 30, 540, 220, () => Change(() => CompanyBattleSession.Revive(State), Resume)); return;
+        }
+        if (State.Battle != null && State.Battle.Phase == CompanyBattlePhase.PostBattleEvent)
+        {
+            ui.Clear("After the battle");
+            var outcome = State.Battle.PostBattleEvent;
+            if (outcome == null) throw new InvalidOperationException("The post-battle event record is missing.");
+            ui.Text(outcome.Description, 30, 180, 1170, 180);
+            ui.Button("OK", 30, 540, 220, () => Change(() => CompanyBattleSession.AcknowledgePostBattle(State), Resume)); return;
         }
         if (State.Ended) { Record(); return; }
         view.ShowMap();
@@ -148,15 +160,114 @@ internal sealed class CompanyMissionsUI
     internal void Record(int page = 0)
     {
         ui.Clear(State.Ended ? "Company ended" : "Company record and memorial");
-        ui.Text((State.EndReason == null ? "" : State.EndReason + "\n") + "Days survived " + State.ElapsedDays + " | Reputation " + State.Reputation + " | Gold earned " + State.TotalGoldEarned +
-            "\nMercenaries hired " + State.MercenariesHired + " | Mercenaries lost " + State.Memorial.Count + " | Contracts completed " + State.ContractsCompleted + " | Enemies defeated " + State.EnemiesDefeated, 30, 140, 1180, 110);
+        string archiveError = State.Ended ? CompanyHistoryStore.ArchiveEnding(State) : null;
+        var score = CompanyScoring.Calculate(State, State.EndingKind == CompanyEndingKind.Wipeout);
+        string leaderName = State.Characters.Single(c => c.Id == State.LeaderId).Unit.Name;
+        ui.Text(leaderName + " of " + CompanyHistoryStore.CompanyName(State.CompanyName) +
+            (State.Ended ? "\n" + (State.EndReason ?? "The company ended.") : "\nCurrent score projection " + ScoreText(score.FinalScore)) +
+            "\nDay " + State.ElapsedDays + " | Reputation " + State.Reputation + " | Gold earned " + State.TotalGoldEarned +
+            " | Mercenaries hired " + State.MercenariesHired + " | Lost " + State.Memorial.Count +
+            " | Contracts completed " + State.ContractsCompleted + " | Enemies defeated " + State.EnemiesDefeated +
+            (State.LeaderDigestions > 0 ? " | Leader digestions " + State.LeaderDigestions : "") +
+            (State.Ended ? "\nFinal score " + ScoreText(score.FinalScore) + " (reputation " + score.ReputationPoints + ", days " + score.DaysPoints +
+                ", losses " + score.MercenaryLossPenalty + ", leader digestions " + score.LeaderDigestionPenalty +
+                (score.WipeoutMultiplier < 1 ? ", wipeout ×0.9" : "") + ")" : "") +
+            (string.IsNullOrEmpty(archiveError) ? "" : "\n" + archiveError), 30, 140, 1180, 138, 16);
         if (State.Memorial.Count == 0) ui.Text("No fallen mercenaries. Dismissals and unpaid departures are not deaths.", 30, 270, 1180, 65);
         for (int i = 0; i < 4 && page + i < State.Memorial.Count; i++)
         {
-            var m = State.Memorial[page + i]; ui.Text(m.Name + " — " + m.Species + " — day " + m.Day + "\n" + m.Fate, 30, 265 + i * 65, 1180, 62);
+            var m = State.Memorial[page + i]; ui.Text(m.Name + " — " + m.Species + " — day " + m.Day + "\n" + m.Fate, 30, 300 + i * 58, 1180, 55);
         }
         ui.Button("Previous", 30, 550, 150, () => Record(page - 4), page > 0);
         ui.Button("Next", 195, 550, 150, () => Record(page + 4), page + 4 < State.Memorial.Count);
-        if (State.Ended) ui.Button("Campaign setup", 380, 550, 240, view.ShowSetup);
+        ui.Button("High Scores", 360, 550, 210, () => HighScores());
+        if (State.Ended) ui.Button("Campaign setup", 590, 550, 240, view.ShowSetup);
     }
+
+    internal void RetirementPreview()
+    {
+        var town = State == null ? null : State.Towns.FirstOrDefault(t => t.Tile == State.Position);
+        if (State == null || State.Ended || State.Busy || State.ElapsedDays < 14 || town == null)
+            throw new InvalidOperationException("Company retirement is available in a town after Day 14.");
+        var score = CompanyScoring.Calculate(State);
+        ui.Clear("Retire company?", true);
+        ui.Text("Company: " + CompanyHistoryStore.CompanyName(State.CompanyName) + "\n" +
+            "Reputation: +" + score.ReputationPoints + "\nDays survived: +" + score.DaysPoints + " (maximum 100)\n" +
+            "Mercenaries lost: " + score.MercenaryLossPenalty + " (" + State.Memorial.Count + " × −10)\n" +
+            "Leader digestions: " + score.LeaderDigestionPenalty + " (" + State.LeaderDigestions + " × −20)\n" +
+            "Wipeout multiplier: ×1.0\n\nProjected final score: " + ScoreText(score.FinalScore), 30, 150, 1180, 260, 21);
+        ui.Button("Continue to confirmation", 30, 490, 300, ConfirmRetirement);
+    }
+
+    void ConfirmRetirement()
+    {
+        var prompt = global::State.GameManager.CreateDialogBox();
+        prompt.SetData(RetireCompany, "Yes", "No",
+            "Retiring will end your game immediately. Are you sure?", RetirementPreview);
+    }
+
+    void RetireCompany()
+    {
+        if (State == null || State.Ended || State.Busy || State.ElapsedDays < 14 || !State.Towns.Any(t => t.Tile == State.Position))
+            throw new InvalidOperationException("Company retirement is no longer available.");
+        State.Ended = true; State.EndReason = "The company retired by choice."; State.EndingKind = CompanyEndingKind.Retired;
+        State.EndingId = Guid.NewGuid().ToString("N");
+        Record();
+    }
+
+    internal void HighScores(int page = 0, bool mainMenu = false)
+    {
+        var catalog = CompanyHistoryStore.ReadAll();
+        var records = catalog.Records.OrderByDescending(r => r.Score.FinalScore)
+            .ThenByDescending(r => r.Day).ThenBy(r => r.CompanyName, StringComparer.OrdinalIgnoreCase).ToArray();
+        page = Math.Max(0, page);
+        ui.Clear("High Scores", false, false);
+        string description = records.Length == 0 ? "No company endings have been recorded yet." : "Completed company campaigns, ranked by final score.";
+        description += (catalog.CorruptRecords > 0 ? " Some unreadable records were skipped." : "") +
+            (catalog.PendingWrites > 0 ? " A final score is still saving." : "") +
+            (catalog.FailedWrites > 0 ? " A final score could not be saved; return to its company record to retry." : "");
+        ui.Text(description, 30, 140, 1180, 55);
+        for (int i = 0; i < 5 && page + i < records.Length; i++)
+        {
+            var record = records[page + i]; int y = 205 + i * 68;
+            ui.Text((page + i + 1) + ". " + record.LeaderName + " of " + CompanyHistoryStore.CompanyName(record.CompanyName) +
+                " — " + ScoreText(record.Score.FinalScore) + " points\nDay " + record.Day + " · " + record.EndingKind + " · " + record.EndReason,
+                30, y, 940, 58, 17);
+            ui.Button("Details", 990, y + 5, 180, () => HistoryDetails(record.EndingId, 0, mainMenu));
+        }
+        ui.Button("Previous", 30, 550, 150, () => HighScores(page - 5, mainMenu), page > 0);
+        ui.Button("Next", 195, 550, 150, () => HighScores(page + 5, mainMenu), page + 5 < records.Length);
+        if (!mainMenu && State != null) ui.Button("Back to records", 370, 550, 220, () => Record());
+        else if (mainMenu) ui.Button("Close", 370, 550, 180, view.Close);
+    }
+
+    void HistoryDetails(string endingId, int page, bool mainMenu)
+    {
+        var record = CompanyHistoryStore.ReadAll().Records.FirstOrDefault(r => r.EndingId == endingId);
+        if (record == null) { HighScores(0, mainMenu); return; }
+        ui.Clear("Company ending details", false, false);
+        var score = record.Score;
+        ui.Text(record.LeaderName + " of " + CompanyHistoryStore.CompanyName(record.CompanyName) + "\n" + record.EndReason +
+            "\nFinal score: " + ScoreText(score.FinalScore) + "\n" +
+            "Reputation +" + score.ReputationPoints + " | Days +" + score.DaysPoints +
+            " | Losses " + score.MercenaryLossPenalty + " | Leader digestions " + score.LeaderDigestionPenalty +
+            " | Wipeout multiplier ×" + score.WipeoutMultiplier.ToString("0.0", CultureInfo.InvariantCulture) +
+            "\nDay " + record.Day + " | Reputation " + record.Reputation + " | Gold earned " + record.TotalGoldEarned +
+            " | Hired " + record.MercenariesHired + " | Lost " + record.MercenariesLost +
+            " | Contracts " + record.ContractsCompleted + " | Enemies defeated " + record.EnemiesDefeated +
+            " | Leader digestions " + record.LeaderDigestions + (record.Ironman ? " | Ironman" : "") +
+            (record.DeveloperBalance ? " | Developer balance" : ""), 30, 140, 1180, 190, 16);
+        var memorial = record.Memorial ?? new CompanyHistoryMemorial[0];
+        if (memorial.Length == 0) ui.Text("No fallen mercenaries.", 30, 355, 1180, 45);
+        for (int i = 0; i < 3 && page + i < memorial.Length; i++)
+        {
+            var fallen = memorial[page + i];
+            ui.Text(fallen.Name + " — " + fallen.Species + " — day " + fallen.Day + "\n" + fallen.Fate, 30, 350 + i * 57, 1180, 54, 16);
+        }
+        ui.Button("Previous", 30, 550, 150, () => HistoryDetails(endingId, page - 3, mainMenu), page > 0);
+        ui.Button("Next", 195, 550, 150, () => HistoryDetails(endingId, page + 3, mainMenu), page + 3 < memorial.Length);
+        ui.Button("High Scores", 370, 550, 210, () => HighScores(0, mainMenu));
+    }
+
+    static string ScoreText(double score) { return score.ToString("0.#", CultureInfo.InvariantCulture); }
 }
