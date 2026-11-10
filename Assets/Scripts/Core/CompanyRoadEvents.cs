@@ -1,4 +1,5 @@
 ﻿// Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-08: Cap generated campaign road-encounter forces at eight (balance follow-up item 2).
 // 2026-11-04: Apply explainable healthy power and approved capped encounter scaling (spec 34 slice 3).
 // 2026-11-02: Saved travel encounters and the approved practice-duel proof of concept (spec 13).
 // 2026-11-02: Reduce new slug encounter power budgets by 30% after player review (spec 13 feedback).
@@ -67,13 +68,13 @@ internal static class CompanyRoadEvents
             occurrence.DifficultyRevision = CompanyContracts.DifficultyRevision;
             occurrence.CalendarAgeDays = CompanyContracts.CalendarAgeDays(state);
             occurrence.CalendarPressure = pressure;
-            occurrence.TargetPower = budget;
             var first = CompanyContracts.Enemy(state, Race.SpitterSlugs, 1);
             var enemies = new List<CompanyCharacter> { first };
             double sum = CompanyContracts.Power(first.Unit);
-            while(sum * CompanyPower.FormationMultiplier(enemies.Count) < budget)
+            budget = Math.Min(budget, sum * CompanyBattleSession.MaximumCampaignBattleForceSize * CompanyPower.FormationMultiplier(CompanyBattleSession.MaximumCampaignBattleForceSize));
+            occurrence.TargetPower = budget;
+            while(sum * CompanyPower.FormationMultiplier(enemies.Count) < budget && enemies.Count < CompanyBattleSession.MaximumCampaignBattleForceSize)
             {
-                if(enemies.Count>=128)break;
                 var next=CompanyContracts.Enemy(state,Race.SpitterSlugs,1);double nextPower=CompanyContracts.Power(next.Unit);
                 double before=sum*CompanyPower.FormationMultiplier(enemies.Count);
                 double after=(sum+nextPower)*CompanyPower.FormationMultiplier(enemies.Count+1);

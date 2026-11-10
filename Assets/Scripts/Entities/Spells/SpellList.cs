@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Retire redundant spells and standardize active spell damage types (spell review).
 // 2026-11-06: Clarify battle-only mending recovery for the spellbook catalog (spec 40C).
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-10-30: Generic creature summoning requires an approved enabled animal; no fallback (spec 03A1).
@@ -152,7 +153,7 @@ static class SpellList
             AreaOfEffect = 1,
             Tier = 1,
             Resistable = true,
-            DamageType = DamageTypes.Fire,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 5 + a.Unit.GetStat(Stat.Mind) / 10,
             OnExecute = (a, t) =>
             {
@@ -227,7 +228,7 @@ static class SpellList
             AreaOfEffect = 0,
             Tier = 1,
             Resistable = true,
-            DamageType = DamageTypes.Elec,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 5 + a.Unit.GetStat(Stat.Mind) / 10,
             OnExecute = (a, t) =>
             {
@@ -248,7 +249,7 @@ static class SpellList
             AreaOfEffect = 0,
             Tier = 2,
             Resistable = true,
-            DamageType = DamageTypes.Elec,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 15 + a.Unit.GetStat(Stat.Mind) / 10,
             OnExecute = (a, t) =>
             {
@@ -264,14 +265,14 @@ static class SpellList
             Name = "Jolt Crash",
             Id = "joltcrash",
             SpellType = SpellTypes.JoltCrash,
-            Description = "Deals electric damage to a single target knocking them back and applying static, which increases all electric damage they recive",
+            Description = "Deals damage to a single target and knocks them back.",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Enemy },
             Range = new Range(1),
             AreaOfEffect = 0,
             Tier = 1,
             Resistable = true,
             ResistanceMult = .90f,
-            DamageType = DamageTypes.Elec,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 6 + a.Unit.GetStat(Stat.Mind) / 10,
             OnExecute = (a, t) =>
             {
@@ -283,7 +284,6 @@ static class SpellList
                 {
                     TacticalUtilities.CheckKnockBack(a, t, ref crashDamage);
                     TacticalUtilities.KnockBack(a, t);
-                    t.Unit.ApplyStatusEffect(StatusEffectType.Static, 1f, 2);
                     State.GameManager.SoundManager.PlaySpellCast(LightningBolt, a);
                 }
                 else
@@ -422,13 +422,13 @@ static class SpellList
             Name = "Ice Blast",
             Id = "ice-blast",
             SpellType = SpellTypes.IceBlast,
-            Description = "Area of effect cold damage and lays down ice",
+            Description = "Deals damage in an area and lays down ice.",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Enemy, AbilityTargets.Tile },
             Range = new Range(6),
             AreaOfEffect = 1,
             Tier = 2,
             Resistable = true,
-            DamageType = DamageTypes.Ice,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 5 + a.Unit.GetStat(Stat.Mind) / 10,
             OnExecute = (a, t) =>
             {
@@ -479,7 +479,7 @@ static class SpellList
             Description = "Damages all units in the area and leaves burning ground for three side turns.",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Enemy, AbilityTargets.Tile },
             Range = new Range(6), AreaOfEffect = 1, Tier = 2, Resistable = true,
-            DamageType = DamageTypes.Fire,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 2 + a.Unit.GetStat(Stat.Intelligence) / 15,
             OnExecute = (a, t) =>
             {
@@ -501,52 +501,26 @@ static class SpellList
             Name = "Cross Shock",
             Id = "crossshock",
             SpellType = SpellTypes.CrossShock,
-            Description = "Deals electric damage in a 'X' pattern and applies 'static' to hit units, which increases all electric damage they recive",
+            Description = "Deals damage in an X pattern.",
             AcceptibleTargets = new List<AbilityTargets>() { AbilityTargets.Enemy, AbilityTargets.Tile },
             Range = new Range(6),
             AOEType = AreaOfEffectType.FixedPattern,
             Tier = 2,
             Pattern = new int[3, 3] { { 1, 0, 1 }, { 0, 1, 0 }, { 1, 0, 1 } },
             Resistable = true,
-            DamageType = DamageTypes.Elec,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 8 + a.Unit.GetStat(Stat.Mind) / 10,
             OnExecute = (a, t) =>
             {
-                int curr = 0;
                 TacticalGraphicalEffects.CreateCrossShock(t.Position);
                 State.GameManager.SoundManager.PlaySpellCast(LightningBolt, a);
-                foreach (var splashTarget in TacticalUtilities.UnitsWithinPattern(t.Position, CrossShock.Pattern))
-                {
-                    curr = splashTarget.Unit.Health;
-                }
                 a.CastOffensiveSpell(CrossShock, t);
-                foreach (var splashTarget in TacticalUtilities.UnitsWithinPattern(t.Position, CrossShock.Pattern))
-                {
-                    bool didSpellHit = (curr != splashTarget.Unit.Health);
-                    if (didSpellHit)
-                    {
-                        splashTarget.Unit.ApplyStatusEffect(StatusEffectType.Static, 1f, 2);
-                    }
-                }
             },
             OnExecuteTile = (a, l) =>
             {
-                int curr = 0;
                 TacticalGraphicalEffects.CreateCrossShock(l);
                 State.GameManager.SoundManager.PlaySpellCast(LightningBolt, a);
-                foreach (var splashTarget in TacticalUtilities.UnitsWithinPattern(l, CrossShock.Pattern))
-                {
-                    curr = splashTarget.Unit.Health;
-                }
                 a.CastOffensiveSpell(CrossShock, null, l);
-                foreach (var splashTarget in TacticalUtilities.UnitsWithinPattern(l, CrossShock.Pattern))
-                {
-                    bool didSpellHit = (curr != splashTarget.Unit.Health);
-                    if (didSpellHit)
-                    {
-                        splashTarget.Unit.ApplyStatusEffect(StatusEffectType.Static, 1f, 2);
-                    }
-                }
             },
         };
         SpellDict[SpellTypes.CrossShock] = CrossShock;
@@ -737,7 +711,7 @@ static class SpellList
             Tier = 1,
             Pattern = new int[3, 3] { { 0, 0, 0 }, { 1, 1, 1 }, { 0, 0, 0 } },
             Resistable = true,
-            DamageType = DamageTypes.Fire,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 5 + a.Unit.GetStat(Stat.Mind) / 7,
             OnExecute = (a, t) =>
             {
@@ -767,7 +741,7 @@ static class SpellList
             Pattern = new int[3, 3] { { 0, 1, 0 }, { 1, 1, 1 }, { 0, 1, 0 } },
             Resistable = true,
             ResistanceMult = .80f,
-            DamageType = DamageTypes.Fire,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 8 + a.Unit.GetStat(Stat.Dexterity) / 9,
             OnExecute = (a, t) =>
             {
@@ -1614,7 +1588,7 @@ static class SpellList
             Tier = 4,
             Pattern = new int[5, 5] { { 1, 1, 1, 1, 1 }, { 0, 1, 1, 1, 0 }, { 0, 0, 1, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },
             Resistable = true,
-            DamageType = DamageTypes.Fire,
+            DamageType = DamageTypes.Generic,
             Damage = (a, t) => 10 + a.Unit.GetStat(Stat.Mind) / 7,
             OnExecute = (a, t) =>
             {
@@ -1727,7 +1701,9 @@ public class Spell
 
     internal bool IsRetired => SpellType == SpellTypes.Resurrection || SpellType == SpellTypes.Reanimate ||
         SpellType == SpellTypes.Bind || SpellType == SpellTypes.CaptureNet || SpellType == SpellTypes.Charm ||
-        SpellType == SpellTypes.HypnoGas || SpellType == SpellTypes.Whispers;
+        SpellType == SpellTypes.HypnoGas || SpellType == SpellTypes.Whispers ||
+        SpellType == SpellTypes.Speed || SpellType == SpellTypes.Trance || SpellType == SpellTypes.Meditate ||
+        SpellType == SpellTypes.Icicle || SpellType == SpellTypes.Pyre || SpellType == SpellTypes.FireBomb;
     
 
     internal bool IsConsumption { get { return SpellType == SpellTypes.Maw || SpellType == SpellTypes.GateMaw || SpellType == SpellTypes.ForceFeed; } }

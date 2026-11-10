@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Prevent AI support spells from targeting their own caster (tactical AI follow-up).
 // 2026-10-31: Retire obsolete Resurrection AI action and planning calls (spec 05A3B9).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System.Collections.Generic;
@@ -97,7 +98,9 @@ public class NonCombatantTacticalAI : RaceServantTacticalAI
     {
         if (actor.Unit.UseableSpells == null || actor.Unit.UseableSpells.Any() == false)
             return;
-        var friendlySpells = actor.Unit.UseableSpells.Where(sp => sp != SpellList.Resurrection && sp != SpellList.Reanimate && sp != SpellList.Bind && sp.ManaCost <= actor.Unit.Mana && sp.AcceptibleTargets.Contains(AbilityTargets.Ally)).ToList();
+        var friendlySpells = actor.Unit.UseableSpells.Where(sp => sp != SpellList.Resurrection && sp != SpellList.Reanimate && sp != SpellList.Bind &&
+            (sp.IsFree || sp.ManaCost <= actor.Unit.Mana) && sp.AcceptibleTargets.Contains(AbilityTargets.Ally) &&
+            sp.OnExecute != null).ToList();
 
         if (friendlySpells == null || friendlySpells.Any() == false)
             return;
@@ -114,7 +117,8 @@ public class NonCombatantTacticalAI : RaceServantTacticalAI
         if (State.GameManager.TacticalMode.IsOnlyOneSideVisible())
             return;
 
-        List<PotentialTarget> targets = GetListOfPotentialSpellTargets(actor, spell, actor.Position);
+        List<PotentialTarget> targets = GetListOfPotentialSpellTargets(actor, spell, actor.Position)
+            .Where(target => target.actor != actor).ToList();
         if (!targets.Any())
             return;
         Actor_Unit reserveTarget = targets[0].actor;

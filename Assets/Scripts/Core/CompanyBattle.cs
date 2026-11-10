@@ -1,5 +1,10 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Prune boss-contract enemies after result and post-battle event settlement (mission follow-up).
+// 2026-11-09: Keep surviving enemies in their actual battle state when a boss objective is completed (campaign mission follow-up).
+// 2026-11-09: Settle boss objectives on downing, digestion or flight before combat cleanup (campaign mission expansion).
 // 2026-11-08: Assign unique ending identities and archive scores before any Ironman cleanup (spec 40E).
+// 2026-11-08: Enforce the eight-unit limit on new campaign battle deployments (balance follow-up item 2).
+// 2026-11-08: Generate contract enemies at target arrival and retain the force between attempts (spec 09 follow-up).
 // 2026-11-07: Persist battle evidence and queue the post-battle trait scene after revival (spec 40D).
 // 2026-11-06: Queue detached battle-turn autosaves and settle outcomes without serializing live gameplay.
 // 2026-11-01: Isolated tactical adapter, transactional outcomes, revival and memorial records (spec 10).
@@ -41,6 +46,7 @@ internal sealed class CompanyMemorial
 
 internal sealed class CompanyBattleSession
 {
+    internal const int MaximumCampaignBattleForceSize = 8;
     readonly CompanyCampaignView view;
     readonly CompanyCampaign state;
     readonly World previousWorld;
@@ -57,8 +63,10 @@ internal sealed class CompanyBattleSession
     { get { return !state.LeaderRevival && state.Characters.Single(c => c.Id == state.LeaderId).Unit.Digested; } }
     internal static void Prepare(CompanyCampaign state, CompanyContract contract)
     {
-        if (state.Busy || contract.Status != CompanyContractStatus.Active || !CompanyContracts.Survivors(state, contract).Any())
+        if (state.Busy || contract.Status != CompanyContractStatus.Active)
             throw new InvalidOperationException("This target is no longer available.");
+        CompanyContracts.EnsureEnemyForce(state, contract);
+        if (!CompanyContracts.Survivors(state, contract).Any()) throw new InvalidOperationException("This target is no longer available.");
         state.Battle = new CompanyBattleRecord { Id = Guid.NewGuid().ToString("N"), ContractId = contract.Id,
             ReturnTile = state.Position, TargetTile = contract.Tile, Seed = state.Next(int.MaxValue), Phase = CompanyBattlePhase.Deployment };
     }
@@ -73,6 +81,8 @@ internal sealed class CompanyBattleSession
     internal void Start()
     {
         var deployed = state.Members.Where(m => !m.Reserve || m.CharacterId == state.LeaderId).Select(m => state.Characters.Single(c => c.Id == m.CharacterId)).ToArray();
+        if (deployed.Length > MaximumCampaignBattleForceSize)
+            throw new InvalidOperationException("A company can deploy no more than " + MaximumCampaignBattleForceSize + " members in a campaign battle.");
         state.Battle.DeployedIds = deployed.Select(c => c.Id).ToArray();
         if (deployed.Length == 0) throw new InvalidOperationException("The company leader must deploy.");
         State.Rand = new Rand(state.Battle.Seed); UnityEngine.Random.InitState(state.Battle.Seed);
@@ -166,6 +176,14 @@ internal sealed class CompanyBattleSession
         var battle = result.Battle;
         var contract = battle.RoadEventId == null ? result.Contracts.Single(c => c.Id == battle.ContractId) : null;
         var enemyIds = EnemyIds(result, battle); var defeatedIds = DefeatedIds(result, battle);
+        var deployedCompanyActors = actors.Where(a => a.Unit.Side == 0 && battle.DeployedIds != null && battle.DeployedIds.Any(id =>
+            state.Characters.Any(c => c.Id == id && ReferenceEquals(c.Unit, a.Unit)))).ToArray();
+        bool companyRetreatedOrLost = deployedCompanyActors.Length > 0 && deployedCompanyActors.All(a =>
+            a.Fled || a.Unit.Downed || a.Unit.Digested || a.Unit.IsDead);
+        Unit bossUnit = contract == null || string.IsNullOrEmpty(contract.BossCharacterId) ? null :
+            state.Characters.Single(c => c.Id == contract.BossCharacterId).Unit;
+        bool bossRouted = contract != null && contract.Objective == CompanyContractObjective.RoutBoss && bossUnit != null &&
+            actors.Any(a => ReferenceEquals(a.Unit, bossUnit) && (a.Unit.Downed || a.Unit.Digested || a.Unit.IsDead || a.Fled));
         var enemyActors = actors.Where(a => enemyIds.Any(id => state.Characters.Single(c => c.Id == id).Unit == a.Unit)).ToArray();
         int defeated = 0;
         foreach (var a in enemyActors.Where(a => a.Unit.Digested || a.Fled || a.Unit.IsDead))
@@ -173,6 +191,9 @@ internal sealed class CompanyBattleSession
             string id = state.Characters.Single(c => c.Unit == a.Unit).Id;
             if (!defeatedIds.Contains(id)) { defeatedIds.Add(id); defeated++; }
         }
+        // Routing the boss completes the contract, but does not change other enemies' battle outcomes.
+        if (bossRouted && !defeatedIds.Contains(contract.BossCharacterId))
+        { defeatedIds.Add(contract.BossCharacterId); defeated++; }
         int temporaryEnemies = actors.Where(a => a.Unit.Side == 1 && (a.Unit.IsDead || a.Fled) && !enemyActors.Contains(a)).Select(a => a.Unit).Distinct().Count();
         result.EnemiesDefeated += defeated + temporaryEnemies;
         bool leaderLost = result.Characters.Single(c => c.Id == result.LeaderId).Unit.Digested;
@@ -207,13 +228,16 @@ internal sealed class CompanyBattleSession
             // Random combat keeps its ordinary combat XP; it grants no contract payment, reputation or completion bonus.
             if (Survivors(result, battle).Any()) result.Position = battle.ReturnTile;
         }
-        else if (!paid) result.Position = battle.ReturnTile;
+        else if (!paid || (bossRouted && companyRetreatedOrLost)) result.Position = battle.ReturnTile;
         if (!result.Ended)
             battle.PostBattleEvent = CompanyPostBattleTraits.Resolve(state, result, actors);
         battle.Summary = (stalemate ? "Stalemate: everyone remaining fled and survived.\n" : "Battle settled.\n") +
             "Enemies defeated: " + (defeated + temporaryEnemies) + "\nMercenaries lost: " + losses.Length + "\n" +
-            (contract == null ? "Road encounter settled. No gold or reputation awarded.\n" : paid ? "Contract completed: " + contract.Reward + " gold paid automatically; reputation +1. Surviving participants gained contract XP.\n" : "The surviving target remains available before its deadline.\n") +
+            (contract == null ? "Road encounter settled. No gold or reputation awarded.\n" : paid ?
+                (contract.Objective == CompanyContractObjective.RoutBoss ? "Boss routed. Contract completed: " : "Contract completed: ") +
+                contract.Reward + " gold paid automatically; reputation +1. Surviving participants gained contract XP.\n" : "The surviving target remains available before its deadline.\n") +
             (leaderLost && !result.Ended ? "The leader requires revival after these results.\n" : "") + result.EndReason;
+        if (paid) CompanyContracts.ReleaseCompletedBossForce(result, contract);
         battle.Tactical = null; battle.RandomState = null;
         battle.Phase = CompanyBattlePhase.Summary; result.InBattle = false; result.Validate();
         if (result.Ended) CompanyHistoryStore.ArchiveEnding(result);

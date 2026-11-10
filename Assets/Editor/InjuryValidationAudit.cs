@@ -1,4 +1,5 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Pass the optional enemy flag explicitly in synthetic reflected character creation.
 // 2026-11-05: Validate approved injury rules, probabilities and persistence with isolated native fixtures (spec 38 phase D).
 // See CHANGES.md and License.txt for GPL-3.0 terms. Existing attribution remains applicable.
 using System;
@@ -145,7 +146,7 @@ public static class InjuryValidationAudit
         gm = UnityEngine.Object.FindObjectOfType<GameManager>(); Check(gm != null, "Native scene initialized"); gm.enabled = false;
         view = G(gm.Start_Mode, "CompanySaveView");
         state = C(T("CompanyCampaign"), "Generate", 38101, false);
-        var leader = C(T("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1);
+        var leader = C(T("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1, false);
         C(T("CompanyEconomy"), "Begin", state, leader); C(view, "Install", state);
         var town = ((IEnumerable)G(state, "Towns")).Cast<object>().First(t => (int)G(t, "Tile") == (int)G(state, "Position"));
         S(state,"Gold",1000); // Fixture funding for distinct survivor, casualty and reserve roles, not an economy sample.
@@ -411,7 +412,7 @@ public static class InjuryValidationAudit
     static void CampaignRecoveryAndSparring()
     {
         var fresh=C(T("CompanyCampaign"),"Generate",38191,false);
-        var leader=C(T("CompanyEconomy"),"Create",fresh,Race.Lizards,2,true,1);
+        var leader=C(T("CompanyEconomy"),"Create",fresh,Race.Lizards,2,true,1,false);
         C(T("CompanyEconomy"),"Begin",fresh,leader);
         var town=((IEnumerable)G(fresh,"Towns")).Cast<object>().First(t=>(int)G(t,"Tile")== (int)G(fresh,"Position"));
         foreach(var candidate in ((IEnumerable)C(T("CompanyEconomy"),"Offers",fresh,town)).Cast<object>().Take(2).ToArray())

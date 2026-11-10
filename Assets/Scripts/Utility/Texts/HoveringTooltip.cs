@@ -14,6 +14,7 @@
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 // 2026-11-03: Implement four active stats and agreed combat rules (spec 29).
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Update NaturalCaster tooltip after retiring Icicle.
 // 2026-11-04: Resolve QuickLearner hover text without changing stored trait names (spec 31).
 // See CHANGES.md and License.txt for GPL-3.0 terms.
 // 2026-11-04: Rename DoubleAttack presentation to DoubleShot and restrict its bonus to ranged attacks (spec 31).
@@ -909,7 +910,7 @@ public class HoveringTooltip : MonoBehaviour
             case Traits.Hoarder:
                 return "Race increase the income of a village by 0.1% per population.";
             case Traits.NaturalCaster:
-                return "Unit gains Icicle, Fireball, Lightning Bolt, PowerBolt, or Poison as an innate spell.";
+                return "Unit gains Fireball, Lightning Bolt, Power Bolt, or Poison as an innate spell.";
             case Traits.Multifaceted:
                 return "Units highest stat becomes its favored stat and gains the following effect based on their highest stat:\n" +
                     "STR: Bonus damage on a 4 turn cooldown.\n" +

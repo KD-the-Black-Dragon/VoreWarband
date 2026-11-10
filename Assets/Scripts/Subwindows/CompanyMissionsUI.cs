@@ -1,4 +1,8 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Identify boss-objective contracts and mark the boss in the arrival-time roster (campaign mission expansion).
+// 2026-11-09: Load and sort High Scores in the background so large archives never stall screen input (40E performance review).
+// 2026-11-08: Show active battle deployment count and explain the eight-member limit (balance follow-up item 2).
+// 2026-11-08: Hide contract rosters until target arrival and require battle after roster reveal (spec 09 follow-up).
 // 2026-11-08: Qualify the global GameManager in retirement confirmation to avoid member-name shadowing (spec 40E build fix).
 // 2026-11-08: Show retirement projections, terminal scores and persistent company history (spec 40E).
 // 2026-11-07: Present concise revival and persisted post-battle trait outcomes (spec 40D).
@@ -12,13 +16,25 @@
 // 2026-11-03: Use the shared Help overlay without replacing the originating company or creator page (spec 20).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System;
+using System.Collections;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 
 internal sealed class CompanyMissionsUI
 {
+    sealed class HistoryListing
+    {
+        internal CompanyHistoryStore.Catalog Catalog;
+        internal CompanyHistoryRecord[] Records;
+    }
     readonly CompanyCampaignView view;
     readonly CompanyManagementUI ui;
+    Task<HistoryListing> historyLoad;
+    int historyRequestId;
+    CompanyHistoryStore.Catalog historyCatalog;
+    CompanyHistoryRecord[] historyRecords;
+    internal bool HistoryLoadPending { get; private set; }
     CompanyCampaign State { get { return view.Campaign; } }
     internal CompanyMissionsUI(CompanyCampaignView view, CompanyManagementUI ui) { this.view = view; this.ui = ui; }
     void Change(Action operation, Action redraw)
@@ -41,11 +57,10 @@ internal sealed class CompanyMissionsUI
         for (int i = 0; i < 4 && page + i < list.Length; i++)
         {
             var c = list[page + i]; int y = 210 + i * 75;
-            ui.Text("Rout enemy force — rating " + c.Rating + " | " + c.Reward + " gold\n" +
+            ui.Text((c.Objective == CompanyContractObjective.RoutBoss ? "Rout the boss" : "Rout enemy force") + " — rating " + c.Rating + " | " + c.Reward + " gold\n" +
                 (offers ? "30 days after acceptance" : "Complete before day " + (c.Deadline + 1)) + " | Target (" + c.Tile % State.Width + ", " + c.Tile / State.Width + ")", 30, y, 750, 68);
-            ui.Button("Enemy roster", 790, y, 190, () => Enemies(c.Id, false, 0, offers));
-            if (offers) ui.Button("Accept", 1000, y, 180, () => Change(() => CompanyContracts.Accept(State, c), () => Contracts(true, page)), !State.Busy);
-            else ui.Button("Abandon", 1000, y, 180, () => Abandon(c.Id), !State.Busy);
+            if (offers) ui.Button("Accept", 790, y, 180, () => Change(() => CompanyContracts.Accept(State, c), () => Contracts(true, page)), !State.Busy);
+            else ui.Button("Abandon", 790, y, 180, () => Abandon(c.Id), !State.Busy);
         }
         ui.Button("Previous", 30, 550, 150, () => Contracts(offers, page - 4), page > 0);
         ui.Button("Next", 195, 550, 150, () => Contracts(offers, page + 4), page + 4 < list.Length);
@@ -58,10 +73,13 @@ internal sealed class CompanyMissionsUI
         ui.Button("Abandon", 30, 350, 230, () => Change(() => CompanyContracts.Fail(State, c, true), () => Contracts()));
         ui.Button("Keep contract", 280, 350, 230, () => Contracts());
     }
-    internal void Enemies(string id, bool deployment, int page = 0, bool offers = false)
+    internal void Enemies(string id, int page = 0)
     {
-        var c = State.Contracts.Single(x => x.Id == id); ui.Clear("Target roster — rating " + c.Rating, offers && !deployment);
+        if (State.Battle == null || State.Battle.Phase != CompanyBattlePhase.Deployment || State.Battle.ContractId != id)
+            throw new InvalidOperationException("Contract rosters are shown during final battle deployment.");
+        var c = State.Contracts.Single(x => x.Id == id); ui.Clear((c.Objective == CompanyContractObjective.RoutBoss ? "Boss contract roster" : "Target roster") + " — rating " + c.Rating);
         var enemies = CompanyContracts.Survivors(State, c).ToArray();
+        if (enemies.Length == 0) throw new InvalidOperationException("The enemy force is only available after reaching the target.");
         ui.Text("Quoted power " + c.Power.ToString("0.0") + " | Fixed budget " + CompanyContracts.Budget(c.Rating).ToString("0.0") + " ±8% | Remaining power " + enemies.Sum(e => CompanyContracts.Power(e.Unit)).ToString("0.0"), 30, 140, 1200, 55);
         for (int i = 0; i < 5 && page + i < enemies.Length; i++)
         {
@@ -69,9 +87,9 @@ internal sealed class CompanyMissionsUI
             string gear = string.Join(", ", u.Items.Where(item => item != null).Select(item => item.Name).ToArray());
             ui.Text(u.Name + " — " + SpeciesPolicy.DisplayName(u.Race) + " Lv" + u.Level + " | HP " + u.Health + "/" + u.MaxHealth + " | Power " + CompanyContracts.Power(u).ToString("0.0") + "\nGear: " + gear, 30, y, 1180, 60, 17);
         }
-        ui.Button("Previous", 30, 550, 150, () => Enemies(id, deployment, page - 5, offers), page > 0);
-        ui.Button("Next", 195, 550, 150, () => Enemies(id, deployment, page + 5, offers), page + 5 < enemies.Length);
-        if (deployment) ui.Button("Deployment", 380, 550, 180, () => Deployment());
+        ui.Button("Previous", 30, 550, 150, () => Enemies(id, page - 5), page > 0);
+        ui.Button("Next", 195, 550, 150, () => Enemies(id, page + 5), page + 5 < enemies.Length);
+        ui.Button("Deployment", 380, 550, 180, () => Deployment());
     }
     internal void RoadEvent()
     {
@@ -94,8 +112,11 @@ internal sealed class CompanyMissionsUI
     internal void Deployment(int page = 0)
     {
         var battle = State.Battle; var contract = battle.RoadEventId == null ? State.Contracts.Single(c => c.Id == battle.ContractId) : null;
-        ui.Clear(contract == null ? "Wild Spitter Slugs attack — final deployment" : "Final deployment — contract rating " + contract.Rating);
-        ui.Text("Choose active/reserve status now. All active members deploy; the leader always participates.\n" +
+        int activeCount = State.Members.Count(m => !m.Reserve || m.CharacterId == State.LeaderId);
+        ui.Clear(contract == null ? "Wild Spitter Slugs attack — final deployment" :
+            (contract.Objective == CompanyContractObjective.RoutBoss ? "Final deployment — rout the boss, rating " : "Final deployment — contract rating ") + contract.Rating);
+        ui.Text("Choose active/reserve status now. Deploy up to " + CompanyBattleSession.MaximumCampaignBattleForceSize + " members; the leader always participates. " +
+            "Active: " + activeCount + "/" + CompanyBattleSession.MaximumCampaignBattleForceSize + ".\n" +
             CompanyBattleSession.Survivors(State, battle).Count() + " enemies | " + (contract == null ? "No contract payment" : contract.Reward + " gold") + " | Leader revival " + (State.LeaderRevival ? "enabled" : "disabled"), 30, 140, 1180, 68);
         var members = State.Members.ToArray();
         for (int i = 0; i < 5 && page + i < members.Length; i++)
@@ -107,13 +128,8 @@ internal sealed class CompanyMissionsUI
         }
         ui.Button("Previous", 30, 535, 135, () => Deployment(page - 5), page > 0);
         ui.Button("Next", 180, 535, 135, () => Deployment(page + 5), page + 5 < members.Length);
-        ui.Button("Enemy roster", 335, 535, 190, () => { if (contract == null) RoadEnemies(); else Enemies(contract.Id, true); });
+        ui.Button("Enemy roster", 335, 535, 190, () => { if (contract == null) RoadEnemies(); else Enemies(contract.Id); });
         ui.Button("Begin battle", 545, 535, 200, view.LaunchBattle);
-        if (contract != null) ui.Button("Cancel", 765, 535, 170, () => Change(() =>
-        {
-            if (battle.PositionCommitted) State.Position = battle.ReturnTile;
-            battle.Phase = CompanyBattlePhase.Returned;
-        }, view.ShowMap));
     }
     void RoadEnemies(int page = 0)
     {
@@ -217,9 +233,55 @@ internal sealed class CompanyMissionsUI
 
     internal void HighScores(int page = 0, bool mainMenu = false)
     {
-        var catalog = CompanyHistoryStore.ReadAll();
+        int request = ++historyRequestId;
+        string historyDirectory = CompanyHistoryStore.GetDirectoryPath();
+        HistoryLoadPending = true;
+        ui.Clear("High Scores", false, false);
+        ui.Text("Loading company records...", 30, 140, 1180, 55);
+        AddHistoryReturnButton(mainMenu);
+        int pageRevision = ui.PageRevision;
+        historyLoad = Task.Run(() => LoadHistory(historyDirectory));
+        view.StartCoroutine(CompleteHighScores(historyLoad, request, pageRevision, page, mainMenu));
+    }
+
+    static HistoryListing LoadHistory(string historyDirectory)
+    {
+        var catalog = CompanyHistoryStore.ReadAll(historyDirectory);
         var records = catalog.Records.OrderByDescending(r => r.Score.FinalScore)
             .ThenByDescending(r => r.Day).ThenBy(r => r.CompanyName, StringComparer.OrdinalIgnoreCase).ToArray();
+        return new HistoryListing { Catalog = catalog, Records = records };
+    }
+
+    IEnumerator CompleteHighScores(Task<HistoryListing> task, int request, int pageRevision, int page, bool mainMenu)
+    {
+        while (!task.IsCompleted)
+        {
+            if (request != historyRequestId) yield break;
+            if (!ui.Page.activeSelf || ui.PageRevision != pageRevision)
+            { HistoryLoadPending = false; yield break; }
+            yield return null;
+        }
+        if (request != historyRequestId) yield break;
+        if (!ui.Page.activeSelf || ui.PageRevision != pageRevision)
+        { HistoryLoadPending = false; yield break; }
+
+        HistoryLoadPending = false;
+        if (task.IsFaulted || task.IsCanceled)
+        {
+            ui.Clear("High Scores", false, false);
+            ui.Text("Company records could not be loaded. Try opening High Scores again.", 30, 140, 1180, 70);
+            AddHistoryReturnButton(mainMenu);
+            yield break;
+        }
+        historyCatalog = task.Result.Catalog;
+        historyRecords = task.Result.Records;
+        RenderHighScores(page, mainMenu);
+    }
+
+    void RenderHighScores(int page, bool mainMenu)
+    {
+        var catalog = historyCatalog;
+        var records = historyRecords ?? new CompanyHistoryRecord[0];
         page = Math.Max(0, page);
         ui.Clear("High Scores", false, false);
         string description = records.Length == 0 ? "No company endings have been recorded yet." : "Completed company campaigns, ranked by final score.";
@@ -235,15 +297,20 @@ internal sealed class CompanyMissionsUI
                 30, y, 940, 58, 17);
             ui.Button("Details", 990, y + 5, 180, () => HistoryDetails(record.EndingId, 0, mainMenu));
         }
-        ui.Button("Previous", 30, 550, 150, () => HighScores(page - 5, mainMenu), page > 0);
-        ui.Button("Next", 195, 550, 150, () => HighScores(page + 5, mainMenu), page + 5 < records.Length);
+        ui.Button("Previous", 30, 550, 150, () => RenderHighScores(page - 5, mainMenu), page > 0);
+        ui.Button("Next", 195, 550, 150, () => RenderHighScores(page + 5, mainMenu), page + 5 < records.Length);
+        AddHistoryReturnButton(mainMenu);
+    }
+
+    void AddHistoryReturnButton(bool mainMenu)
+    {
         if (!mainMenu && State != null) ui.Button("Back to records", 370, 550, 220, () => Record());
         else if (mainMenu) ui.Button("Close", 370, 550, 180, view.Close);
     }
 
     void HistoryDetails(string endingId, int page, bool mainMenu)
     {
-        var record = CompanyHistoryStore.ReadAll().Records.FirstOrDefault(r => r.EndingId == endingId);
+        var record = historyCatalog == null ? null : historyCatalog.Records.FirstOrDefault(r => r.EndingId == endingId);
         if (record == null) { HighScores(0, mainMenu); return; }
         ui.Clear("Company ending details", false, false);
         var score = record.Score;
@@ -266,7 +333,7 @@ internal sealed class CompanyMissionsUI
         }
         ui.Button("Previous", 30, 550, 150, () => HistoryDetails(endingId, page - 3, mainMenu), page > 0);
         ui.Button("Next", 195, 550, 150, () => HistoryDetails(endingId, page + 3, mainMenu), page + 3 < memorial.Length);
-        ui.Button("High Scores", 370, 550, 210, () => HighScores(0, mainMenu));
+        ui.Button("High Scores", 370, 550, 210, () => RenderHighScores(0, mainMenu));
     }
 
     static string ScoreText(double score) { return score.ToString("0.#", CultureInfo.InvariantCulture); }

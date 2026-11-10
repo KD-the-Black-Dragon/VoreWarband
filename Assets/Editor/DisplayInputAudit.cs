@@ -1,4 +1,5 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Pass the optional enemy flag explicitly in synthetic reflected character creation.
 // 2026-11-05: Render isolated player UI fixtures and inspect native layout/input across resolutions (spec 38 phase C).
 // See CHANGES.md and License.txt for GPL-3.0 terms. Existing attribution remains applicable.
 using System;
@@ -120,7 +121,7 @@ public static class DisplayInputAudit
         gm.enabled = false;
         var view = Get(gm.Start_Mode, "CompanySaveView");
         var state = Call(Runtime("CompanyCampaign"), "Generate", 38031, false);
-        var leader = Call(Runtime("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1);
+        var leader = Call(Runtime("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1, false);
         Call(Runtime("CompanyEconomy"), "Begin", state, leader);
         Call(view, "Install", state);
         var town = ((IList)Get(state, "Towns")).Cast<object>().First(t => (int)Get(t, "Tile") == (int)Get(state, "Position"));
@@ -280,7 +281,7 @@ public static class DisplayInputAudit
         Set(state, "Gold", 2000000000);
         for (int i = 0; i < 8; i++)
         {
-            var candidate = Call(Runtime("CompanyEconomy"), "Create", state, Race.Gnolls, 0, false, 1);
+            var candidate = Call(Runtime("CompanyEconomy"), "Create", state, Race.Gnolls, 0, false, 1, false);
             Set(candidate, "TownId", Get(town, "Id")); ((IList)Get(state, "Characters")).Add(candidate);
             Call(Runtime("CompanyEconomy"), "Hire", state, candidate, town);
         }

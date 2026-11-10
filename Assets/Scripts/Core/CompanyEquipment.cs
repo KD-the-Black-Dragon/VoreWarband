@@ -1,4 +1,6 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Tier company spellbooks by actual spell power and rotate a small town selection on payday.
+// 2026-11-09: Retire Trance from the company spellbook shop (spell review).
 // 2026-11-08: Use generic tiered weapon names and assign heavy art to the strongest half of each active weapon class.
 // 2026-11-08: Assign explicit shared artwork families and preserve a retired dagger art option.
 // 2026-11-08: Standardize new ranged weapons to four tiered choices with shared range and accuracy.
@@ -21,6 +23,7 @@ using System.Linq;
 
 internal enum CompanyEmployment { Candidate, Employed, Former, Unavailable }
 internal enum CompanySlot { Helmet, Torso, Legs, Arms, Accessory, Melee, Ranged, Spell1, Spell2 }
+internal enum CompanySpellCategory { Damage, Buff, Debuff, Other }
 internal static class CompanyEquipment
 {
     internal sealed class Definition
@@ -28,6 +31,8 @@ internal static class CompanyEquipment
         public string Id, Name;
         public CompanySlot Slot;
         public int Cost, Protection, ArmorClass, Tier = 1, Graphic = -1;
+        public int SpellPowerTier;
+        public CompanySpellCategory SpellCategory;
         public float Evasion;
         public bool EnemyOnly, Retired;
         public Func<Item> Create;
@@ -52,16 +57,27 @@ internal static class CompanyEquipment
         yield return Armor("accessory.charm", "Insight charm", CompanySlot.Accessory, 60, Stat.Intelligence, 1);
         yield return new Definition { Id = "natural.slug", Name = "Slug slime", Slot = CompanySlot.Ranged, EnemyOnly = true, Graphic = -1,
             Create = () => new Weapon("Slug slime", "Weak natural ranged attack", 0, -1, 2, 5, 1, true) };
-        yield return Book("spell.bolt", "Power Bolt", SpellTypes.PowerBolt, 30);
-        yield return Book("spell.valor", "Valor", SpellTypes.Valor, 60);
-        yield return Book("spell.shield", "Shield", SpellTypes.Shield, 60);
-        yield return Book("spell.mending", "Mending", SpellTypes.Mending, 90);
-        yield return Book("spell.predation", "Predation", SpellTypes.Predation, 170, 2);
-        yield return Book("spell.cinder", "Cinder Field", SpellTypes.CinderField, 270, 2);
-        yield return Book("spell.poison", "Poison", SpellTypes.Poison, 220, 2);
-        yield return Book("spell.trance", "Trance", SpellTypes.Trance, 360, 3);
-        yield return Book("spell.summon", "Summon", SpellTypes.Summon, 440, 3);
-        yield return Book("spell.gatemaw", "Gate Maw", SpellTypes.GateMaw, 600, 3);
+        yield return Book("spell.bolt", "Power Bolt", SpellTypes.PowerBolt, 30, CompanySpellCategory.Damage);
+        yield return Book("spell.fireball", "Fireball", SpellTypes.Fireball, 45, CompanySpellCategory.Damage);
+        yield return Book("spell.valor", "Valor", SpellTypes.Valor, 60, CompanySpellCategory.Buff);
+        yield return Book("spell.shield", "Shield", SpellTypes.Shield, 60, CompanySpellCategory.Buff);
+        yield return Book("spell.predation", "Predation", SpellTypes.Predation, 170, CompanySpellCategory.Buff);
+        yield return Book("spell.mending", "Mending", SpellTypes.Mending, 90, CompanySpellCategory.Other);
+        yield return Book("spell.preyshex", "Prey's Hex", SpellTypes.PreysHex, 90, CompanySpellCategory.Debuff);
+        yield return Book("spell.arcbolt", "Arc Bolt", SpellTypes.ArcBolt, 210, CompanySpellCategory.Damage);
+        yield return Book("spell.iceblast", "Ice Blast", SpellTypes.IceBlast, 240, CompanySpellCategory.Damage);
+        yield return Book("spell.cinder", "Cinder Field", SpellTypes.CinderField, 270, CompanySpellCategory.Damage);
+        yield return Book("spell.poison", "Poison", SpellTypes.Poison, 220, CompanySpellCategory.Debuff);
+        yield return Book("spell.bolas", "Bolas", SpellTypes.Bolas, 200, CompanySpellCategory.Debuff);
+        yield return Book("spell.diamondstorm", "Diamond Storm", SpellTypes.DiamondStorm, 440, CompanySpellCategory.Damage);
+        yield return Book("spell.enlarge", "Enlarge", SpellTypes.Enlarge, 360, CompanySpellCategory.Buff);
+        yield return Book("spell.preyscurse", "Prey's Curse", SpellTypes.PreysCurse, 420, CompanySpellCategory.Debuff);
+        yield return Book("spell.summon", "Summon", SpellTypes.Summon, 440, CompanySpellCategory.Other);
+        yield return Book("spell.maw", "Maw", SpellTypes.Maw, 430, CompanySpellCategory.Other);
+        yield return Book("spell.flamberge", "Flamberge", SpellTypes.Flamberge, 900, CompanySpellCategory.Damage);
+        yield return Book("spell.diminishment", "Diminishment", SpellTypes.Diminishment, 650, CompanySpellCategory.Debuff);
+        yield return Book("spell.gatemaw", "Gate Maw", SpellTypes.GateMaw, 700, CompanySpellCategory.Other);
+        yield return Book("spell.trance", "Trance", SpellTypes.Trance, 360, CompanySpellCategory.Debuff, retired: true);
         yield return Weapon("weapon.cleaver", "Sword I", 100, false, 11, 1, graphic: CompanyWeaponArtCatalog.LightMelee);
         yield return Weapon("weapon.hunting", "Bow I", 120, true, 9, 6, graphic: CompanyWeaponArtCatalog.LightRanged);
         yield return Weapon("weapon.mace.2", "Sword II", 180, false, 18, 1, 2, 1.4f, graphic: CompanyWeaponArtCatalog.HeavyMelee);
@@ -149,17 +165,78 @@ internal static class CompanyEquipment
     static Definition Armor(string id, string name, CompanySlot slot, int cost, Stat stat, int bonus, int armorClass = 0, float evasion = 0, int tier = 1)
     { return new Definition { Id = id, Name = name, Cost = cost, Tier = tier, Slot = slot, Protection = slot == CompanySlot.Accessory ? 0 : 1, ArmorClass = armorClass, Evasion = evasion,
         Create = () => new Accessory(name, bonus == 0 ? "Armor" : "+" + bonus + " " + WarbandStats.ShortName(stat), cost, (int)stat, bonus) }; }
-    static Definition Book(string id, string name, SpellTypes spell, int cost, int tier = 1)
-    { return new Definition { Id = id, Name = name, Slot = CompanySlot.Spell1, Cost = cost, Tier = tier,
-        Create = () => new SpellBook(name, "Company spell", cost, tier, spell) }; }
+    static Definition Book(string id, string name, SpellTypes spellType, int cost, CompanySpellCategory category, bool retired = false)
+    {
+        Spell spell;
+        if (!SpellList.SpellDict.TryGetValue(spellType, out spell))
+            throw new InvalidOperationException("The company spellbook references an unknown spell: " + spellType);
+        int tier = spell.Tier;
+        return new Definition { Id = id, Name = name, Slot = CompanySlot.Spell1, Cost = cost, Tier = Math.Max(1, tier),
+            SpellPowerTier = tier, SpellCategory = category, Retired = retired || spell.IsRetired,
+            Create = () => new SpellBook(name, "Company spell", cost, tier, spellType) };
+    }
     internal static Definition Find(string id) { return Catalog.FirstOrDefault(d => d.Id == id); }
     // Keep old definitions resolvable for saved characters and inventories, but do not offer them to new campaigns.
     internal static bool IsRetiredEvasionArmor(Definition d)
     { return (int)d.Slot <= (int)CompanySlot.Arms && d.Evasion > 0; }
     internal static int RequiredReputation(int tier) { return new[] { 0, 10, 25 }[Math.Max(1, Math.Min(3, tier)) - 1]; }
+    // Provisional unlock values: tiers I–IV at 0, 10, 25 and 50 company reputation.
+    internal static int RequiredSpellReputation(int tier) { return new[] { 0, 10, 25, 50 }[Math.Max(1, Math.Min(4, tier)) - 1]; }
     internal static int UnlockedTier(int reputation) { return reputation >= RequiredReputation(3) ? 3 : reputation >= RequiredReputation(2) ? 2 : 1; }
     internal static IEnumerable<Definition> Available(CompanyCampaign state)
-    { return Catalog.Where(d => !d.EnemyOnly && !d.Retired && !IsRetiredEvasionArmor(d) && state.Reputation >= RequiredReputation(d.Tier)).OrderBy(d => d.Tier).ThenBy(d => d.Cost).ThenBy(d => d.Id, StringComparer.Ordinal); }
+    { return Catalog.Where(d => IsAvailable(d, state.Reputation) && !IsRetiredEvasionArmor(d)).OrderBy(d => d.Tier).ThenBy(d => d.Cost).ThenBy(d => d.Id, StringComparer.Ordinal); }
+    static bool IsAvailable(Definition d, int reputation)
+    {
+        if (d.EnemyOnly || d.Retired) return false;
+        if (d.Slot == CompanySlot.Spell1)
+            return d.SpellPowerTier > 0 && reputation >= RequiredSpellReputation(d.SpellPowerTier);
+        return reputation >= RequiredReputation(d.Tier);
+    }
+    internal static IEnumerable<Definition> Spellbooks(CompanyCampaign state, int maxPowerTier, bool ignoreReputation)
+    {
+        return Catalog.Where(d => d.Slot == CompanySlot.Spell1 && !d.EnemyOnly && !d.Retired && d.SpellPowerTier > 0 &&
+            d.SpellPowerTier <= maxPowerTier && (ignoreReputation || state.Reputation >= RequiredSpellReputation(d.SpellPowerTier)))
+            .OrderBy(d => d.SpellPowerTier).ThenBy(d => d.Cost).ThenBy(d => d.Id, StringComparer.Ordinal);
+    }
+    internal static int SpellTierForLevel(int level)
+    { return level >= 15 ? 4 : level >= 10 ? 3 : level >= 5 ? 2 : 1; }
+    internal static IEnumerable<Definition> AvailableAtTown(CompanyCampaign state, CompanyTown town)
+    {
+        var stock = Available(state).Where(d => d.Slot != CompanySlot.Spell1).ToList();
+        if (town == null) return stock;
+        int paydayIndex = Math.Max(0, (state.NextPayday - 7) / 7);
+        foreach (CompanySpellCategory category in Enum.GetValues(typeof(CompanySpellCategory)))
+        {
+            var choices = Spellbooks(state, 4, false).Where(d => d.SpellCategory == category).ToArray();
+            if (choices.Length == 0) continue;
+            var random = new System.Random(SpellStockSeed(state, town, paydayIndex, category));
+            int highestUnlockedTier = choices.Max(d => d.SpellPowerTier);
+            var highestTierChoices = choices.Where(d => d.SpellPowerTier == highestUnlockedTier).ToArray();
+            Definition featured = highestTierChoices[random.Next(highestTierChoices.Length)];
+            stock.Add(featured);
+            if (choices.Length > 1 && random.Next(2) == 1)
+            {
+                var alternatives = choices.Where(d => d != featured).ToArray();
+                stock.Add(alternatives[random.Next(alternatives.Length)]);
+            }
+        }
+        return stock.OrderBy(d => d.Tier).ThenBy(d => d.Cost).ThenBy(d => d.Id, StringComparer.Ordinal);
+    }
+    static int SpellStockSeed(CompanyCampaign state, CompanyTown town, int paydayIndex, CompanySpellCategory category)
+    {
+        unchecked
+        {
+            int seed = state.Seed;
+            string id = town.Id ?? "";
+            for (int i = 0; i < id.Length; i++) seed = seed * 31 + id[i];
+            seed = seed * 31 + town.Tile;
+            seed = seed * 31 + paydayIndex;
+            seed = seed * 31 + (int)category;
+            return seed;
+        }
+    }
+    internal static string SpellCategoryName(CompanySpellCategory category)
+    { return new[] { "Damage", "Buff", "Debuff", "Other" }[(int)category]; }
     internal static int Value(Item item) { var d = item == null ? null : Find(item.CompanyDefinitionId); return d == null || d.EnemyOnly ? 0 : d.Cost; }
     internal static int GearPrice(Unit unit) { return checked(unit.Items.Where(item => item != null).Sum(Value)); }
     internal static Definition Generated(CompanyCampaign state, CompanySlot slot, int level)
@@ -269,7 +346,9 @@ internal static class CompanyEquipment
     internal static void Buy(CompanyCampaign state, string id)
     {
         if (state.InBattle || state.Busy || !state.Towns.Any(t => t.Tile == state.Position)) throw new InvalidOperationException("Visit a town to shop.");
-        var d = Find(id); if (d == null || !Available(state).Contains(d)) throw new InvalidOperationException("That equipment is not available at the company's reputation.");
+        var d = Find(id); var town = state.Towns.First(t => t.Tile == state.Position);
+        if (d == null || !(d.Slot == CompanySlot.Spell1 ? AvailableAtTown(state, town) : Available(state)).Contains(d))
+            throw new InvalidOperationException(d != null && d.Slot == CompanySlot.Spell1 ? "That spellbook is not in this town's current stock." : "That equipment is not available at the company's reputation.");
         if (state.Gold < d.Cost) throw new InvalidOperationException("Not enough gold.");
         Item item = Create(id); state.Inventory.Add(item); state.Gold -= d.Cost;
     }

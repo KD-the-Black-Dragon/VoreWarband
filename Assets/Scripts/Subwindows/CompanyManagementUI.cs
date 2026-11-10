@@ -1,4 +1,6 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Track page revisions so background history loads cannot overwrite later navigation (40E performance review).
+// 2026-11-09: Show only the rotating, reputation-eligible spellbooks stocked by the current town.
 // 2026-11-08: Show the renamed armor categories and support baseline Tier 0 merchant weapons.
 // 2026-11-08: Use the campaign company name as the roster heading (40E UI follow-up).
 // 2026-11-08: Collect a company name when creating a campaign (spec 40E).
@@ -35,7 +37,9 @@ using TMPro;
 internal sealed class CompanyManagementUI
 {
     readonly CompanyCampaignView view;
+    int pageRevision;
     internal readonly GameObject Page;
+    internal int PageRevision { get { return pageRevision; } }
     CompanyCharacter draft;
     CompanyCampaign draftWorld;
     CustomizerPanel creator;
@@ -49,6 +53,7 @@ internal sealed class CompanyManagementUI
     internal void ResumeCreator() { Creator(); }
     internal void Clear(string title, bool townServices = false, bool campaign = true)
     {
+        pageRevision++;
         townLayout = townServices;
         view.ShowManagement(townServices, campaign);
         foreach (Transform child in Page.transform) { child.gameObject.SetActive(false); UnityEngine.Object.Destroy(child.gameObject); }
@@ -350,7 +355,7 @@ internal sealed class CompanyManagementUI
     }
     public void Shop(int page = 0)
     {
-        Town(); Clear("Merchant — gold " + State.Gold, true);
+        var currentTown = Town(); Clear("Merchant — gold " + State.Gold, true);
         var categories = new[] { "All", "Helmet", "Tunic", "Greaves", "Bracers", "Accessory", "Melee Weapon", "Ranged Weapon", "Spells" };
         for (int i = 0; i < categories.Length; i++)
         {
@@ -359,13 +364,15 @@ internal sealed class CompanyManagementUI
             view.Place(button.gameObject, ContentX(30 + i % 5 * 235), 140 + i / 5 * 43, ContentWidth(220), 36);
             if (category == shopCategory) UITheme.Surface(button.gameObject, UITheme.Section, true);
         }
-        var definitions = CompanyEquipment.Available(State).Where(d => shopCategory < 0 || (int)d.Slot == shopCategory).ToArray();
+        var definitions = CompanyEquipment.AvailableAtTown(State, currentTown).Where(d => shopCategory < 0 || (int)d.Slot == shopCategory).ToArray();
         page = Math.Max(0, Math.Min(page, Math.Max(0, (definitions.Length - 1) / 4 * 4)));
         for (int i = 0; i < 4 && page + i < definitions.Length; i++)
         {
             var d = definitions[page + i]; int y = 235 + i * 67;
-            string tierLabel = d.Tier == 0 ? "0 (Baseline)" : new[] { "I", "II", "III" }[d.Tier - 1];
-            Text(d.Name + " — " + CompanyEquipment.SlotName(d.Slot) + " | Tier " + tierLabel + "\n" + CompanyEquipment.Summary(d.Create()), 30, y, 910, 60);
+            string tierLabel = d.Slot == CompanySlot.Spell1
+                ? "Tier " + new[] { "I", "II", "III", "IV" }[d.SpellPowerTier - 1] + " " + CompanyEquipment.SpellCategoryName(d.SpellCategory) + " spell"
+                : d.Tier == 0 ? "Tier 0 (Baseline)" : "Tier " + new[] { "I", "II", "III" }[d.Tier - 1];
+            Text(d.Name + " — " + CompanyEquipment.SlotName(d.Slot) + " | " + tierLabel + "\n" + CompanyEquipment.Summary(d.Create()), 30, y, 910, 60);
             Button("Buy " + d.Cost, 1010, y, 180, () => Change(() => CompanyEquipment.Buy(State, d.Id), () => Shop(page)), State.Gold >= d.Cost && !State.Busy);
         }
         if (definitions.Length == 0) Text("No items in this category.", 30, 240, 1100, 40);
@@ -374,7 +381,8 @@ internal sealed class CompanyManagementUI
         Button("Sell spare gear", 390, 520, 220, () => Sell());
         int tier = CompanyEquipment.UnlockedTier(State.Reputation);
         Text("Reputation " + State.Reputation + " | Gear through tier " + new[] { "I", "II", "III" }[tier - 1] +
-            (tier < 3 ? " | Next tier: reputation " + CompanyEquipment.RequiredReputation(tier + 1) : " | All tiers available"), 30, 565, 1170, 24, 16);
+            (tier < 3 ? " | Next gear tier: reputation " + CompanyEquipment.RequiredReputation(tier + 1) : " | All gear tiers available") +
+            " | Spellbooks rotate on payday; spell tiers unlock at reputation 0 / 10 / 25 / 50.", 30, 565, 1170, 24, 16);
         Text("Armor deflects 0–AC damage from weapon and spell hits. Evasion lowers incoming attack accuracy.", 30, 595, 1170, 35, 16);
     }
     void Sell(int page = 0)

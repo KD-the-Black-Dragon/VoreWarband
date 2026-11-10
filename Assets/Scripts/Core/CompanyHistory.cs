@@ -1,4 +1,6 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Allow High Scores to read and validate archive records on a background worker (40E performance review).
+// 2026-11-09: Multiply reputation's contribution to ending scores by ten and version the formula.
 // 2026-11-08: Add immutable company endings, provisional scoring and a persistent high-score archive (spec 40E).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System;
@@ -23,13 +25,13 @@ internal sealed class CompanyScoreBreakdown
 
 internal static class CompanyScoring
 {
-    internal const string FormulaVersion = "40E-1";
+    internal const string FormulaVersion = "40E-2";
     internal static CompanyScoreBreakdown Calculate(CompanyCampaign state, bool companyWipedOut = false)
     {
         if (state == null) throw new ArgumentNullException("state");
         var score = new CompanyScoreBreakdown
         {
-            ReputationPoints = state.Reputation,
+            ReputationPoints = state.Reputation * 10,
             DaysPoints = Math.Min(100, Math.Max(0, state.ElapsedDays)),
             MercenaryLossPenalty = -10 * (state.Memorial == null ? 0 : state.Memorial.Count),
             LeaderDigestionPenalty = -20 * Math.Max(0, state.LeaderDigestions),
@@ -116,6 +118,7 @@ internal static class CompanyHistoryStore
     }
 
     static string DirectoryPath { get { return Path.Combine(CompanyCampaignSave.DefaultDirectory, "HighScores"); } }
+    internal static string GetDirectoryPath() { return DirectoryPath; }
     internal static string CompanyName(string name) { return string.IsNullOrWhiteSpace(name) ? "Unnamed Company" : name.Trim(); }
 
     internal static void RecoverIronmanCleanup()
@@ -266,15 +269,17 @@ internal static class CompanyHistoryStore
         return record;
     }
 
-    internal static Catalog ReadAll()
+    internal static Catalog ReadAll() { return ReadAll(DirectoryPath); }
+
+    internal static Catalog ReadAll(string historyDirectory)
     {
         var catalog = new Catalog();
         CompanyHistoryRecord[] initiallyPending;
         lock (ArchiveGate) initiallyPending = PendingRecords.Values.ToArray();
         // A completed staging file can be promoted after a crash between writing and publishing.
-        if (Directory.Exists(DirectoryPath)) lock (FileGate)
+        if (Directory.Exists(historyDirectory)) lock (FileGate)
         {
-            foreach (string pending in Directory.GetFiles(DirectoryPath, "*.score.pending"))
+            foreach (string pending in Directory.GetFiles(historyDirectory, "*.score.pending"))
             {
                 try
                 {
@@ -282,14 +287,14 @@ internal static class CompanyHistoryStore
                     string expected = recovered.EndingId + ".score";
                     if (Path.GetFileName(pending) == expected + ".pending")
                     {
-                        string final = Path.Combine(DirectoryPath, expected);
+                        string final = Path.Combine(historyDirectory, expected);
                         if (!File.Exists(final)) File.Move(pending, final);
                     }
                 }
                 catch { catalog.CorruptRecords++; }
             }
         }
-        if (Directory.Exists(DirectoryPath)) foreach (string path in Directory.GetFiles(DirectoryPath, "*.score"))
+        if (Directory.Exists(historyDirectory)) foreach (string path in Directory.GetFiles(historyDirectory, "*.score"))
         {
             try { catalog.Records.Add(ReadFile(path)); }
             catch { catalog.CorruptRecords++; }

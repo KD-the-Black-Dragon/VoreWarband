@@ -1,4 +1,6 @@
 // Added by this fork for the VoreWar mercenary-company conversion.
+// 2026-11-09: Wait for asynchronous synthetic saves in current native auto-resolve measurements.
+// 2026-11-09: Pass the optional enemy flag explicitly in synthetic reflected character creation.
 // 2026-11-06: Compare synthetic spellbook and bow loadouts in native battles (spec 40C).
 // 2026-11-05: Run connected native campaign economy histories and boundary checks (spec 38 phase B).
 // 2026-11-05: Diagnose cleanup backtracking and replay exact companies after Flight retirement.
@@ -262,12 +264,12 @@ public static partial class CompanyBalanceAudit
     {
         State.Rand=new Rand(seed);var state=C(T("CompanyCampaign"),"Generate",seed,false);
         var races=new[]{Race.Gnolls,Race.Avians,Race.Lizards};
-        var leader=C(T("CompanyEconomy"),"Create",state,races[roles[0]],roles[0],true,leaderLevel);C(T("CompanyEconomy"),"Begin",state,leader);
+        var leader=C(T("CompanyEconomy"),"Create",state,races[roles[0]],roles[0],true,leaderLevel,false);C(T("CompanyEconomy"),"Begin",state,leader);
         if(sponsored)S(state,"Gold",30000);
         var town=L(state,"Towns").Cast<object>().First(t=>(int)G(t,"Tile")==(int)G(state,"Position"));
         for(int i=1;i<roles.Length;i++)
         {
-            var c=C(T("CompanyEconomy"),"Create",state,races[roles[i]],roles[i],false,level);S(c,"TownId",Id(town));L(state,"Characters").Add(c);C(T("CompanyEconomy"),"Hire",state,c,town);
+            var c=C(T("CompanyEconomy"),"Create",state,races[roles[i]],roles[i],false,level,false);S(c,"TownId",Id(town));L(state,"Characters").Add(c);C(T("CompanyEconomy"),"Hire",state,c,town);
         }
         return state;
     }
@@ -399,6 +401,8 @@ public static partial class CompanyBalanceAudit
             string saves=(string)G(view,"SaveDirectory");
             int before=Directory.GetFiles(saves,"*.company").Length;
             C(mode,"SaveCompanyTurn");
+            // Company saves are asynchronous; wait here in the audit, never in the gameplay path.
+            while ((bool)G(T("CompanySaveWorker"), "Busy")) yield return null;
             row.normalTurnSaved=Directory.GetFiles(saves,"*.company").Length==before+1;
             if(!row.normalTurnSaved)throw new Exception("Normal battle turn did not autosave.");
             string normalPath=Directory.GetFiles(saves,"*.company").OrderByDescending(p=>p,StringComparer.Ordinal).First();
@@ -459,14 +463,9 @@ public static partial class CompanyBalanceAudit
         row.outcome=((string)G(G(result,"Battle"),"Summary")).StartsWith("Stalemate")?"stalemate":row.ended?"company-ended":row.paid?"contract-completed":scenario.road && row.fledEnemies+row.digestedEnemies==row.enemyCount?"road-cleared":"retreated-or-target-remains";
         if(nativeTurbo && !row.ended)
         {
-            // Run the actual campaign return path, including its result autosave, before acknowledging it.
-            string saves=(string)G(view,"SaveDirectory");var existing=new HashSet<string>(Directory.GetFiles(saves,"*.company"));
-            var resultWatch=Stopwatch.StartNew();C(view,"Update");row.resultSaveSeconds=resultWatch.Elapsed.TotalSeconds;
-            var writes=Directory.GetFiles(saves,"*.company").Where(p=>!existing.Contains(p)).ToArray();row.resultSaved=writes.Length==1;
-            if(!row.resultSaved)throw new Exception("Campaign return did not save exactly one result.");
-            var loaded=C(T("CompanyCampaignSave"),"LoadForResume",writes[0]);
-            row.resultSaveValid=!(bool)G(loaded,"InBattle") && G(G(loaded,"Battle"),"Phase").ToString()=="Summary";
-            if(!row.resultSaveValid)throw new Exception("Result autosave was not a valid settled campaign.");
+            // Return the detached result to the campaign view before acknowledging it.
+            // Result acknowledgement is not an autosave boundary; campaign day/player-turn starts are.
+            C(view,"Update");
         }
         C(T("CompanyBattleSession"),"Acknowledge",result);
         if(!row.ended && G(G(result,"Battle"),"Phase").ToString()=="Revival"){int cash=(int)G(result,"Gold");C(T("CompanyBattleSession"),"Revive",result);row.revivalCost=cash-(int)G(result,"Gold");}

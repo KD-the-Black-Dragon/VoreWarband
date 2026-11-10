@@ -2,6 +2,7 @@
 // 2026-11-06: Support AI route searches that avoid active ground fire (spec 40C).
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-11-04: Optional reaction-free routes and safe occupied-tile transit, separate from AP costs (spec 30).
+// 2026-11-09: Reaction-aware AI routes discount unarmed sapient threats only for planning (tactical AI review).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System.Collections.Generic;
 using System.Linq;
@@ -80,7 +81,7 @@ public static class TacticalPathfinder
 
 
 
-            if (avoidOpportunity && OpportunityAttacks.Threats(actor, new Vec2i(current.X, current.Y)).Any())
+            if (avoidOpportunity && OpportunityAttacks.AIThreats(actor, new Vec2i(current.X, current.Y)).Any())
             {
                 openList.Remove(current);
                 continue;
@@ -105,8 +106,8 @@ public static class TacticalPathfinder
                 if (avoidHazard && IsBurning(adjacentSquare.X, adjacentSquare.Y)) continue;
                 // A reaction-interrupted actor must not be stranded on another actor.
                 if (!TacticalUtilities.OpenTile(adjacentSquare.X, adjacentSquare.Y, actor) &&
-                    (OpportunityAttacks.Threats(actor, new Vec2i(current.X, current.Y)).Any() ||
-                     OpportunityAttacks.Threats(actor, new Vec2i(adjacentSquare.X, adjacentSquare.Y)).Any())) continue;
+                    (OpportunityAttacks.AIThreats(actor, new Vec2i(current.X, current.Y)).Any() ||
+                     OpportunityAttacks.AIThreats(actor, new Vec2i(adjacentSquare.X, adjacentSquare.Y)).Any())) continue;
                 int additionalCost = flight ? 0 : (TacticalTileInfo.TileCost(new Vec2(adjacentSquare.X, adjacentSquare.Y)) - 1);
                 // if this adjacent square is already in the closed list, ignore it
                 if (closedList.FirstOrDefault(l => l.X == adjacentSquare.X && l.Y == adjacentSquare.Y) != null)

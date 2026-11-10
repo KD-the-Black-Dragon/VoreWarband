@@ -16,6 +16,9 @@
 // 2026-11-03: Implement four active stats and agreed combat rules (spec 29).
 // 2026-11-04: Reassess reaction-aware routes, same-turn charges and interrupted movement actions (spec 30).
 // 2026-11-04: Preserve the final AP for reachable melee attacks and execute completed plans before ranged replanning (spec 30 feedback).
+// 2026-11-09: Share combat choice scoring, guard zero-damage targeting and remove unused predator scan (tactical AI review).
+// 2026-11-09: Add distance-aware spell choices and safer long-range positioning (tactical AI follow-up).
+// 2026-11-09: Keep route-risk and movement-cost values in scope for spell and vore plan scoring (integrity review).
 using OdinSerializer;
 using System;
 using System.Collections.Generic;
@@ -25,6 +28,24 @@ using static UnityEngine.UI.CanvasScaler;
 
 public abstract class TacticalAI : ITacticalAI
 {
+    private sealed class CombatPosition
+    {
+        internal Vec2i Tile;
+        internal List<PathNode> Route;
+        internal int Cost;
+        internal float OpportunityRisk;
+    }
+
+    private sealed class CombatPlan
+    {
+        internal Actor_Unit Target;
+        internal CombatPosition Position;
+        internal Spell Spell;
+        internal bool Ranged;
+        internal bool Vore;
+        internal float Score;
+    }
+
 
     public class RetreatConditions
     {
@@ -58,12 +79,11 @@ public abstract class TacticalAI : ITacticalAI
             if (setUtility != 0)
                 utility = setUtility;
             else
-                utility = chance / Math.Max(actor.Unit.Health / damage, 1);
+                utility = damage <= 0 ? 0 : chance / Math.Max(actor.Unit.Health / (float)damage, 1f);
         }
     }
 
     protected bool onlySurrenderedEnemies;
-    protected bool lackPredators;
     protected bool onlyForeignTroopsLeft;
 
     protected bool didAction;
@@ -126,28 +146,6 @@ public abstract class TacticalAI : ITacticalAI
         var actorsThatMatter = actors.Where(a => a.Targetable && a.Unit.IsDead == false && a.Surrendered == false && a.Unit.Side == AISide);
         onlyForeignTroopsLeft = actorsThatMatter.All(a => TacticalUtilities.GetMindControlSide(a.Unit) == -1 && TacticalUtilities.GetPreferredSide(a.Unit, enemySide, AISide) == enemySide);
         onlySurrenderedEnemies = actors.Where(s => s.Unit.Side != AISide && s.Unit.IsDead == false && s.Surrendered == false && !s.Fled).Any() == false;
-        var preds = actors.Where(s => s.Unit.Side == AISide && s.Unit.IsDead == false && s.Unit.Predator);
-        lackPredators = preds.Any() == false;
-        bool tooBig = true;
-        if (onlySurrenderedEnemies)
-        {
-            //Array of all opposing live units
-            var enemies = actors.Where(s => s.Unit.Side != AISide && s.Unit.IsDead == false);
-            foreach (var actor in preds)
-            {
-                if (tooBig == false)
-                    break;
-                foreach (var target in enemies)
-                {
-                    if ((actor.PredatorComponent.HasCapacityFor(target) || actor.PredatorComponent.TotalCapacity() >= target.Bulk()))
-                    {
-                        tooBig = false;
-                        break;
-                    }
-                }
-            }
-            lackPredators = tooBig; //Attack if no units can ever eat an enemy unit.
-        }
 
         if (retreatPlan != null && currentTurn >= 4)
         {
@@ -307,7 +305,10 @@ public abstract class TacticalAI : ITacticalAI
 
                     // Reassess the remaining route after every step/reaction. Never
                     // execute a destination action just because movement was blocked.
-                    if (!State.GameManager.TacticalMode.Opportunities.Busy && !retreating && !(path.HazardEscape ? HazardEscapeAllowed(actor, path.Path) : OpportunityAttacks.RouteAllowed(actor, path.Path, path.ChargeTarget)))
+                    if (!State.GameManager.TacticalMode.Opportunities.Busy && !retreating &&
+                        !(path.HazardEscape ? HazardEscapeAllowed(actor, path.Path) :
+                            path.AllowsAIRouteRisk ? OpportunityAttacks.AIRouteRiskAllowed(actor, path.Path, path.MaximumAIRouteRisk) :
+                            OpportunityAttacks.RouteAllowed(actor, path.Path, path.ChargeTarget)))
                     {
                         path = null;
                         return true;
@@ -746,7 +747,8 @@ public abstract class TacticalAI : ITacticalAI
         }
     }
 
-    protected virtual List<PotentialTarget> GetListOfPotentialPrey(Actor_Unit actor, bool anyDistance, Vec2i position, int movement)
+    protected virtual List<PotentialTarget> GetListOfPotentialPrey(Actor_Unit actor, bool anyDistance, Vec2i position, int movement,
+        float minimumChance = 0f, bool includeAllAdjacent = false)
     {
         List<PotentialTarget> targets = new List<PotentialTarget>();
         if (State.GameManager.TacticalMode.IsOnlyOneSideVisible() && actor.Unit.IsInfiltratingSide(AISide)) // should prevent aggressive action while within a foreign army when the battle is basically over
@@ -764,23 +766,412 @@ public abstract class TacticalAI : ITacticalAI
                     if (distance <= movement || anyDistance)
                     {
                         float chance = unit.GetDevourChance(actor, true);
-                        if (((chance > .5f || (actor.Unit.HasTrait(Traits.Biter) && chance > .25f && actor.Unit.GetBestMelee().Damage > 2)) || actor.Unit.HasTrait(Traits.VoreObsession)) && unit.AIAvoidEat <= 0)
+                        bool normallyEligible = chance > .5f ||
+                            (actor.Unit.HasTrait(Traits.Biter) && chance > .25f && actor.Unit.GetBestMelee().Damage > 2) ||
+                            actor.Unit.HasTrait(Traits.VoreObsession);
+                        if (unit.AIAvoidEat <= 0)
                         {
                             if (distance > 1 && TacticalUtilities.FreeSpaceAroundTarget(unit.Position, actor) == false)
                                 continue;
                             if (unit.Unit.HasTrait(Traits.AcidImmunity)) //More interesting if mostly ignored
                                 chance *= .5f;
-                            targets.Add(new PotentialTarget(unit, chance, distance, 4, chance));
+                            if (normallyEligible || (minimumChance > 0f && chance >= minimumChance))
+                                targets.Add(new PotentialTarget(unit, chance, distance, 4, chance));
                         }
                     }
                 }
             }
             PotentialTarget primeTarget = targets.Where(t => t.distance < 2).OrderByDescending(s => s.chance).FirstOrDefault();
-            if (primeTarget != null)
+            if (primeTarget != null && !includeAllAdjacent)
                 return new List<PotentialTarget>() { primeTarget };
             return targets.OrderByDescending(t => t.chance).ToList();
         }
         return targets;
+    }
+
+    protected bool TryChooseCombatPlan(Actor_Unit actor)
+    {
+        if (actor == null || actor.Unit == null || actor.Movement <= 0 ||
+            (State.GameManager.TacticalMode.IsOnlyOneSideVisible() && actor.Unit.IsInfiltratingSide(AISide)))
+            return false;
+
+        actor.UpdateBestWeapons();
+        var liveTargets = actors.Where(target => target != null && target.Unit != null && target.Targetable &&
+            !target.Unit.IsDead && !target.Surrendered && !target.Fled &&
+            TacticalUtilities.TreatAsHostile(actor, target) && (target.InSight || !State.World.IsNight)).ToList();
+        if (liveTargets.Count == 0)
+            return false;
+
+        float currentMeleeThreat = actor.BestRanged != null ? MeleeThreatAt(actor, actor.Position) : 0;
+        int nearestEnemyDistance = liveTargets.Min(target => target.Position.GetNumberOfMovesDistance(actor.Position));
+        int longestAttackRange = actor.BestRanged == null ? 0 : actor.BestRanged.Range;
+        var availableSpells = (actor.Unit.UseableSpells ?? new List<Spell>())
+            .Where(spell => spell != null && spell.AcceptibleTargets != null && !spell.IsRetired && !spell.IsConsumption &&
+                (spell.IsFree || actor.Unit.Mana >= spell.ManaCost))
+            .ToList();
+        longestAttackRange = Math.Max(longestAttackRange, availableSpells.OfType<DamageSpell>()
+            .Where(spell => spell.OnExecute != null && spell.AcceptibleTargets.Contains(AbilityTargets.Enemy))
+            .Select(spell => spell.Range.Max).DefaultIfEmpty(0).Max());
+        int longRangeThreshold = Math.Max(4, longestAttackRange - 2);
+        bool enemyIsAtLongRange = nearestEnemyDistance >= longRangeThreshold;
+
+        var positions = new List<CombatPosition>
+        {
+            new CombatPosition { Tile = actor.Position, Route = new List<PathNode>(), Cost = 0, OpportunityRisk = 0 }
+        };
+
+        // Consider movement before an attack for every weapon setup, not only
+        // ranged units already in danger. Movement is optional: the current tile
+        // stays in the candidate set and movement must improve the attack choice.
+        if (actor.Movement > 1 && liveTargets.Count > 0)
+        {
+            foreach (Vec2i destination in TacticalUtilities.TilesWithinRange(actor.Position, actor.Movement - 1))
+            {
+                if (destination.Matches(actor.Position) || !TacticalUtilities.OpenTile(destination, actor))
+                    continue;
+
+                List<PathNode> route = TacticalPathfinder.GetPath(actor.Position, destination, 0, actor,
+                    actor.Movement - 1, avoidHazard: true);
+                if (route == null || route.Count == 0)
+                    continue;
+
+                int cost = route.Sum(node => OpportunityAttacks.MoveCost(actor, node));
+                if (cost <= 0 || cost >= actor.Movement)
+                    continue;
+
+                int riskCost;
+                float risk = OpportunityAttacks.AIRouteRisk(actor, actor.Position, route, out riskCost);
+                if (riskCost != cost)
+                    continue;
+
+                positions.Add(new CombatPosition
+                {
+                    Tile = destination,
+                    Route = route,
+                    Cost = cost,
+                    OpportunityRisk = risk
+                });
+            }
+        }
+
+        CombatPlan best = null;
+        CombatPlan bestDamage = null;
+        CombatPlan bestBuff = null;
+        CombatPlan bestRangedBuff = null;
+        CombatPlan bestDebuff = null;
+        foreach (CombatPosition position in positions)
+        {
+            float positionMeleeThreat = position.Cost == 0 ? currentMeleeThreat : MeleeThreatAt(actor, position.Tile);
+            float movementCostPenalty = position.Cost * .05f;
+            float routeRisk = position.OpportunityRisk;
+            foreach (Actor_Unit target in liveTargets)
+            {
+                int distance = target.Position.GetNumberOfMovesDistance(position.Tile);
+
+                if (actor.BestMelee != null && distance == 1)
+                {
+                    float attackValue = OpportunityAttacks.ExpectedWeaponDamage(actor, target, false, false, distance);
+                    float score = position.Cost == 0 ? attackValue :
+                        attackValue * (OpportunityAttacks.IsPriorityTarget(target) ? 1.75f : 1f) - routeRisk - movementCostPenalty;
+                    ConsiderPlan(ref best, target, position, false, false, score);
+                    ConsiderPlan(ref bestDamage, target, position, false, false, score);
+                }
+
+                if (actor.BestRanged != null && distance > 0 && distance <= actor.BestRanged.Range &&
+                    (distance > 1 || actor.BestRanged.Omni))
+                {
+                    float attackValue = OpportunityAttacks.ExpectedWeaponDamage(actor, target, true, false, distance);
+                    float spacingGain = position.Cost == 0 ? 0 :
+                        Math.Max(0, currentMeleeThreat - positionMeleeThreat) * .65f;
+                    int currentTargetDistance = target.Position.GetNumberOfMovesDistance(actor.Position);
+                    float rangePreference = position.Cost == 0 ? 0 :
+                        Math.Max(0, Math.Min(distance, actor.BestRanged.Range) - Math.Min(currentTargetDistance, actor.BestRanged.Range)) * .35f;
+                    float score = attackValue + spacingGain + rangePreference - routeRisk - movementCostPenalty;
+                    ConsiderPlan(ref best, target, position, true, false, score);
+                    ConsiderPlan(ref bestDamage, target, position, true, false, score);
+                }
+            }
+
+            foreach (Spell spell in availableSpells)
+            {
+                if (spell.OnExecute == null || spell.AcceptibleTargets == null ||
+                    (!spell.AcceptibleTargets.Contains(AbilityTargets.Enemy) && !spell.AcceptibleTargets.Contains(AbilityTargets.Ally)))
+                    continue;
+
+                if (spell is StatusSpell statusSpell)
+                {
+                    bool allyBuff = spell.AcceptibleTargets.Contains(AbilityTargets.Ally);
+                    bool enemyDebuff = spell.AcceptibleTargets.Contains(AbilityTargets.Enemy);
+                    if (allyBuff || enemyDebuff)
+                    {
+                        foreach (PotentialTarget target in GetListOfPotentialSpellTargets(actor, spell, position.Tile))
+                        {
+                            int spellDistance = target.actor == null ? int.MaxValue :
+                                target.actor.Position.GetNumberOfMovesDistance(position.Tile);
+                            if (target.actor == null || target.actor == actor || target.actor.Surrendered ||
+                                !target.actor.Targetable || spellDistance < spell.Range.Min || spellDistance > spell.Range.Max)
+                                continue;
+
+                            bool isAlly = !TacticalUtilities.TreatAsHostile(actor, target.actor);
+                            if ((allyBuff && !isAlly) || (enemyDebuff && isAlly))
+                                continue;
+                            if (allyBuff && HasActiveMagicBuff(target.actor.Unit))
+                                continue;
+
+                            float targetValue = allyBuff ? target.actor.Unit.Level * .01f : target.chance;
+                            float score = 2f + statusSpell.Tier * .1f + targetValue - routeRisk - movementCostPenalty;
+                            if (score <= 0)
+                                continue;
+
+                            var spellPlan = new CombatPlan
+                            {
+                                Target = target.actor,
+                                Position = position,
+                                Spell = spell,
+                                Score = score
+                            };
+                            if (allyBuff)
+                            {
+                                ConsiderStatusSpellPlan(ref bestBuff, spellPlan);
+                                // Valor improves weapon damage; give it to an ally who can actually use a ranged weapon.
+                                target.actor.UpdateBestWeapons();
+                                if (statusSpell.Type == StatusEffectType.Valor && target.actor.BestRanged != null)
+                                    ConsiderStatusSpellPlan(ref bestRangedBuff, spellPlan);
+                            }
+                            if (enemyDebuff)
+                                ConsiderStatusSpellPlan(ref bestDebuff, spellPlan);
+                        }
+                    }
+                }
+                else if (spell.AcceptibleTargets.Contains(AbilityTargets.Ally))
+                {
+                    foreach (PotentialTarget target in GetListOfPotentialSpellTargets(actor, spell, position.Tile))
+                    {
+                        if (target.actor == null || target.actor == actor || target.actor.Surrendered || !target.actor.Targetable ||
+                            target.actor.Position.GetNumberOfMovesDistance(position.Tile) < spell.Range.Min ||
+                            target.actor.Position.GetNumberOfMovesDistance(position.Tile) > spell.Range.Max ||
+                            HasActiveMagicBuff(target.actor.Unit))
+                            continue;
+                        float score = 2f + spell.Tier * .1f + target.actor.Unit.Level * .01f - routeRisk - movementCostPenalty;
+                        ConsiderStatusSpellPlan(ref bestBuff, new CombatPlan
+                        {
+                            Target = target.actor,
+                            Position = position,
+                            Spell = spell,
+                            Score = score
+                        });
+                    }
+                }
+
+                if (spell is DamageSpell damageSpell && spell.AcceptibleTargets.Contains(AbilityTargets.Enemy))
+                {
+                    foreach (Actor_Unit target in liveTargets)
+                    {
+                        int distance = target.Position.GetNumberOfMovesDistance(position.Tile);
+                        if (distance < spell.Range.Min || distance > spell.Range.Max)
+                            continue;
+
+                        float damageScore = ExpectedSpellDamage(actor, target, damageSpell);
+                        float score = damageScore - routeRisk - movementCostPenalty;
+                        ConsiderPlan(ref bestDamage, target, position, false, false, score, spell);
+                    }
+                }
+            }
+
+            if (actor.Unit.Predator)
+            {
+                bool riskyRangedOnly = IsSapient(actor) && actor.BestRanged != null && !HasEquippedMeleeWeapon(actor);
+                List<PotentialTarget> prey = GetListOfPotentialPrey(actor, false, position.Tile,
+                    actor.Movement - position.Cost, riskyRangedOnly ? .25f : 0f, true);
+                foreach (PotentialTarget target in prey.Where(candidate => candidate.distance < 2))
+                {
+                    float voreValue = target.actor.Surrendered ? 1000f :
+                        target.chance * (Math.Max(1, target.actor.Unit.Health) * .15f + 2f);
+                    float score = voreValue - routeRisk - movementCostPenalty;
+                    ConsiderPlan(ref best, target.actor, position, false, true, score);
+                }
+            }
+        }
+
+        CombatPlan selectedPlan = best;
+        if (enemyIsAtLongRange)
+        {
+            if (bestRangedBuff != null)
+                selectedPlan = bestRangedBuff;
+            else if (bestDamage != null)
+                selectedPlan = bestDamage;
+            else if (bestDebuff != null)
+                selectedPlan = bestDebuff;
+            else if (bestBuff != null)
+                selectedPlan = bestBuff;
+        }
+        else if (nearestEnemyDistance < longRangeThreshold)
+        {
+            selectedPlan = ChooseCloseRangeSpellOrDamage(bestDamage, bestBuff, bestDebuff) ?? best;
+            if (best != null && best.Vore && (selectedPlan == null || best.Score > selectedPlan.Score))
+                selectedPlan = best;
+        }
+
+        if (selectedPlan == null)
+            return false;
+
+        if (selectedPlan.Position.Cost == 0)
+        {
+            ExecuteCombatPlan(actor, selectedPlan);
+            return true;
+        }
+
+        var capturedPlan = selectedPlan;
+        path = new AIPlottedPath
+        {
+            Actor = actor,
+            Path = selectedPlan.Position.Route,
+            AllowsAIRouteRisk = true,
+            MaximumAIRouteRisk = selectedPlan.Position.OpportunityRisk,
+            Action = () => ExecuteCombatPlan(actor, capturedPlan)
+        };
+        foundPath = true;
+        return true;
+    }
+
+    void ConsiderPlan(ref CombatPlan best, Actor_Unit target, CombatPosition position,
+        bool ranged, bool vore, float score, Spell spell = null)
+    {
+        if (score <= 0 || (best != null && score <= best.Score))
+            return;
+
+        best = new CombatPlan
+        {
+            Target = target,
+            Position = position,
+            Spell = spell,
+            Ranged = ranged,
+            Vore = vore,
+            Score = score
+        };
+    }
+
+    void ConsiderStatusSpellPlan(ref CombatPlan best, CombatPlan candidate)
+    {
+        if (candidate == null || candidate.Spell == null || candidate.Score <= 0)
+            return;
+        if (best == null || candidate.Spell.Tier > best.Spell.Tier ||
+            (candidate.Spell.Tier == best.Spell.Tier && candidate.Score > best.Score))
+            best = candidate;
+    }
+
+    bool HasActiveMagicBuff(Unit unit)
+    {
+        if (unit == null || unit.StatusEffects == null)
+            return false;
+        return unit.StatusEffects.Any(effect => effect.Applicator != null &&
+            (effect.Type == StatusEffectType.Shielded || effect.Type == StatusEffectType.Mending ||
+             effect.Type == StatusEffectType.Fast || effect.Type == StatusEffectType.Valor ||
+             effect.Type == StatusEffectType.Predation || effect.Type == StatusEffectType.Enlarged ||
+             effect.Type == StatusEffectType.Empowered || effect.Type == StatusEffectType.DivineShield ||
+             effect.Type == StatusEffectType.Focus || effect.Type == StatusEffectType.SpellForce ||
+             effect.Type == StatusEffectType.BladeDance || effect.Type == StatusEffectType.Tenacious ||
+             effect.Type == StatusEffectType.Berserk || effect.Type == StatusEffectType.Bolstered ||
+             effect.Type == StatusEffectType.Sharpness || effect.Type == StatusEffectType.Gorging));
+    }
+
+    CombatPlan ChooseCloseRangeSpellOrDamage(CombatPlan damage, CombatPlan buff, CombatPlan debuff)
+    {
+        // Fuzzy choice among useful actions: damage is common, while ally buffs
+        // and enemy debuffs remain frequent enough to make tactical turns vary.
+        int totalWeight = (damage == null ? 0 : 4) + (buff == null ? 0 : 3) + (debuff == null ? 0 : 3);
+        if (totalWeight == 0)
+            return null;
+        int roll = State.Rand.Next(totalWeight);
+        if (damage != null)
+        {
+            if (roll < 4) return damage;
+            roll -= 4;
+        }
+        if (buff != null)
+        {
+            if (roll < 3) return buff;
+            roll -= 3;
+        }
+        return debuff;
+    }
+
+    float ExpectedSpellDamage(Actor_Unit actor, Actor_Unit target, DamageSpell spell)
+    {
+        if (spell.Damage == null)
+            return 0;
+        if (spell.AreaOfEffect <= 0)
+        {
+            float chance = spell.Resistable ? target.GetMagicChance(actor, spell) : 1f;
+            return Math.Max(0, spell.Damage(actor, target)) * chance;
+        }
+
+        float expectedTargets = 0;
+        foreach (Actor_Unit affected in actors.Where(unit => unit != null && unit.Unit != null && unit.Targetable &&
+            !unit.Unit.IsDead && unit.Position.GetNumberOfMovesDistance(target.Position) <= spell.AreaOfEffect))
+        {
+            float chance = spell.Resistable ? affected.GetMagicChance(actor, spell) : 1f;
+            float weight = TacticalUtilities.TreatAsHostile(actor, affected) ? chance : -1f;
+            expectedTargets += weight;
+        }
+        return Math.Max(0, spell.Damage(actor, target) * expectedTargets);
+    }
+
+    void ExecuteCombatPlan(Actor_Unit actor, CombatPlan plan)
+    {
+        if (plan.Spell != null)
+        {
+            if (plan.Target != null && plan.Target.Targetable && !plan.Target.Unit.IsDead)
+                plan.Spell.TryCast(actor, plan.Target);
+        }
+        else if (plan.Vore)
+        {
+            if (plan.Target != null && plan.Target.Targetable && !plan.Target.Unit.IsDead &&
+                (plan.Target.Surrendered || TacticalUtilities.TreatAsHostile(actor, plan.Target) ||
+                    (plan.Target.Unit.GetStatusEffect(StatusEffectType.Hypnotized)?.Duration < 3 && plan.Target != actor)) &&
+                actor.PredatorComponent.UsePreferredVore(plan.Target))
+                targetsEaten++;
+        }
+        else if (plan.Target != null && plan.Target.Targetable && !plan.Target.Unit.IsDead &&
+            !plan.Target.Surrendered && TacticalUtilities.TreatAsHostile(actor, plan.Target))
+        {
+            actor.Attack(plan.Target, plan.Ranged);
+        }
+        didAction = true;
+    }
+
+    float MeleeThreatAt(Actor_Unit actor, Vec2i position)
+    {
+        float largestThreat = 0;
+        foreach (Actor_Unit enemy in actors)
+        {
+            if (enemy == null || enemy == actor || enemy.Unit == null || !OpportunityAttacks.CanAct(enemy) ||
+                enemy.BestMelee == null || OpportunityAttacks.IsUnarmedSapient(enemy) ||
+                !TacticalUtilities.TreatAsHostile(actor, enemy))
+                continue;
+
+            int distance = enemy.Position.GetNumberOfMovesDistance(position);
+            int attackRange = enemy.CurrentMaxMovement();
+            if (distance > attackRange + 1)
+                continue;
+
+            float threat = OpportunityAttacks.ExpectedWeaponDamage(enemy, actor, false, false, distance);
+            if (distance > attackRange)
+                threat *= .35f;
+            largestThreat = Math.Max(largestThreat, threat);
+        }
+        return largestThreat;
+    }
+
+    bool HasEquippedMeleeWeapon(Actor_Unit actor)
+    {
+        return actor.Unit.Items != null && actor.Unit.Items.OfType<Weapon>().Any(weapon => weapon.Range <= 1);
+    }
+
+    bool IsSapient(Actor_Unit actor)
+    {
+        return SpeciesPolicy.IsCurated(actor.Unit.Race) ?
+            SpeciesPolicy.GetKind(actor.Unit.Race) == SpeciesKind.Sapient : !actor.Unit.HasTrait(Traits.Feral);
     }
 
     protected virtual void WalkToYBand(Actor_Unit actor, int y)
@@ -826,7 +1217,7 @@ public abstract class TacticalAI : ITacticalAI
         if (TacticalPathfinder.IsBurning(destination.X, destination.Y) ||
             route.Sum(node => OpportunityAttacks.MoveCost(actor, node)) > actor.Movement) return false;
         int cost;
-        float risk = OpportunityAttacks.RouteRisk(actor, actor.Position, route, actor.Movement, out cost);
+        float risk = OpportunityAttacks.AIRouteRisk(actor, actor.Position, route, out cost);
         return cost <= actor.Movement && risk < hazard.Strength * actor.Unit.TraitBoosts.FireDamageTaken * Math.Min(2, hazard.RemainingDuration);
     }
 
@@ -849,7 +1240,7 @@ public abstract class TacticalAI : ITacticalAI
             if (route == null) route = TacticalPathfinder.GetPath(actor.Position, destination, 0, actor, actor.Movement);
             if (route == null || route.Count == 0 || !HazardEscapeAllowed(actor, route)) continue;
             int cost;
-            float risk = OpportunityAttacks.RouteRisk(actor, actor.Position, route, actor.Movement, out cost);
+            float risk = OpportunityAttacks.AIRouteRisk(actor, actor.Position, route, out cost);
             if (risk + cost * .01f >= bestRisk) continue;
             best = route; bestRisk = risk + cost * .01f;
         }
@@ -861,7 +1252,7 @@ public abstract class TacticalAI : ITacticalAI
 
     bool TryOpportunityCharge(Actor_Unit actor)
     {
-        if (!OpportunityAttacks.Threats(actor, actor.Position).Any() || actor.Movement < 2) return false;
+        if (!OpportunityAttacks.AIThreats(actor, actor.Position).Any() || actor.Movement < 2) return false;
         float currentPayoff = actors.Where(t => OpportunityAttacks.CanAct(t) &&
             TacticalUtilities.TreatAsHostile(actor, t) && t.Position.GetNumberOfMovesDistance(actor.Position) == 1)
             .Select(t => OpportunityAttacks.ExpectedDamage(actor, t)).DefaultIfEmpty(0).Max();
@@ -875,7 +1266,7 @@ public abstract class TacticalAI : ITacticalAI
             var route = TacticalPathfinder.GetPath(actor.Position, target.Position, 1, actor, actor.Movement);
             if (!OpportunityAttacks.CanAffordCharge(actor, target, route)) continue;
             int cost;
-            float risk = OpportunityAttacks.RouteRisk(actor, actor.Position, route, int.MaxValue, out cost);
+            float risk = OpportunityAttacks.AIRouteRisk(actor, actor.Position, route, out cost);
             var endpoint = route[route.Count - 1];
             TileEffect hazard;
             if (State.GameManager.TacticalMode.ActiveEffects.TryGetValue(new Vec2(endpoint.X, endpoint.Y), out hazard) &&
@@ -1355,7 +1746,8 @@ public abstract class TacticalAI : ITacticalAI
     protected virtual void RunSpells(Actor_Unit actor)
     {
         if (actor.Unit.UseableSpells == null || State.GameManager.TacticalMode.IsOnlyOneSideVisible()) return;
-        var spells = actor.Unit.UseableSpells.Where(sp => !sp.IsRetired && sp.ManaCost <= actor.Unit.Mana).ToList();
+        var spells = actor.Unit.UseableSpells.Where(sp => sp != null && sp.AcceptibleTargets != null && !sp.IsRetired &&
+            (sp.IsFree || sp.ManaCost <= actor.Unit.Mana)).ToList();
         if (spells.Count == 0) return;
         int start = State.Rand.Next(spells.Count);
         for (int index = 0; index < spells.Count; index++)
@@ -1369,7 +1761,7 @@ public abstract class TacticalAI : ITacticalAI
                 { didAction = true; return; }
                 continue;
             }
-            foreach (var target in GetListOfPotentialSpellTargets(actor, spell, actor.Position))
+            foreach (var target in GetListOfPotentialSpellTargets(actor, spell, actor.Position).Where(target => target.actor != actor))
             {
                 if (!target.actor.InSight && State.World.IsNight) continue;
                 if (target.distance <= spell.Range.Max)

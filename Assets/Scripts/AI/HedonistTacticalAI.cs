@@ -1,6 +1,7 @@
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-10-31: Retire obsolete Resurrection AI action and planning calls (spec 05A3B9).
 // 2026-10-31: Remove retired Reanimate/Bind AI action calls (spec 05A3B12).
+// 2026-11-09: Use shared weapon/vore choice evaluation for Hedonist and servant AI (tactical AI review).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System.Collections.Generic;
 
@@ -79,6 +80,11 @@ public class HedonistTacticalAI : TacticalAI
             if (didAction) return;
 
         }
+
+        // Keep the hedonist's feeding choices above combat, then compare both
+        // equipped weapons and ordinary vore options before the legacy fallback.
+        if (TryChooseCombatPlan(actor))
+            return;
 
         RunPred(actor);
         if (didAction || foundPath)

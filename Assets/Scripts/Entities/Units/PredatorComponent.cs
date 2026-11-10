@@ -1,6 +1,7 @@
 // Modified for the VoreWar mercenary-company conversion.
 // 2026-11-07: Protect inborn traits from assimilation and extraction (spec 40D).
 // 2026-11-07: Record escapes and completed digestions for post-battle event evidence (spec 40D).
+// 2026-11-08: Make absorption 25% faster, halve HP absorption healing, and remove absorption mana recovery (balance item 1).
 // 2026-11-06: Use the acting character's frozen species values in combat and previews (spec 40A).
 // 2026-11-05: Share the empty-predator/downed-prey capacity exception; remove overcapacity self-damage.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
@@ -1867,24 +1868,18 @@ public class PredatorComponent
             
             totalHeal += Math.Max((int)(healthReduction / 2 * preyUnit.Unit.TraitBoosts.Outgoing.Nutrition * unit.TraitBoosts.Incoming.Nutrition), 1);
             totalHeal = (int)(totalHeal * TagConditionChecker.ApplyTagEffect(unit, preyUnit.Unit, UnitTagModifierEffect.NutritionMult));
-            var baseManaGain = healthReduction * (preyUnit.Unit.TraitBoosts.Outgoing.ManaAbsorbHundreths + unit.TraitBoosts.Incoming.ManaAbsorbHundreths);
-            baseManaGain += (int)TagConditionChecker.ApplyTagEffect(unit, preyUnit.Unit, UnitTagModifierEffect.ManaAbsorbHundreths);
-            var totalManaGain = baseManaGain / 100 + (State.Rand.Next(100) < (baseManaGain % 100) ? 1 : 0);
             float resource_boost = (actor.RampStacks >= Config.DigestionRampCap && Config.DigestionRampCap > 0 ? Config.DigestionRampCap : (float)Math.Floor(actor.RampStacks));
             if (Config.AbsorbResourceModBoost == 1)
             {
                 totalHeal = (int)(totalHeal * (Config.AbsorbResourceMod * resource_boost));
-                unit.RestoreMana((int)(totalManaGain * (Config.AbsorbResourceMod * resource_boost)));
             }
             else if (Config.AbsorbResourceModBoost == 2)
             {
                 totalHeal = (int)(totalHeal * (Config.AbsorbResourceMod + resource_boost));
-                unit.RestoreMana((int)(totalManaGain * (Config.AbsorbResourceMod + resource_boost)));
             }
             else
             {
                 totalHeal = (int)(totalHeal * Config.AbsorbResourceMod);
-                unit.RestoreMana((int)(totalManaGain * Config.AbsorbResourceMod));
             }
             foreach (IVoreCallback callback in Callbacks)
             {

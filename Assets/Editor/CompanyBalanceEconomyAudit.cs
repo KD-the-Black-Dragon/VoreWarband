@@ -1,4 +1,13 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Expect campaign rules version 7 after completed boss-force cleanup migration.
+// 2026-11-09: Pass the optional enemy flag explicitly in synthetic reflected character creation.
+// 2026-11-08: Check three spaced opening contracts and the post-opening rating floor (balance follow-up item 3).
+// 2026-11-08: Adapt campaign diagnostics to deferred contract-force materialization (spec 09 follow-up).
+// 2026-11-08: Validate the eight-slug power cap introduced in balance follow-up item 2.
+// 2026-11-08: Compare campaign policies at an explicitly recorded roster size up to the battle deployment cap (item 4 simulation).
+// 2026-11-09: Record generated sapient/animal counts for paired enemy-composition campaign simulations.
+// 2026-11-09: Measure whether 4-sapient/2-animal forces fit each rating band before quality upgrades (focused feasibility run).
+// 2026-11-09: Compare matched campaign histories with optional post-Day-100 pressure curves (balance follow-up).
 // 2026-11-08: Verify calendar difficulty boundaries and record pressure in connected campaign simulations (spec 40F).
 // 2026-11-08: Verify late road generation, current Ironman ending order and 40F campaign transitions (specs 40E–40F).
 // 2026-11-05: Allow focused economy boundary verification for the integrated injury handoff (spec 38 phase D).
@@ -23,8 +32,8 @@ public static partial class CompanyBalanceAudit
     }
     [Serializable] public sealed class EconomicHistory
     {
-        public string policy, folder, endReason, error;
-        public int seed, startingGold, startingDay, horizon, battles, roadBattles, losses, gearDestroyed, notices, travelActions;
+        public string policy, folder, endReason, error, calendarCurve;
+        public int seed, startingGold, startingDay, horizon, targetSize, battles, roadBattles, losses, gearDestroyed, notices, travelActions;
         public int restDays, spentOnGear, spentOnHires, spentOnTreatment, levelUps, earned, revivals;
         public int wagesPaid, upkeepPaid;
         public List<EconomicFight> fights = new List<EconomicFight>();
@@ -32,7 +41,7 @@ public static partial class CompanyBalanceAudit
     }
     [Serializable] public sealed class EconomicFight
     {
-        public int day, rating, rounds, losses, destroyedGear, gold, injuries;
+        public int day, rating, rounds, losses, destroyedGear, gold, injuries, companyCount, enemyCount, enemySapients, enemyAnimals;
         public bool road, completed, ended;
         public int calendarAgeDays;
         public double companyPower, enemyPower, calendarPressure;
@@ -41,11 +50,25 @@ public static partial class CompanyBalanceAudit
     {
         public bool complete;
         public int startingGold, initialUpkeep, weeklyUpkeepIncrease;
-        public long lateOfferGenerationMilliseconds;
+        public long lateOfferRefreshMilliseconds;
         public string wageCurve;
         public List<string> checks = new List<string>();
         public List<EconomicHistory> histories = new List<EconomicHistory>();
         public string assumptions;
+    }
+    [Serializable] public sealed class CompositionFeasibilityReport
+    {
+        public bool complete;
+        public string method;
+        public List<CompositionRatingResult> ratings = new List<CompositionRatingResult>();
+    }
+    [Serializable] public sealed class CompositionRatingResult
+    {
+        public int rating, samples, successfulGenerations, compositionPools, generatedForcesInBand, generatedExactMix, feasibleCandidatePools, impossibleCandidatePools;
+        public long inBandCandidateMixes;
+        public double budget, lowerBound, upperBound, meanCandidateMinPower, meanCandidateMaxPower, meanGeneratedPower;
+        public double meanClosestDistanceFromBudget, bestDistanceFromBudget, worstDistanceFromBudget;
+        public int insufficientSapientPools, insufficientAnimalPools, generationErrors;
     }
     static EconomicReport economicReport;
     static void EconomicCheck(bool condition, string description)
@@ -58,13 +81,20 @@ public static partial class CompanyBalanceAudit
 
     static IEnumerator EconomyCampaigns()
     {
+        if (Environment.GetCommandLineArgs().Contains("-balanceCompositionFeasibility"))
+        {
+            var feasibility = CompositionFeasibility();
+            while (feasibility.MoveNext()) yield return feasibility.Current;
+            yield break;
+        }
         economicReport = new EconomicReport { assumptions =
             "Connected native campaigns. No sponsored capital, free healing, invented victories or discarded losses. " +
             "Actual generated terrain is traversed by minimum-action routes with six actions per day; current road events run. " +
             "Native AI controls combat and settlements retain deaths, destroyed equipment, injuries, XP and revival fees. " +
             "Policies explicitly pay affordable upkeep first, then full individual debts in roster order. Practice duels are declined. " +
             "Recovery thresholds, elective advancement, shopping and selection policies are specified by each policy name. " +
-            "Day 90 is recorded inside each 180-day history. Survival at either cutoff is censored, not proof of sustainability." };
+            "Day 90 is recorded inside each 180-day history. Survival at either cutoff is censored, not proof of sustainability. " +
+            "Calendar curve comparisons preserve the production curve through enrolled day 100, then scale only the additional pressure accumulated after that day." };
         economicReport.startingGold = (int)G(T("CompanyEconomy"), "StartingGold");
         economicReport.initialUpkeep = (int)G(T("CompanyEconomy"), "InitialUpkeep");
         economicReport.weeklyUpkeepIncrease = (int)G(T("CompanyEconomy"), "WeeklyUpkeepIncrease");
@@ -83,24 +113,221 @@ public static partial class CompanyBalanceAudit
         int first = IntArgument("-balanceSeedStart", 4101), count = IntArgument("-balanceSeedCount", 4);
         int horizon = IntArgument("-balanceDays", 180);
         if (count < 1 || count > 20 || horizon < 1 || horizon > 730) throw new ArgumentOutOfRangeException("Economic history limits");
+        int rosterOverride = IntArgument("-balanceRosterSize", 0);
+        int maximumRoster = (int)G(T("CompanyBattleSession"), "MaximumCampaignBattleForceSize");
+        if (rosterOverride < 0 || rosterOverride > maximumRoster) throw new ArgumentOutOfRangeException("Economic roster size must be within the battle deployment cap");
+        string curvesArgument = StringArgument("-balanceCalendarCurves");
+        var calendarCurves = (curvesArgument == null ? "current" : curvesArgument).Split(',');
+        foreach (string curve in calendarCurves)
+            CalendarPressureCurveTransform(curve); // Validate names before starting any synthetic history.
         var policies = new[] { "balanced", "basic-all", "favorite-veteran", "gear-first", "grow", "conservative", "risky", "bank-levels", "leader-only", "slow-field", "tour", "role-ranged", "role-magic", "role-melee" };
         string only = StringArgument("-balancePolicy");
         foreach (int seed in Enumerable.Range(first, count))
-            foreach (string policy in policies.Where(name => only == null || only.Split(',').Contains(name)))
+            foreach (string curve in calendarCurves)
+                foreach (string policy in policies.Where(name => only == null || only.Split(',').Contains(name)))
             {
                 int policyHorizon = new[] { "balanced", "risky", "bank-levels", "leader-only" }.Contains(policy) ? horizon : Math.Min(90, horizon);
-                var row = new EconomicHistory { policy = policy, seed = seed, horizon = policyHorizon,
+                int defaultTargetSize = policy == "leader-only" ? 1 : policy == "grow" ? 5 : 3;
+                int targetSize = rosterOverride > 0 ? rosterOverride : defaultTargetSize;
+                var row = new EconomicHistory { policy = policy, calendarCurve = curve, seed = seed, horizon = policyHorizon, targetSize = targetSize,
                     folder = Path.Combine(report.directory, seed + "-" + policy) };
+                if (calendarCurves.Length > 1) row.folder = Path.Combine(report.directory, curve, seed + "-" + policy);
                 Directory.CreateDirectory(row.folder); economicReport.histories.Add(row); WriteEconomy();
-                var steps = EconomicCampaign(row);
                 try
                 {
-                    while (steps.MoveNext()) yield return steps.Current;
+                    SetCalendarPressureAuditTransform(CalendarPressureCurveTransform(curve));
+                    var steps = EconomicCampaign(row);
+                    try
+                    {
+                        while (steps.MoveNext()) yield return steps.Current;
+                    }
+                    finally { CleanupBattle(); WriteEconomy(); }
                 }
-                finally { CleanupBattle(); WriteEconomy(); }
+                finally { SetCalendarPressureAuditTransform(null); }
                 UnityEngine.Debug.Log("Economic history " + seed + " " + policy + " days=" + row.days.Last().day + " end=" + row.endReason);
             }
         economicReport.complete = true; WriteEconomy();
+    }
+
+    static Func<int, double, double> CalendarPressureCurveTransform(string name)
+    {
+        if (name == "current") return null;
+        double pivot = (double)C(T("CompanyContracts"), "CalendarPressureForAge", 100);
+        double multiplier;
+        if (name == "late-1.5x") multiplier = 1.5;
+        else if (name == "late-2x") multiplier = 2.0;
+        else throw new ArgumentException("Calendar curve must be current, late-1.5x, or late-2x.");
+        return (age, pressure) => age <= 100 ? pressure : pivot + (pressure - pivot) * multiplier;
+    }
+    static void SetCalendarPressureAuditTransform(Func<int, double, double> transform)
+    {
+        var field = T("CompanyContracts").GetField("CalendarPressureAuditTransform", Flags);
+        if (field == null) throw new MissingFieldException("CompanyContracts.CalendarPressureAuditTransform");
+        field.SetValue(null, transform);
+    }
+
+    static IEnumerator CompositionFeasibility()
+    {
+        int firstSeed = IntArgument("-balanceCompositionSeedStart", 9801);
+        int seedCount = IntArgument("-balanceCompositionSeedCount", 40);
+        if (seedCount < 1 || seedCount > 200) throw new ArgumentOutOfRangeException("Composition feasibility sample count");
+        var result = new CompositionFeasibilityReport
+        {
+            method = "For each seeded campaign and rating, duplicate the production 48-candidate pool from an identical saved RNG state. Exhaustively test every four-sapient plus two-animal combination against the existing 92%-108% force power band, then compare with the production generator's selected force. The opening rating-one contracts intentionally remain low-force onboarding and are not required to deploy six enemies."
+        };
+        var output = Path.Combine(report.directory, "composition-feasibility.json");
+        var contractsType = T("CompanyContracts");
+        var speciesPolicy = T("SpeciesPolicy");
+        Array races = (Array)C(speciesPolicy, "GetAvailable", Enum.Parse(T("SpeciesUse"), "Enemy"));
+        if (races.Length < 3) throw new InvalidOperationException("Composition analysis requires the curated sapient and animal enemy pool.");
+        double formation = (double)C(T("CompanyPower"), "FormationMultiplier", 6);
+
+        for (int rating = 1; rating <= 5; rating++)
+        {
+            var row = new CompositionRatingResult
+            {
+                rating = rating,
+                budget = (double)C(contractsType, "Budget", rating)
+            };
+            row.lowerBound = row.budget * .92;
+            row.upperBound = row.budget * 1.08;
+            row.bestDistanceFromBudget = double.MaxValue;
+            result.ratings.Add(row);
+
+            for (int sample = 0; sample < seedCount; sample++)
+            {
+                int seed = firstSeed + sample + rating * 100000;
+                var source = Fresh(seed, new[] { sample % 3 }, 1, 1, false);
+                var generationState = Clone(source);
+                var candidateState = Clone(source);
+                IList generated = null;
+                try
+                {
+                    generated = (IList)C(contractsType, "Generate", generationState, rating);
+                }
+                catch (Exception)
+                {
+                    row.generationErrors++;
+                }
+                if (generated != null) row.successfulGenerations++;
+
+                var sapientPower = new List<double>();
+                var animalPower = new List<double>();
+                for (int i = 0; i < 48; i++)
+                {
+                    var race = (Race)races.GetValue((int)C(candidateState, "Next", races.Length));
+                    object character = C(contractsType, "Enemy", candidateState, race, rating);
+                    Unit unit = U(character);
+                    double power = (double)C(contractsType, "Power", unit);
+                    string kind = C(speciesPolicy, "GetKind", G(unit, "Race")).ToString();
+                    if (kind == "Sapient") sapientPower.Add(power);
+                    else if (kind == "Animal") animalPower.Add(power);
+                }
+
+                row.samples++;
+                if (sapientPower.Count < 4) row.insufficientSapientPools++;
+                if (animalPower.Count < 2) row.insufficientAnimalPools++;
+                if (sapientPower.Count >= 4 && animalPower.Count >= 2)
+                {
+                    row.compositionPools++;
+                    double min = double.MaxValue, max = double.MinValue, closest = double.MaxValue;
+                    long inBandForPool = 0;
+                    double targetSum = row.budget / formation;
+                    double lowerSum = row.lowerBound / formation, upperSum = row.upperBound / formation;
+                    double[] animalPairs = new double[animalPower.Count * (animalPower.Count - 1) / 2];
+                    int pairIndex = 0;
+                    for (int i = 0; i < animalPower.Count - 1; i++)
+                        for (int j = i + 1; j < animalPower.Count; j++) animalPairs[pairIndex++] = animalPower[i] + animalPower[j];
+                    Array.Sort(animalPairs);
+
+                    for (int a = 0; a < sapientPower.Count - 3; a++)
+                        for (int b = a + 1; b < sapientPower.Count - 2; b++)
+                            for (int c = b + 1; c < sapientPower.Count - 1; c++)
+                                for (int d = c + 1; d < sapientPower.Count; d++)
+                                {
+                                    double sum = sapientPower[a] + sapientPower[b] + sapientPower[c] + sapientPower[d];
+                                    double minPower = (sum + animalPairs[0]) * formation;
+                                    double maxPower = (sum + animalPairs[animalPairs.Length - 1]) * formation;
+                                    if (minPower < min) min = minPower;
+                                    if (maxPower > max) max = maxPower;
+                                    double desiredPair = targetSum - sum;
+                                    int near = LowerBound(animalPairs, desiredPair);
+                                    if (near < animalPairs.Length)
+                                    {
+                                        double candidate = (sum + animalPairs[near]) * formation;
+                                        double distance = Math.Abs(candidate - row.budget);
+                                        if (distance < closest) closest = distance;
+                                    }
+                                    if (near > 0)
+                                    {
+                                        double candidate = (sum + animalPairs[near - 1]) * formation;
+                                        double distance = Math.Abs(candidate - row.budget);
+                                        if (distance < closest) closest = distance;
+                                    }
+                                    int first = LowerBound(animalPairs, lowerSum - sum);
+                                    int past = UpperBound(animalPairs, upperSum - sum);
+                                    long matches = Math.Max(0, past - first);
+                                    inBandForPool += matches;
+                                    row.inBandCandidateMixes += matches;
+                                }
+
+                    row.meanCandidateMinPower += min;
+                    row.meanCandidateMaxPower += max;
+                    row.meanClosestDistanceFromBudget += closest;
+                    if (closest < row.bestDistanceFromBudget) row.bestDistanceFromBudget = closest;
+                    if (closest > row.worstDistanceFromBudget) row.worstDistanceFromBudget = closest;
+                    if (inBandForPool > 0) row.feasibleCandidatePools++;
+                    else row.impossibleCandidatePools++;
+                }
+                else row.impossibleCandidatePools++;
+
+                if (generated != null)
+                {
+                    double generatedPower = 0;
+                    int generatedSapients = 0, generatedAnimals = 0;
+                    foreach (object character in generated)
+                    {
+                        Unit unit = U(character);
+                        generatedPower += (double)C(contractsType, "Power", unit);
+                        string kind = C(speciesPolicy, "GetKind", G(unit, "Race")).ToString();
+                        if (kind == "Sapient") generatedSapients++;
+                        else if (kind == "Animal") generatedAnimals++;
+                    }
+                    generatedPower *= (double)C(T("CompanyPower"), "FormationMultiplier", generated.Count);
+                    row.meanGeneratedPower += generatedPower;
+                    if (generatedPower >= row.lowerBound && generatedPower <= row.upperBound) row.generatedForcesInBand++;
+                    if (generatedSapients == 4 && generatedAnimals == 2) row.generatedExactMix++;
+                }
+                if (sample % 5 == 4) { File.WriteAllText(output, JsonUtility.ToJson(result, true)); yield return null; }
+            }
+
+            if (row.samples > 0)
+            {
+                row.meanGeneratedPower /= Math.Max(1, row.successfulGenerations);
+                row.meanCandidateMinPower /= Math.Max(1, row.compositionPools);
+                row.meanCandidateMaxPower /= Math.Max(1, row.compositionPools);
+                row.meanClosestDistanceFromBudget /= Math.Max(1, row.compositionPools);
+            }
+            if (row.bestDistanceFromBudget == double.MaxValue) row.bestDistanceFromBudget = 0;
+            File.WriteAllText(output, JsonUtility.ToJson(result, true));
+            yield return null;
+        }
+        result.complete = true;
+        File.WriteAllText(output, JsonUtility.ToJson(result, true));
+    }
+
+    static int LowerBound(double[] sorted, double value)
+    {
+        int low = 0, high = sorted.Length;
+        while (low < high) { int middle = low + (high - low) / 2; if (sorted[middle] < value) low = middle + 1; else high = middle; }
+        return low;
+    }
+
+    static int UpperBound(double[] sorted, double value)
+    {
+        int low = 0, high = sorted.Length;
+        while (low < high) { int middle = low + (high - low) / 2; if (sorted[middle] <= value) low = middle + 1; else high = middle; }
+        return low;
     }
 
     static object Solo(int seed)
@@ -136,23 +363,32 @@ public static partial class CompanyBalanceAudit
             object candidate = G(lateRoad, "RoadEvent");
             if (candidate != null && G(candidate, "Kind").ToString() == "SpitterSlugs") lateRoadEvent = candidate;
         }
+        int maximumSlugCount = (int)G(T("CompanyBattleSession"), "MaximumCampaignBattleForceSize");
+        double requestedSlugTarget = (double)C(T("CompanyRoadEvents"), "EncounterPower", lateRoad) * encounter1000;
         EconomicCheck(lateRoadEvent != null && (int)G(lateRoadEvent, "CalendarAgeDays") == 1000 &&
             Math.Abs((double)G(lateRoadEvent, "CalendarPressure") - day1000) < .000001 &&
-            Math.Abs((double)G(lateRoadEvent, "TargetPower") - (double)C(T("CompanyRoadEvents"), "EncounterPower", lateRoad) * encounter1000) < .000001 &&
-            L(lateRoadEvent, "EnemyIds").Count > 0 && L(lateRoadEvent, "EnemyIds").Count <= 128,
-            "A real day-1000 road move generates a recorded slug encounter against the pressure-scaled company budget");
+            (double)G(lateRoadEvent, "TargetPower") > 0 && (double)G(lateRoadEvent, "TargetPower") <= requestedSlugTarget + .000001 &&
+            L(lateRoadEvent, "EnemyIds").Count > 0 && L(lateRoadEvent, "EnemyIds").Count <= maximumSlugCount,
+            "A real day-1000 road move generates a recorded slug encounter within its pressure-scaled, eight-unit-capped budget");
         int offerFloor = (int)C(contracts, "MinimumOfferRating", 500.0, 20);
         EconomicCheck(offerFloor == 6 && (double)C(contracts, "Budget", offerFloor) >= 200 &&
             (double)C(contracts, "Budget", offerFloor - 1) < 200, "Company-relative offer floor stays at or above the provisional 40% capability band");
 
         var state = Fresh(40601, new[] { 0, 1, 2 }, 1, 1, false);
-        EconomicCheck((int)G(state, "CompanyRulesVersion") == 5 && (int)G(state, "CalendarDifficultyStartDay") == 0,
+        EconomicCheck((int)G(state, "CompanyRulesVersion") == 7 && (int)G(state, "CalendarDifficultyStartDay") == 0,
             "New campaigns enroll on their first day using the current difficulty rules");
         var town = L(state, "Towns").Cast<object>().Single(t => (int)G(t, "Tile") == (int)G(state, "Position"));
         var initial = L(state, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(town)).ToArray();
-        EconomicCheck(initial.Length == 4 && initial.All(c => (int)G(c, "Rating") == 1 && (int)G(c, "DifficultyRevision") == 1 &&
+        int openingMin = (int)G(contracts, "OpeningTargetMinDistance"), openingMax = (int)G(contracts, "OpeningTargetMaxDistance");
+        int[] openingTargets = initial.Select(c => (int)G(c, "Tile")).ToArray();
+        EconomicCheck(initial.Length == 3 && initial.All(c => (int)G(c, "Rating") == 1 && (int)G(c, "DifficultyRevision") == 1 &&
             (int)G(c, "CalendarAgeDays") == 0 && (double)G(c, "CalendarPressure") == 0),
-            "Opening town offers retain rating-one power and carry zero-pressure provenance");
+            "The opening town offers exactly three rating-one contracts with zero-pressure provenance");
+        EconomicCheck(initial.All(c => (int)C(contracts, "Distance", state, (int)G(c, "Tile"), (int)G(town, "Tile")) >= openingMin &&
+            (int)C(contracts, "Distance", state, (int)G(c, "Tile"), (int)G(town, "Tile")) <= openingMax) &&
+            openingTargets.SelectMany((a, i) => openingTargets.Skip(i + 1).Select(b => (int)C(contracts, "Distance", state, a, b)))
+                .All(distance => distance >= (int)G(contracts, "OpeningTargetMinSeparation")),
+            "Opening targets require meaningful travel and are spatially separated");
         var accepted = initial[0]; S(accepted, "Status", Enum.Parse(G(accepted, "Status").GetType(), "Active"));
         int acceptedRating = (int)G(accepted, "Rating"), acceptedReward = (int)G(accepted, "Reward");
         double acceptedPower = (double)G(accepted, "Power"); var acceptedEnemies = L(accepted, "EnemyIds").Cast<string>().ToArray();
@@ -164,7 +400,18 @@ public static partial class CompanyBalanceAudit
             "Refreshed offers record the exact calendar age, pressure and rules revision");
         EconomicCheck((int)G(accepted, "Rating") == acceptedRating && (int)G(accepted, "Reward") == acceptedReward &&
             (double)G(accepted, "Power") == acceptedPower && L(accepted, "EnemyIds").Cast<string>().SequenceEqual(acceptedEnemies),
-            "A refresh does not rewrite an already accepted contract, its quote or enemy roster");
+            "A refresh does not rewrite an accepted contract, its quote or deferred roster state");
+        var postOpening = Fresh(40602, new[] { 0, 1, 2 }, 1, 1, false);
+        S(postOpening, "ContractsCompleted", 3); S(postOpening, "Reputation", 3);
+        var postOpeningTown = L(postOpening, "Towns").Cast<object>().Single(t => (int)G(t, "Tile") == (int)G(postOpening, "Position"));
+        S(postOpeningTown, "ContractRefreshDay", 0); C(contracts, "EnsureTown", postOpening, postOpeningTown);
+        var postOpeningOffers = L(postOpening, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(postOpeningTown) &&
+            G(c, "Status").ToString() == "Offered").ToArray();
+        EconomicCheck(postOpeningOffers.Length == 4 && postOpeningOffers.All(c => (int)G(c, "Rating") == 2),
+            "After three contract victories, a fresh eligible pool begins at rating two");
+        S(postOpening, "Reputation", 0);
+        EconomicCheck((int)C(contracts, "MinimumOfferRatingForState", postOpening, 0.0, 1) == 1,
+            "The opening progression does not bypass the player's reputation ceiling after reputation loss");
         var roundTrip = Clone(state); C(T("CompanyCampaignSave"), "RequireHealthPreserved", state, roundTrip);
         EconomicCheck((int)G(roundTrip, "CalendarDifficultyStartDay") == 0 &&
             L(roundTrip, "Contracts").Cast<object>().Where(c => (int)G(c, "DifficultyRevision") == 1).All(c =>
@@ -173,7 +420,7 @@ public static partial class CompanyBalanceAudit
 
         var generationTimer = Stopwatch.StartNew();
         S(state, "ElapsedDays", 1000); S(town, "ContractRefreshDay", 0); C(contracts, "EnsureTown", state, town);
-        generationTimer.Stop(); economicReport.lateOfferGenerationMilliseconds = generationTimer.ElapsedMilliseconds;
+        generationTimer.Stop(); economicReport.lateOfferRefreshMilliseconds = generationTimer.ElapsedMilliseconds;
         var lateOffers = L(state, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(town) &&
             G(c, "Status").ToString() == "Offered").ToArray();
         EconomicCheck(lateOffers.Length > 0 && lateOffers.All(c => (int)G(c, "CalendarAgeDays") == 1000 &&
@@ -189,7 +436,7 @@ public static partial class CompanyBalanceAudit
         int legacyRating = (int)G(preservedActive, "Rating"), legacyReward = (int)G(preservedActive, "Reward");
         var legacyEnemies = L(preservedActive, "EnemyIds").Cast<string>().ToArray();
         C(T("CompanyEconomy"), "Bind", legacy); C(contracts, "Validate", legacy);
-        EconomicCheck((int)G(legacy, "CompanyRulesVersion") == 5 && (int)G(legacy, "CalendarDifficultyStartDay") == 100 &&
+        EconomicCheck((int)G(legacy, "CompanyRulesVersion") == 7 && (int)G(legacy, "CalendarDifficultyStartDay") == 100 &&
             (double)C(contracts, "CalendarPressure", legacy) == 0, "A pre-40F campaign receives a fresh protected enrollment without a late-game jump");
         EconomicCheck((int)G(legacy, "Gold") == legacyGold && (int)G(preservedActive, "Rating") == legacyRating &&
             (int)G(preservedActive, "Reward") == legacyReward && L(preservedActive, "EnemyIds").Cast<string>().SequenceEqual(legacyEnemies) &&
@@ -351,7 +598,7 @@ public static partial class CompanyBalanceAudit
             "Departure, warning and payment resume one committed payday exactly once");
         var trade = Solo(38032);
         var home = L(trade, "Towns").Cast<object>().Single(t => (int)G(t, "Tile") == (int)G(trade, "Position"));
-        var hire = C(T("CompanyEconomy"), "Create", trade, Race.Avians, 1, false, 1);
+        var hire = C(T("CompanyEconomy"), "Create", trade, Race.Avians, 1, false, 1, false);
         S(hire, "TownId", Id(home)); L(trade, "Characters").Add(hire);
         int originalCash = (int)G(trade, "Gold"); C(T("CompanyEconomy"), "Hire", trade, hire, home);
         foreach (var item in U(hire).Items.Where(i => i != null).ToArray())
@@ -378,7 +625,7 @@ public static partial class CompanyBalanceAudit
         foreach (int role in new[] { 0, 1, 2 }) foreach (int remaining in Enumerable.Range(1, 7))
         {
             var quoteState = Solo(38025 + role); var person = C(T("CompanyEconomy"), "Create", quoteState,
-                new[] { Race.Gnolls, Race.Avians, Race.Lizards }[role], role, false, 1);
+                new[] { Race.Gnolls, Race.Avians, Race.Lizards }[role], role, false, 1, false);
             S(quoteState, "ElapsedDays", 7 - remaining);
             int hireQuote = (int)C(T("CompanyEconomy"), "HirePrice", quoteState, person);
             int salary = (int)C(T("CompanyEconomy"), "Wage", quoteState, person);
@@ -423,7 +670,7 @@ public static partial class CompanyBalanceAudit
         }
         row.startingGold = (int)G(state, "Gold"); row.startingDay = (int)G(state, "ElapsedDays");
         if (row.startingDay > 0) row.days.Add(EconomicSnapshot(state, row));
-        int targetSize = row.policy == "leader-only" ? 1 : row.policy == "grow" ? 5 : 3;
+        int targetSize = row.targetSize;
         int travelTown = -1;
         object objective = null;
         for (int iteration = 0; !(bool)G(state, "Ended") && (int)G(state, "ElapsedDays") < row.horizon; iteration++)
@@ -477,7 +724,7 @@ public static partial class CompanyBalanceAudit
                     var offers = L(state, "Contracts").Cast<object>().Where(c => (string)G(c, "TownId") == Id(town) && G(c, "Status").ToString() == "Offered");
                     double power = (double)C(T("CompanyPower"), "Force", (object)members.Select(U).ToArray());
                     double safety = row.policy == "risky" ? 1.15 : row.policy == "conservative" ? .75 : 1;
-                    var eligible = offers.Where(c => (double)G(c, "Power") <= power * safety &&
+                    var eligible = offers.Where(c => (double)C(T("CompanyContracts"), "Budget", (int)G(c, "Rating")) <= power * safety &&
                         (row.policy != "bank-levels" || (int)G(c, "Rating") == 1));
                     objective = (row.policy == "bank-levels" || row.policy == "leader-only" ? eligible.OrderBy(c => (int)G(c, "Rating")) :
                         eligible.OrderByDescending(c => (int)G(c, "Rating"))).FirstOrDefault();
@@ -648,6 +895,7 @@ public static partial class CompanyBalanceAudit
         var fight = new EconomicFight { day = (int)G(state, "ElapsedDays"),
             rating = (int)C(T("CompanyBattleSession"), "Rating", state, G(state, "Battle")),
             road = G(G(state, "Battle"), "RoadEventId") != null,
+            companyCount = original.Length,
             companyPower = (double)C(T("CompanyPower"), "Force", (object)original.Select(U).ToArray()) };
         if (G(G(state, "Battle"), "RoadEventId") != null)
         {
@@ -660,7 +908,15 @@ public static partial class CompanyBalanceAudit
             fight.calendarPressure = (double)G(contract, "CalendarPressure");
             fight.calendarAgeDays = (int)G(contract, "CalendarAgeDays");
         }
-        var enemies = ((IEnumerable)C(T("CompanyBattleSession"), "Survivors", state, G(state, "Battle"))).Cast<object>();
+        var enemies = ((IEnumerable)C(T("CompanyBattleSession"), "Survivors", state, G(state, "Battle"))).Cast<object>().ToArray();
+        fight.enemyCount = enemies.Length;
+        Type speciesPolicy = T("SpeciesPolicy");
+        foreach (object enemy in enemies)
+        {
+            string kind = C(speciesPolicy, "GetKind", U(enemy).Race).ToString();
+            if (kind == "Sapient") fight.enemySapients++;
+            else if (kind == "Animal") fight.enemyAnimals++;
+        }
         fight.enemyPower = (double)C(T("CompanyPower"), "Force", (object)enemies.Select(U).ToArray()); var session = Activator.CreateInstance(T("CompanyBattleSession"), Flags, null, new[] { (object)view, state }, null);
         S(view, "state", state); S(view, "saveDirectory", Path.Combine(report.directory, (string)G(state, "Id")));
         C(session, "Start"); var mode = gm.TacticalMode;

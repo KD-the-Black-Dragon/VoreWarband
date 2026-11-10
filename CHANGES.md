@@ -1,5 +1,146 @@
 # VoreWar fork changes
 
+## 2026-11-09 — Release paid boss forces
+
+- Updated `Assets/Scripts/Core/CompanyBattle.cs` and `Assets/Scripts/Core/CompanyContracts.cs` to remove enemy characters and clear the generated roster from a boss contract after payout, battle summary, and post-battle event processing. Other enemies are not marked as fled; their battle outcomes continue to follow normal rules.
+- Updated `Assets/Scripts/Core/CompanyCampaign.cs` and `Assets/Scripts/Core/CompanyEconomy.cs` with campaign rules version 7, which applies the same cleanup to already-completed boss contracts when existing saves are loaded. Updated `Assets/Editor/CompanyBalanceEconomyAudit.cs` to expect the current rules version.
+- Reviewed `License.txt` sections 4–5. Dated modification notices are present on each changed C# file; existing copyright, license, attribution, and warranty notices remain. No third-party code, assets, or dependencies were introduced. No build or gameplay test was run.
+
+## 2026-11-09 — Add boss contracts
+
+- Updated `Assets/Scripts/Core/CompanyContracts.cs`, `Assets/Scripts/Core/CompanyBattle.cs`, `Assets/Scripts/Core/CompanyPostBattleTraits.cs`, and `Assets/Scripts/Subwindows/CompanyMissionsUI.cs` for the 09 contract expansion and 40D boss-digestion outcome. Standard offer refreshes after the three opening contracts include one boss objective when an enabled sapient species is available. The explicitly marked boss is generated on arrival, receives a higher level and both weapon classes, and shares the existing rating power budget. Downing, digestion, death or flight routes the objective; other enemies retain their actual battle outcomes and use only their normal retreat behavior. Rewards apply once, including when the player retreats.
+- Updated the 09 and 40D specs, the campaign plan, and the 09–10 implementation record. Additive saved-contract fields initially defaulted older saves to ordinary rout-force contracts; a later rules-version 7 migration now prunes enemy records from already-completed boss contracts.
+- Added dated modification notices to every modified C# file. Reviewed `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced. No build or gameplay test was run.
+
+## 2026-11-09 — Keep AI and High Scores responsive (AI review and spec 40E)
+
+- Updated `Assets/Scripts/Subwindows/CompanyMissionsUI.cs` and `Assets/Scripts/Core/CompanyHistory.cs` to read and sort High Scores on a background worker. The screen presents a loading state immediately; paging and record details reuse the loaded catalog. `Assets/Scripts/Subwindows/CompanyManagementUI.cs` tracks page revisions so a completed background load cannot replace a screen the player has since opened.
+- Updated `Assets/Editor/CompanySavePersistenceAudit.cs` to stress-check opening, sorting, paging data and corrupt-record handling with 100, 1,000 and 5,000 synthetic records under `Logs/`. Updated `Assets/Editor/CompanyBalanceAudit.cs` and the save audit harness to account for asynchronous autosave behavior in native battle measurements.
+- Unity 2018.3.12f1 checks passed. Four synthetic 3v3 auto-resolves finished in 0.14–0.81 seconds with no 200-turn stalemates. With 5,000 synthetic history records, the High Scores UI call returned in under 2 ms on repeat and loaded all entries in the background; a corrupt record was skipped without hiding valid entries. These are headless editor measurements, not a player-build performance guarantee.
+- Added dated source modification notices to every modified C# file. Reviewed `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. No outside code, assets or dependencies were introduced. No personal saves were accessed or deleted.
+
+## 2026-11-09 — Increase reputation's ending-score value
+
+- Updated `Assets/Scripts/Core/CompanyHistory.cs` so reputation contributes ten points per reputation point to retirement and company-ending scores. The shared scorer covers both retirement and annihilation; the wipeout multiplier remains applied afterward.
+- Bumped the score formula identifier to `40E-2`. Previously archived records retain their stored scores and original formula identifiers; no history files were rewritten.
+- Reviewed `License.txt` section 5. The source keeps its existing fork, license and attribution notices; no third-party material was introduced.
+
+## 2026-11-09 — Restore tactical AI compilation for contract/map review
+
+- Updated `Assets/Scripts/AI/TacticalAI.cs` to declare route-risk and movement-cost scoring values in the enclosing combat-position scope, where weapon, spell, and vore candidate scoring can all use them. Their values remain derived from the same candidate position; no scoring rule changed.
+- Reviewed `License.txt` sections 4–5. The source file retains existing fork notices and attribution; no third-party code, assets, or dependencies were introduced.
+- Unity 2018.3.12f1 compilation passed. The synthetic 40-seed world audit passed 821 checks; the campaign/economy boundary audit passed 84 checks. Results are retained in `Logs/roads37-runtime-result.json` and the latest folder named by `Logs/balance34f-latest.txt`.
+
+## 2026-11-09 — Update reflected campaign audit fixtures
+
+- Updated synthetic `CompanyEconomy.Create` calls in `Assets/Editor/TraitCurationAudit.cs`, `Assets/Editor/CompanyBalanceAudit.cs`, `Assets/Editor/CompanyBalanceEconomyAudit.cs`, `Assets/Editor/CompanySavePersistenceAudit.cs`, `Assets/Editor/DisplayInputAudit.cs` and `Assets/Editor/InjuryValidationAudit.cs` to pass the optional `enemy` argument explicitly. Reflection does not supply optional defaults, so these audit calls must match the current six-parameter method signature.
+- Verified the map and campaign audit fixtures pass after the correction: 821 world checks across 40 seeds and 84 campaign/economy boundary checks.
+- Reviewed `License.txt` sections 4–5. Existing copyright, license, attribution and warranty notices remain intact; no third-party code, assets or dependencies were introduced.
+
+## 2026-11-09 — Tier and rotate company spellbooks
+
+- Updated `Assets/Scripts/Core/CompanyEquipment.cs` so company spellbooks inherit each spell's real power tier and have Damage, Buff, Debuff or Other categories. Provisional Tier I–IV spellbook unlocks are reputation 0/10/25/50. Town stock features at least one spell from the highest unlocked tier in each available category, with a chance of one additional book, using a stable town-and-payday rotation; buying validates against that town's current stock.
+- Updated `Assets/Scripts/Subwindows/CompanyManagementUI.cs` to show the current town's spellbook selection, spell category and power tier, and the payday rotation/unlock rules.
+- Updated `Assets/Scripts/Core/CompanyEconomy.cs` and `Assets/Scripts/Core/CompanyContracts.cs` so generated enemy mages can receive a second book from level 3, matching the highest spell tier allowed by their level (II at level 5, III at 10, IV at 15), independently of player reputation. Recruits' second spellbooks remain limited by both level and reputation. NaturalCaster's generated innate spell also respects the character's level.
+- Updated `README.md` and `docs/implementation/40c-spellbook-progression.md` with the current catalog, provisional unlock values and rotation behavior.
+- Added dated modification notices to each changed C# file. Reviewed `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices were preserved. No external code, assets or dependencies were introduced. No build, automated test or gameplay check was requested or run.
+
+## 2026-11-09 — Retire redundant spells and simplify magic damage
+
+- Updated `Assets/Scripts/Entities/Spells/SpellList.cs` to retire Speed, Trance, Meditate, Icicle, Pyre and Fire Bomb from casting and generated spell availability. Pyre duplicates Cinder Field's area-and-burning-ground role; Fire Bomb duplicates Diamond Storm's cross-pattern damage shape. Kept Cinder Field and Diamond Storm. Active non-poison spell damage now uses the generic damage type; Ice Blast keeps its ice-patch terrain effect, while burning-ground effects remain area denial. Removed Static's electric-damage setup from Cross Shock and Jolt Crash because active magic damage no longer has elemental multipliers.
+- Updated `Assets/Scripts/Entities/Units/Unit.cs` so NaturalCaster rolls only among its four remaining spells and Dragons receive Cinder Field in the former Pyre slot. Updated `Assets/Scripts/Utility/Texts/HoveringTooltip.cs` to match the NaturalCaster pool. Marked the Trance book retired in `Assets/Scripts/Core/CompanyEquipment.cs` so the company merchant no longer offers it.
+- Retained the old `SpellTypes` enum values for save/data compatibility; retired spells are blocked and filtered through the existing retirement path. Dated modification notices were added to each modified source file. `License.txt` sections 4–5 were reviewed; existing copyright, license, attribution and warranty notices remain. No external code, assets or dependencies were introduced. No build or gameplay test was requested or run.
+
+## 2026-11-09 — Refine tactical AI choices and Downed behavior
+
+- Updated `Assets/Scripts/AI/TacticalAI.cs` to prefer ranged damage buffs for allies with ranged weapons when enemies are far away; at closer range it now uses provisional normalized 4:3:3 weights (damage:buff:debuff) among the highest-tier legal ally buff, highest-tier legal enemy debuff, and strongest expected damage option across weapons and damage spells. A higher-value vore plan retains priority. AI support spell targeting excludes the caster. Ranged attack positioning now rewards safe movement that preserves distance, while existing opportunity-attack route risk still prices dangerous movement.
+- Updated `Assets/Scripts/AI/NonCombatantTacticalAI.cs` so support-spell targeting also excludes the caster.
+- Updated `Assets/Scripts/Entities/Units/Unit.cs` and `Assets/Scripts/Entities/Units/Actor_Unit.cs` so a new Downed transition releases all living occupants immediately, whether Downed is caused by zero HP or by a surrender/fear effect. Removed the old chance-based duplicate release checks; Downed now releases unconditionally. The existing daily injury-complication timing was verified and unchanged.
+- Updated `docs/implementation/tactical-ai-turn-choice-review.md` with the implemented spell-choice, range-positioning and Downed behavior.
+- Added dated modification notices to each modified source file. Actual `License.txt` sections 4–5 were reviewed; upstream copyright, license, attribution and warranty notices are preserved. No third-party code, assets or dependencies were introduced. No build, automated test or in-game check was requested or run.
+
+## 2026-11-09 — Tactical AI combat choice and move-then-attack review
+
+- Updated `Assets/Scripts/AI/TacticalAI.cs`, `Assets/Scripts/AI/StandardTacticalAI.cs` and `Assets/Scripts/AI/HedonistTacticalAI.cs` to compare melee, ranged and vore choices across the standard, hedonist and servant AI, including move-then-attack planning that keeps at least one AP for the attack.
+- Updated `Assets/Scripts/AI/TacticalAI.cs`, `Assets/Scripts/AI/TacticalPathfinder.cs`, `Assets/Scripts/AI/AIPlottedPath.cs`, and `Assets/Scripts/Modes/Tactical/OpportunityAttacks.cs` so AI route-risk planning discounts unarmed sapient reactions while battle reactions remain unchanged; removed the unused predator scan and guarded zero-damage target scoring.
+- Updated `Assets/Scripts/Entities/Units/Actor_Unit.cs` to preview attack accuracy at a proposed destination without moving the actor.
+- Added the review and player-check list at `docs/implementation/tactical-ai-turn-choice-review.md`; updated the AI overview in `README.md` and task status in `docs/implementation/resume-checkpoint.md`.
+- No Unity build, automated test or in-game check was run. No external code, assets or dependencies were introduced. Dated source notices were added; actual `License.txt` sections 4–5 were reviewed and existing upstream legal/attribution notices were preserved.
+
+## 2026-11-09 — Compare provisional post-Day-100 pressure curves
+
+- Added an editor-only pressure transform hook in `Assets/Scripts/Core/CompanyContracts.cs` and curve variants to `Assets/Editor/CompanyBalanceEconomyAudit.cs`. This enables matched synthetic campaign comparisons for the current curve and 1.5×/2× pressure accumulated after enrolled Day 100; player builds continue using the current curve unless separately tuned.
+- Ran 12 paired synthetic histories (four seeds × three curves) with the native balanced campaign policy and a 180-day horizon. All four companies were wiped out by Days 30–60, before the Day-100 curve split; each seed produced identical outcomes under all three curves. The run therefore does not justify changing the late curve. Full report: `Logs/balance34f-8207824ca9ad4235b93378de3ab91643/economy-campaigns.json`; Unity log: `Logs/balance40f-calendar-curves.log`.
+- No campaign balance default changed. The comparison passed all 96 existing economy/calendar/opening assertions; the campaign histories are too short to assess post-Day-100 pressure.
+- Added dated modification notices. Actual `License.txt` sections 4–5 were reviewed; existing copyright, license, attribution and warranty notices remain. No external code, assets or dependencies were introduced.
+
+## 2026-11-09 — Shorten starting contract travel
+
+- Modified `Assets/Scripts/Core/CompanyContracts.cs` to place the three starting contract targets 5–10 Manhattan tiles from the starting town, retaining the eight-tile separation rule. Later town offer distances remain 2–6 tiles; ratings, rewards, deadlines and enemy power are unchanged.
+- Updated `docs/specs/09-contracts-and-enemy-generation.md`, `docs/implementation/balance-item-3-opening-contract-progression.md` and `docs/implementation/resume-checkpoint.md`.
+- Added a dated source modification notice. Actual `License.txt` sections 4–5 were reviewed; existing copyright, license, attribution and warranty notices remain. No external code, assets or dependencies were introduced. No build or gameplay test was requested or run.
+
+## 2026-11-09 — Select feasible four-sapient/two-animal contract forces
+
+- Modified `Assets/Scripts/Core/CompanyContracts.cs` to search generated candidates for an exact four-sapient/two-animal force inside the existing fixed power band, selecting the valid combination closest to the rating budget. If no such combination fits, the existing bounded fallback remains in place. No rating budgets, enemy power weights or payout values changed.
+- Updated `docs/specs/09-contracts-and-enemy-generation.md`, `docs/implementation/balance-item-2-force-generation-and-deployment.md`, and `docs/implementation/resume-checkpoint.md` with the approved composition rule and measured results.
+- Unity 2018.3.12f1 completed the headless 40-seed-per-rating audit: 200/200 generated forces stayed in band with zero generation errors. At rating 3, all 11/40 pools that had an in-band exact mix selected one (905 feasible combinations total); ratings 1–2 and 4–5 had no feasible exact mix in this sample. Report: `Logs/balance34f-d1bc8875ec2d4ce4a1b2ec7331b9cf8a/composition-feasibility.json`; log: `Logs/item4-composition-feasibility-selection-fix.log`. No player build or manual battle test was performed.
+- The source carries a dated modification notice. Actual `License.txt` sections 4–5 were reviewed; existing copyright, license, attribution and warranty notices remain. No external code, assets or dependencies were introduced.
+
+## 2026-11-09 — Measure four-sapient/two-animal power-band feasibility
+
+- Extended `Assets/Editor/CompanyBalanceEconomyAudit.cs` with a focused diagnostic that recreates each production 48-unit candidate pool from an identical campaign RNG snapshot, exhaustively evaluates every 4-sapient/2-animal mix against the fixed rating band, and compares it with the force selected by the current generator. This is editor-only analysis; no gameplay values or rules changed.
+- Unity 2018.3.12f1 headless simulation completed for 40 seeds at each rating 1–5. Report: `Logs/balance34f-dcfc1c8089ae4f6bb830e3f70da59900/composition-feasibility.json`; run log: `Logs/item4-composition-feasibility-desktop.log`. Rating 1–2 and 4–5 had no feasible exact 4+2 mix in 40 sampled pools each. Rating 3 had 11/40 feasible pools (905 in-band combinations total), while the production generator selected zero exact mixes across all ratings. All generated forces were within their assigned bands; no generation errors occurred.
+- Added the dated source notice and reviewed actual `License.txt` sections 4–5. Existing upstream copyright, license, attribution and warranty notices remain; no external code, assets or dependencies were introduced. The source compiled as part of the successful Unity run. No player build or manual gameplay test was performed.
+
+## 2026-11-09 — Compare contract-force composition before and after
+
+- Modified `Assets/Editor/CompanyBalanceEconomyAudit.cs` to record generated sapient and animal counts per battle for the requested campaign-policy comparison. This changes diagnostic output only; no gameplay tuning or rules were changed in this simulation pass.
+- Reran the four existing strategies with seeds 7201–7204, 90-day horizon and matching roster targets. Reports: `Logs/balance34f-ecdfd21b16e74340822a0624edf1db09`, `Logs/balance34f-ef042a3bc1a4482d90032b7f05a865b4`, `Logs/balance34f-611e2cdb5dc1441c8ea023bccff399ad`. The original comparison reports remain under the four `Logs/balance34f-*` paths recorded in the checkpoint.
+- Added the dated source notice and reviewed actual `License.txt` sections 4–5. Existing upstream copyright, license, attribution and warranty notices remain; no external code, assets or dependencies were introduced. All three Unity simulation reports completed with 268 grouped checks total and no history errors. No player build or manual gameplay test was run.
+
+## 2026-11-09 — Prefer a larger early enemy roster
+
+- Modified `Assets/Scripts/Core/CompanyContracts.cs` so newly generated contract forces first try to reach up to four sapients and two animals using lower-power candidates. The existing fixed rating band remains authoritative; same-kind upgrades are considered before additions beyond the preferred six, and the eight-unit cap remains.
+- Updated `docs/implementation/balance-item-2-force-generation-and-deployment.md` and `docs/specs/09-contracts-and-enemy-generation.md` to record the approved composition preference. Updated `AGENTS.md` to use only the normal desktop Unity launch with the active license.
+- Added the dated modification notice to the changed source and reviewed `License.txt` sections 4–5. Existing upstream copyright, license, attribution and warranty notices remain; no external code, assets or dependencies were introduced. No build, automated test or gameplay test was requested or run.
+
+## 2026-11-08 — Support item 4 campaign policy simulations
+
+- Updated `Assets/Editor/CompanyBalanceEconomyAudit.cs` with a bounded `-balanceRosterSize` override for synthetic campaign-policy runs and recorded company/enemy force sizes in each battle result. The override accepts only roster sizes from one through the production deployment cap; it changes no player-facing campaign rule or balance value.
+- Added the dated source notice and reviewed `License.txt` sections 4–5. Existing license, copyright, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced.
+
+## 2026-11-08 — Generate contract enemies at first battle entry
+
+- Modified `Assets/Scripts/Core/CompanyContracts.cs` and `Assets/Scripts/Core/CompanyBattle.cs` so town offers store no enemy characters or roster details; the force is generated idempotently when the player reaches the accepted target, then saved with the contract for retries.
+- Modified `Assets/Scripts/Subwindows/CompanyMissionsUI.cs` to remove roster previews from contract lists and keep roster inspection in pre-battle deployment. Deployment proceeds into the revealed battle without a cancel exit.
+- Modified `Assets/Scripts/Core/CompanyCampaign.cs` and `Assets/Scripts/Core/CompanyEconomy.cs` to version the state change and clear only unaccepted legacy offer rosters. Existing accepted/active forces and battle records are retained.
+- Updated `Assets/Editor/CompanyBalanceEconomyAudit.cs` to keep its campaign selection and diagnostics compatible with roster-free offers; updated `docs/specs/09-contracts-and-enemy-generation.md` and `docs/implementation/09-10-contract-and-battle-loop.md`. The existing audit was not run.
+- Added dated modification notices to all six changed C# files and reviewed actual `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced. No Unity compile, automated audit or gameplay test was run.
+
+## 2026-11-08 — Balance follow-up item 3: opening contracts and progression
+
+- Modified `Assets/Scripts/Core/CompanyContracts.cs` so a new campaign starts with exactly three rating-1 contracts at separated 12–20-tile distances, and newly generated contract pools begin at rating 2 after three contract victories, while preserving reputation gates and existing quoted/accepted contracts. Also corrected a local-name collision in the recently changed force generator that Unity 2018's compiler rejected.
+- Modified `Assets/Editor/CompanyBalanceEconomyAudit.cs` to check the opening offer count, target range/separation, post-opening rating floor, and reputation ceiling, and to match item 2's eight-slug power cap. Updated `docs/specs/09-contracts-and-enemy-generation.md` and added the implementation and tuning record at `docs/implementation/balance-item-3-opening-contract-progression.md`.
+- Added dated notices to both modified C# files and reviewed actual `License.txt` sections 4–5. Existing copyright, license, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced. Unity 2018.3.12f1 compiled successfully and its existing economy/calendar/opening audit passed 88 checks; four seeded 45-day balanced-AI campaign histories completed, with the limits recorded in the implementation note. No standalone player build or manual gameplay test was run.
+
+## 2026-11-08 — Balance follow-up item 2: battle-force size and enemy quality
+
+- Modified `Assets/Scripts/Core/CompanyBattle.cs`, `Assets/Scripts/Core/CompanyContracts.cs`, `Assets/Scripts/Core/CompanyRoadEvents.cs`, `Assets/Scripts/Subwindows/CompanyCampaignView.cs`, `Assets/Scripts/Subwindows/CompanyMissionsUI.cs`, and `Assets/Scripts/Utility/Texts/HelpText.cs`: campaign battles cap deployed company members at eight; new contract and Spitter Slug forces cap at eight; sapient enemies gain narrow level bands, role-focused tier traits and quality-first candidate selection. The company roster remains unlimited, and saved battles/accepted forces are not rewritten.
+- Updated `docs/specs/09-contracts-and-enemy-generation.md`, `docs/specs/10-battle-results-and-company-fate.md`, `docs/implementation/09-10-contract-and-battle-loop.md`, `docs/implementation/13-road-events-and-xp.md`, and `docs/mercenary-company-campaign-plan.md`; implementation details are in `docs/implementation/balance-item-2-force-generation-and-deployment.md`.
+- Added dated notices to all six modified C# sources and reviewed actual `License.txt` sections 4–5. Existing copyright, license, attribution and warranty notices remain. No external code, assets or dependencies were introduced. No Unity build, automated tests or gameplay review were run.
+
+## 2026-11-08 — Balance follow-up item 1: absorption and mana
+
+- Modified `Assets/Scripts/Entities/Units/PredatorComponent.cs`, `Assets/Scripts/Core/WorldConfig.cs`, `Assets/Scripts/Core/ContentSettingsData.cs`, and `Assets/Scripts/Races/Traits.cs`: absorption is 25% faster, its HP healing is halved, and absorption restores no mana. Mana Rich and soft-retired Mana Drain descriptions/effects now match the remaining behavior. Enemy belly rubbing is enabled as the default preference.
+- Recorded formulas and unchanged balance settings in `docs/implementation/balance-item-1-absorption.md`.
+- Added dated fork notices to all changed C# files. Reviewed actual `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced. No Unity build, automated test or gameplay playtest was run.
+
+## 2026-11-08 — Regurgitate occupants when a predator is downed
+
+- Modified `Assets/Scripts/Core/WorldConfig.cs` and `Assets/Scripts/Core/ContentSettingsData.cs` so the existing downed-predator auto-regurgitation chance defaults to and remains locked at `1.0` (100%). When the existing downing logic checks this setting, all living occupants are immediately freed.
+- Added dated modification notices to both changed source files. Reviewed actual `License.txt` sections 4–5; existing copyright, license, attribution and warranty notices remain. No third-party code, assets or dependencies were introduced. No compile or gameplay test was run.
+
 ## 2026-11-08 — Normalize company weapon classes and native art families (spec 34e follow-up)
 
 - Modified `Assets/Scripts/Core/CompanyEquipment.cs` to use generic Sword/Bow tier labels, retire duplicate tier-II/tier-III melee options from new stock, and assign heavy native art to the strongest floor-half of each active class by damage × accuracy rating. Stable definition IDs remain available to load existing equipment.

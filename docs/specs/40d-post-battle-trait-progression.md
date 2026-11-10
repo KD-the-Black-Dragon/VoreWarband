@@ -18,7 +18,7 @@ The curator's initial examples and follow-up decisions (2026-11-07) establish th
 - The company leader digests an unusually large number. This is a company experience that may make mercenaries feel envious; the leader is never the trait recipient.
 - A mercenary escapes or is freed from being swallowed at least three times and has the highest count in that battle.
 - A mercenary receives at least three injuries in battle.
-- A mercenary digests a designated boss. Boss contracts are a future contract variant: rout an enemy force that explicitly includes a powerful boss. Mark the boss explicitly in the contract/enemy data; do not infer boss status from level or relative power. Merely swallowing, downing or routing the boss does not meet this digestion event.
+- A mercenary digests a designated boss on a “Rout the boss” contract. Boss identity is explicit in saved contract data; do not infer it from level or relative power. Downing or routing the boss completes the contract but does not count as the boss-digestion post-battle event. If the leader digests the boss, eligible mercenaries may receive the existing Grudge outcome.
 - The company suffers significant losses: strictly more than 50% of its deployed combatants are digested. Count company fighters deployed to the battle; reserves are not combatants in that battle. For a 6-person deployed company, 4 losses qualify and 3 do not.
 - A mercenary is adjacent when an enemy completes a digestion at least twice.
 - A surviving mercenary becomes the last active company member standing during the battle. Require a minimum starting company size; a two-person company cannot qualify.
@@ -42,9 +42,9 @@ The curator's initial examples and follow-up decisions (2026-11-07) establish th
 
 An enemy being digested once is not an event because it is expected in ordinary battles. “Most successful attacks” is already represented by hit-rate candidates, so do not add a duplicate count event. A generic “received the most temporary healing” or “benefited from shield” event is also excluded; those effects can contribute to the exceptional-damage survival event. Reaching 0 HP and surviving remains distinct from surviving damage exceeding maximum HP.
 
-Boss contracts do not change the existing “rout the force” tactical objective by themselves. A generated contract must explicitly require a boss-bearing force, and the boss's power must be accounted for in its fixed rating budget. The boss-vore event qualifies only on a completed digestion of that marked enemy.
+Boss contracts use an explicit boss-bearing force and keep the entire enemy power within the fixed rating budget. The boss-vore event qualifies only on a completed digestion of the marked enemy. The contract itself completes as soon as the boss is downed, digested or flees; that objective does not force the remaining enemies to retreat. After the result and any post-battle event are recorded, the paid contract's generated enemy records are removed.
 
-Implementation uses provisional starting values: a six-enemy minimum for majority events, five comparable attacks for rate comparisons, and four deployed company fighters for the last-active event. Ties are eligible for random selection. Significant losses mean strictly more than 50% of deployed company combatants; more incoming opportunity-attack attempts than ordinary attacks is the separate survival threshold. Boss events remain disabled until a separate contract phase provides explicitly marked boss-bearing offers. Do not add authored event prose.
+Implementation uses provisional starting values: a six-enemy minimum for majority events, five comparable attacks for rate comparisons, and four deployed company fighters for the last-active event. Ties are eligible for random selection. Significant losses mean strictly more than 50% of deployed company combatants; more incoming opportunity-attack attempts than ordinary attacks is the separate survival threshold. Boss contracts are implemented in the 2026-11-09 campaign-mission expansion. Do not add authored event prose.
 
 ## Event eligibility and examination order
 
@@ -125,7 +125,7 @@ Manual combat, AI Finish Turn and Auto-resolve must use the same evidence and se
 - Existing mid-battle saves without the complete evidence version do not fabricate past accomplishments and cannot produce a post-battle event for that battle.
 - Candidate search is bounded. If no occurrence has a polarity-valid, non-conflicting outcome, no event appears.
 - Grudge wage percentages and the trait-reduction probability are provisional values and can be tuned after observed campaigns.
-- Boss-related events remain inactive until an explicitly marked boss-bearing contract is added.
+- Boss digestion uses the marked boss identity saved on its contract; boss flight/downing alone completes the contract but does not count as digestion evidence.
 
 ## Planned grouped acceptance
 

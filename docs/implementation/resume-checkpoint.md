@@ -1,5 +1,122 @@
 # Current work checkpoint
 
+## HANDOFF — Accepted balance recommendations and late-curve audit, 2026-11-09
+
+The prior balance recommendations are implemented: three rating-1 opening contracts; a rating-2 floor for newly refreshed offers after three wins; a preferred 4-sapient/2-animal composition only when it fits the existing rating power band; eight-enemy maximum and quality-first additions; current 21-day protection/economy; and no extra direct company-size or level multiplier. The latest accepted adjustment shortens the three opening target distances to 5–10 tiles. Other towns retain their established 2–6 distance.
+
+To check whether any further late-game acceleration was supported, the editor audit compared the current calendar pressure with 1.5× and 2× variants after enrolled Day 100. Unity 2018.3.12f1 completed 12 paired histories (seeds 40701–40704 × three curves) and 96 economy/calendar/opening assertions. All four companies wiped out by Days 30–60, before the variants diverged. Every seed had identical end day, contract battles, losses, completed contracts and remaining gold under all three curves. This does not support changing the accepted production curve. Report: `Logs/balance34f-8207824ca9ad4235b93378de3ab91643/economy-campaigns.json`; Unity log: `Logs/balance40f-calendar-curves.log`; details in `docs/implementation/40f-calendar-difficulty.md`.
+
+The comparison modified only an editor-only audit hook and code behind `UNITY_EDITOR`; player behavior and balance defaults are unchanged. Source notices and the `CHANGES.md` entry are current. The background Unity process has exited. No player build or manual test was run. Preserve unrelated working-tree changes and all synthetic reports. No accepted balance recommendation is waiting for implementation in this packet. The curator requests no further simulations; pause balance work until real campaign playtesting provides feedback, unless the curator explicitly reopens simulation work.
+
+## HANDOFF — Shorter starting-contract travel, 2026-11-09
+
+The three starting rating-1 contracts now place targets 5–10 Manhattan tiles from the starting town instead of 12–20. Their minimum eight-tile separation remains. Later town/refresh pools retain their existing 2–6 tile distance. Contract ratings, rewards, deadlines, enemy generation, calendar pressure and all other approved balance choices are unchanged. On clear grass, the expected route is now about one to two six-action days; rough terrain can take longer.
+
+Changed source: `Assets/Scripts/Core/CompanyContracts.cs`, with a dated modification notice. `CHANGES.md` records the exact source path and change. The corresponding spec and item-3 balance report were updated. No Unity build, automated audit or manual playtest was requested or run. Actual `License.txt` sections 4–5 were reviewed; existing legal/attribution notices remain, and no external code/assets/dependencies were added. `git diff --check` and focused source/diff review are the checks performed.
+
+NEXT: review the shorter starting trips in a new campaign when convenient; no other tuning from the balance brief is changed by this adjustment.
+
+## HANDOFF — Preferred contract composition selection verified, 2026-11-09
+
+Implemented the accepted selection preference in `Assets/Scripts/Core/CompanyContracts.cs`: before the normal bounded force-building fallback, the generator searches its already-created candidates for an exact four-sapient/two-animal force within the existing 92–108% rating band. Of valid mixes it selects the one closest to the rating budget midpoint. If no exact mix fits, the previous generation path is unchanged. This does not force six enemies into opening or other low-budget battles; no budget, enemy power, reward or level values changed.
+
+Unity 2018.3.12f1 ran the same focused 40-seed diagnostic at each rating (1–5), using matching cloned campaign RNG states for candidate feasibility and production generation:
+
+| Rating | Existing power band | Feasible candidate pools | Generated exact 4+2 | Mean generated power before → after | Generation errors |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 69.0–81.0 | 0/40 | 0/40 | 71.1 → 71.1 | 0 |
+| 2 | 96.6–113.4 | 0/40 | 0/40 | 102.5 → 102.5 | 0 |
+| 3 | 124.2–145.8 | 11/40 (905 valid mixes) | 11/40 | 131.0 → 135.7 | 0 |
+| 4 | 151.8–178.2 | 0/40 | 0/40 | 159.1 → 159.1 | 0 |
+| 5 | 179.4–210.6 | 0/40 | 0/40 | 182.5 → 182.5 | 0 |
+
+All 200 generated forces stayed within their existing power bands. This confirms the rating-3 selection gap was fixed for every feasible sampled pool, while preserving smaller fights when the exact mix is outside the budget. It does not establish tactical win rates. Report: `Logs/balance34f-d1bc8875ec2d4ce4a1b2ec7331b9cf8a/composition-feasibility.json`; log: `Logs/item4-composition-feasibility-selection-fix.log`. The headless Unity run completed without generation errors. No player build or manual battle test was performed.
+
+The modified source has a dated notice; `CHANGES.md` records the source path, results and license review. Actual `License.txt` sections 4–5 were checked, existing legal/attribution notices remain, and no external code/assets/dependencies were added. No unrelated working-tree changes were changed.
+
+NEXT: this focused force-composition selection follow-up is implemented and verified. Do not expand it into rating-budget or enemy-power changes without further direction; the next step is an integrated campaign/manual review when the curator requests it.
+
+## HANDOFF — Focused enemy-composition feasibility, 2026-11-09
+
+The curator clarified that opening rating-1 contracts should remain small (roughly two sapients plus one animal); the 4-sapient/2-animal preference should not force six enemies into every fight. Ran a targeted Unity 2018.3.12f1 headless diagnostic across 40 seeded production candidate pools per rating, ratings 1–5. Each pool was recreated from a clone of the same campaign RNG state used for the production generator. Every exact 4-sapient/2-animal subset was checked against the current fixed 92–108% power band. The production generator was separately run on the matching cloned campaign state.
+
+| Rating | Fixed band | Mean lowest 4+2 power across pools | Pools with any in-band 4+2 mix | Generator chose exact 4+2 | Mean generated power |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 69.0–81.0 | 138.8 | 0/40 | 0/40 | 71.1 |
+| 2 | 96.6–113.4 | 144.1 | 0/40 | 0/40 | 102.5 |
+| 3 | 124.2–145.8 | 148.2 | 11/40 (905 combinations) | 0/40 | 131.0 |
+| 4 | 151.8–178.2 | 191.4 | 0/40 | 0/40 | 159.1 |
+| 5 | 179.4–210.6 | 224.7 | 0/40 | 0/40 | 182.5 |
+
+All 200 generated forces were inside their existing fixed power bands, with zero generation errors. The sample suggests rating-1 onboarding is already in the intended smaller-force range; exact 4+2 is mathematically unavailable at rating 1–2 and again at 4–5 under current candidate levels/power. Rating 3 is a narrow fit: 11 pools offered 905 valid combinations, but the generator chose none. This points to a force-selection gap at rating 3, while earlier/later 4+2 would require a different power budget or weaker candidate power progression. The earlier campaign comparison reported rating-1 forces averaging 3.16 members (2.00 sapients + 1.16 animals), also consistent with the requested light opening.
+
+Report: `Logs/balance34f-dcfc1c8089ae4f6bb830e3f70da59900/composition-feasibility.json`; Unity log: `Logs/item4-composition-feasibility-desktop.log`. Unity completed headlessly through the active licensed route; no player build or manual battle test. Only `Assets/Editor/CompanyBalanceEconomyAudit.cs` was extended for the diagnostic; source notice and `CHANGES.md` entry are present. Actual `License.txt` sections 4–5 were reviewed, with existing legal/attribution notices preserved and no external code/assets/dependencies added. No gameplay tuning changed.
+
+NEXT: report the findings and recommend selecting an in-band 4+2 combination whenever one exists at rating 3, while preserving small rating-1 openings. Do not change rating budgets, enemy power progression, or other gameplay tuning without the curator's direction.
+
+## HANDOFF — Early enemy-composition simulation rerun, 2026-11-09
+
+The curator asked for before/after native campaign simulations of the four existing policies, seeds 7201–7204, horizon 90 days and the same roster targets. Used Unity 2018.3.12f1 through the normal desktop launch with its active license; no restricted launch was attempted. The editor-only audit now records sapient/animal counts on each fight. This diagnostic change has a dated source notice and `CHANGES.md` entry; actual `License.txt` sections 4–5 were reviewed. No gameplay power/rating values changed during this simulation request.
+
+Baseline reports: Balanced 8 `Logs/balance34f-cf16dc6dd5ff49bf9fd13c51fb452e80`; Basic-all 8 `Logs/balance34f-9b31c61bcbdd4964b38057771fbcae36`; Gear-first 6 `Logs/balance34f-2bbcf38b455c4b7296eb8e12667dd4f3`; Gear-first 8 `Logs/balance34f-8962bffe30834e3aa16053ca7091b697`. New reports: Balanced 8 and Basic-all 8 `Logs/balance34f-ecdfd21b16e74340822a0624edf1db09`; Gear-first 6 `Logs/balance34f-ef042a3bc1a4482d90032b7f05a865b4`; Gear-first 8 `Logs/balance34f-611e2cdb5dc1441c8ea023bccff399ad`. The three new reports completed with 92/88/88 checks and 8/4/4 histories; no history errors.
+
+| Policy | Contracts before → after | Days before → after | Merc losses before → after | Contract enemies before → after |
+|---|---:|---:|---:|---:|
+| Balanced 8 | 11.8 → 18.8 | 34.2 → 54.0 | 9.2 → 13.5 | 3.06 → 4.38 |
+| Basic-all 8 | 11.0 → 17.2 | 33.0 → 44.0 | 12.0 → 9.5 | 2.98 → 4.42 |
+| Gear-first 6 | 13.2 → 18.8 | 39.5 → 52.8 | 7.5 → 9.8 | 3.00 → 4.33 |
+| Gear-first 8 | 14.5 → 28.0 | 41.5 → 72.8 | 11.8 → 13.5 | 3.00 → 4.57 |
+
+Per-rating enemy count / power before → after: rating 1, 2.85/78.2 → 3.16/71.0; rating 2, 3.00/109.4 → 4.00/102.5; rating 3, 3.17/136.0 → 5.09/131.5; rating 4, 3.27/162.6 → 5.00/159.5. New rating-1 and rating-2 forces averaged 2 sapients + 1.16 animals, and 3 sapients + 1 animal respectively; no sampled rating-1/2 force reached 4+2. Only 5 of 346 new contract fights reached exactly 4 sapients + 2 animals (four at rating 3 and one above); none did so at ratings 1–2. Sampled rating-1 through rating-4 contract power stayed inside the existing 92–108% band. This is a small four-seed synthetic sample, not a human-player win-rate estimate. All 16 baseline histories wiped out before their 90-day horizon; after the change, 15 wiped out and one reached day 90.
+
+NEXT: report the results and recommend a bounded feasibility study for exact 4+2 composition at ratings 1–2 before changing the rating budget or individual enemy power. Do not change gameplay tuning without the curator's direction. No player build or manual playtest was run.
+
+## HANDOFF — Early contract roster composition preference, 2026-11-09
+
+Newly generated contract enemies now try to reach up to four sapients and two animals first, using lower-power candidates to respect the fixed 92–108% rating band. Same-kind upgrades then spend remaining power budget before extra members are added; any additions remain within the eight-enemy cap. Existing accepted/saved forces remain unchanged. Implementation is in `Assets/Scripts/Core/CompanyContracts.cs`; dated notice and `CHANGES.md` entry are present. The spec and item-2 implementation report were updated. No compile, build, automated test or gameplay review was run for this request.
+
+Unity launch instruction: use only the normal desktop environment with the active license; do not attempt restricted launch first. `AGENTS.md` now records this for future work.
+
+NEXT: if the user asks for balance verification, run the relevant synthetic enemy-generation/campaign comparison through the normal desktop Unity route. Do not launch Unity or run a new test unless requested.
+
+## HANDOFF — Deferred contract-force generation implemented, 2026-11-08
+
+Town and active contract lists no longer show enemy rosters. Offers now contain only fixed contract metadata (rating, reward and target). `CompanyBattleSession.Prepare`, reached from the contract-target travel step, calls an idempotent generator before opening deployment; pre-battle roster inspection remains available, and contract deployment has no cancel exit after force reveal. The accepted rating/reward stay fixed and continue to reflect the existing offer-time company-power/reputation/calendar rules; this packet adds no new arrival-time ramp.
+
+Retry state is preserved because enemy character IDs/records remain attached to the active contract and are not rebuilt when present. Campaign rules version 6 clears only unaccepted old offer forces when loading a legacy campaign; already accepted/active forces and battle records remain untouched. Validation permits rosterless offers/active contracts but requires a populated force for a contract battle. The existing editor economy audit was updated to use roster-free offer records; it was not run.
+
+Six C# files carry dated notices and are listed in `CHANGES.md`. Actual `License.txt` sections 4–5 were reviewed; legal and attribution notices remain and no external code/assets/dependencies were added. `git diff --check` and source/diff review are the only checks performed; no Unity compile, automated audit or gameplay test was run.
+
+NEXT: one grouped player check: confirm offers/active lists show no roster; travel to a target and inspect its generated roster at deployment; retreat/lose and retry to confirm surviving enemy identities/HP and casualties persist. Also check an existing campaign with old offers and an already-active contract to confirm migration clears only unaccepted rosters. Preserve all unrelated dirty files and user changes.
+
+## HANDOFF — Balance follow-up item 3 implemented, 2026-11-08
+
+The starting town's initial pool was first implemented with three rating-1 contracts, targets 12–20 Manhattan tiles away, and at least eight tiles apart; the current 5–10 distance is recorded in the newer handoff above. Later town/refresh pools retain four offers and the prior 2–6 target distance. Once three contracts have been completed, new pools have a rating floor of 2, still bounded by current reputation and the existing company-power/calendar systems. Rating 1/2 retain their 75/105 fixed power budgets and rewards; existing offers/accepted forces are untouched. Details and limits: `docs/implementation/balance-item-3-opening-contract-progression.md` and `docs/specs/09-contracts-and-enemy-generation.md`.
+
+`CompanyContracts.cs` and `CompanyBalanceEconomyAudit.cs` have dated source notices, and the exact paths are recorded in `CHANGES.md`. Actual License.txt sections 4–5 were checked; existing legal and attribution notices remain. No external code/assets/dependencies were added. Unity 2018.3.12f1 compiled and the economy/calendar/opening audit passed 88 checks. Four seeded 45-day balanced-AI histories ended by wipeout on days 11, 24, 30 and 33 after 1, 6, 8 and 9 contract wins; three reached rating 2, with one rating-2 wipeout and two successful rating-2 sets before later difficulty ended them. The one-win run suffered three road encounters and had two rating-1 contract battles, only one completed. This small synthetic sample is a balance signal, not a human-play estimate. No standalone build or manual playtest was done. Full reports: `Logs/balance34f-9d6afb13db79437e8cdb909111a67c4a`.
+
+NEXT: grouped review of the three distant novice contracts, then the first refreshed pool after three wins. If accepted, continue with the next explicitly authorized balance item. Preserve all existing uncommitted item 1 and item 2 changes.
+
+## HANDOFF — Balance follow-up item 2 complete, 2026-11-08
+
+Implemented an eight-member maximum for newly generated contract/road-encounter enemy forces and for campaign battle deployment. The company roster remains unlimited. Deployment shows `active / 8`; an over-limit Begin battle click opens the requested modal and leaves the player in deployment. A second guard in `CompanyBattleSession.Start` protects callers that bypass the screen.
+
+New sapient enemy candidates stay within up to three consecutive levels (`max(1, rating - 2)` through rating), use existing level-based weapons/spells/armor, and can gain one positive role-focused tier trait from level 3 onward, rising at levels 6 and 10. A same-effect inborn trait is preserved. Force composition keeps its target band and bounded retries; each new member is drawn preferentially from the stronger feasible candidates, with no more than eight. Slug encounter target power is capped to what eight slugs can represent.
+
+Existing saved battles and already accepted contract forces are preserved, not rewritten; this sizing rule governs new generation/deployments. Single Battle mode and total company roster size are unchanged. Starting-offer count/distance and post-opening difficulty ramp were completed separately in the item 3 handoff at the top of this file.
+
+Six modified C# files have dated notices and exact `CHANGES.md` coverage. Actual `License.txt` sections 4–5 were reviewed; existing attribution and legal notices remain. No external code/assets/dependencies were added. No Unity build, test or gameplay playtest was requested or run. Static source/diff review only; power progression is provisional, not battle-simulated. Details: `docs/implementation/balance-item-2-force-generation-and-deployment.md`.
+
+NEXT: collect one grouped player review of the over-limit deployment message/count and generated enemy force size/quality. After acceptance, continue to the next explicitly requested balance item; do not infer further design changes from this provisional pass.
+
+## HANDOFF — Balance follow-up item 1 complete, 2026-11-08
+
+Implemented the first item from the curator-approved balance follow-up order. Absorption uses a locked 1.25x speed multiplier and 0.5x HP-healing multiplier; the absorption code no longer restores mana. Mana Rich is max-mana-only, and the soft-retired Mana Drain no longer grants mana on absorption. Enemy belly rubbing now defaults on while remaining a player preference. Friendly regurgitation remains on by default. The formula, rounding caveats and reviewed unchanged settings are in `docs/implementation/balance-item-1-absorption.md`.
+
+Four C# files have dated modification notices; `CHANGES.md` records the exact paths and review. Actual `License.txt` sections 4–5 were reviewed, preserving existing notices and attribution. No Unity build, automated tests or gameplay test were run. No external code/assets/dependencies were introduced. Preserve the pre-existing downed-regurgitation changes in `WorldConfig.cs`, `ContentSettingsData.cs` and `CHANGES.md`.
+
+This item 1 handoff was followed by the item 2 implementation above. Do not infer further tuning from the documented absorption baseline.
+
 ## HANDOFF — Phase 40E implemented, 2026-11-08
 
 40E company naming, provisional ending scores, voluntary retirement and a separate High Scores archive are implemented. New campaigns accept a company name; blank/legacy names display as “Unnamed Company.” Save previews and company records include identity. After Day 14, the Town view offers a retirement projection and a separate final Yes/No prompt. Confirming opens the final record. The main menu and company records link to a ranked High Scores list with score/statistics/memorial details.
@@ -1818,3 +1935,27 @@ Verification completed in Unity 2018.3.12f1: **81 grouped economy/calendar check
 Changed source: `CompanyCampaign.cs`, `CompanyEconomy.cs`, `CompanyCampaignSave.cs`, `CompanyContracts.cs`, `CompanyRoadEvents.cs`, `CompanyBalanceEconomyAudit.cs`. Each has a dated source notice; root `CHANGES.md` lists exact paths. Actual `License.txt` sections 4–5 and preservation of existing notices were checked. No third-party code/assets/dependencies were added. No files were deleted/moved and no personal saves were accessed. No standalone player build or manual 40F playtest was done. Broad unrelated working-tree modifications remain user work and are preserved.
 
 Documents updated: 40F spec, 40F implementation report, module 40 spec, roadmap, README and this checkpoint. NEXT: no further work remains in Module 40. Recommend an integrated campaign playtest/balance pass as the next workstream; do not start it until the user chooses that scope. A player-facing build can be made when requested.
+
+## Item 4 campaign-strategy simulation rerun — 2026-11-08
+
+User requested a strategy-focused rerun before choosing enemy difficulty. Added an editor-only `-balanceRosterSize` option (bounded by the production 8-unit deployment cap) and per-fight company/enemy counts to `CompanyBalanceEconomyAudit.cs`; no production campaign or balance values changed. The source notice and dated `CHANGES.md` entry are present; actual `License.txt` sections 4–5 were reviewed and existing legal/attribution notices remain. Normal desktop Unity 2018.3.12f1 license was used; the first restricted launch was stopped without a simulation. Four histories per policy, shared starting seeds 7201–7204, 90-day horizon; all four report batches completed with 88 checks and no audit errors. Reports: Balanced 8 `Logs/balance34f-cf16dc6dd5ff49bf9fd13c51fb452e80`; screened Basic-all 8 `Logs/balance34f-9b31c61bcbdd4964b38057771fbcae36`; Gear-first 6 `Logs/balance34f-2bbcf38b455c4b7296eb8e12667dd4f3`; Gear-first 8 `Logs/balance34f-8962bffe30834e3aa16053ca7091b697`. All histories wiped out before day 53, so they do not measure late calendar pressure near day 90–100. Average contracts/losses/days: Balanced 8 11.8/9.2/34.2; Basic-all 8 11/12/33; Gear-first 6 13.2/7.5/39.5; Gear-first 8 14.5/11.8/41.5. The Basic-all line was screened and not extended. Each company policy used the native tactical AI on both sides; campaign hiring/shopping/contract choices followed the audit’s deterministic policy, not skilled human play. Enemy groups averaged 3.8–4.0 combatants across these runs and never exceeded eight. NEXT: present the results and tradeoffs; no balance selection or gameplay implementation is authorized by this simulation request.
+
+## CURRENT PACKET — Tactical AI turn-choice review, 2026-11-09
+
+User approved the tactical AI recommendations and clarified that the AI must compare both equipped weapons, respect AP as movement plus a final attack, value strong melee over weak ranged/barehanded options, consider a 25%+ vore attempt for ranged-only sapients at close range, and discount weak barehanded sapient reactions for planning only. Implemented shared scoring for Standard, Hedonist and race-servant combatants, reachable move-then-attack planning that preserves at least 1 AP, route-risk filtering, proposed-distance hit previews, the zero-damage utility guard and removal of the unused `lackPredators` scan. Actual opportunity attacks are unchanged. The earlier 200-turn scenario was caused by downed prey exceeding all remaining predators' capacity; the already-approved empty-predator capacity exception resolved its replay in 60 rounds. The 200-turn draw fallback remains unchanged.
+
+Modified source: `StandardTacticalAI.cs`, `HedonistTacticalAI.cs`, `TacticalAI.cs`, `TacticalPathfinder.cs`, `AIPlottedPath.cs`, `OpportunityAttacks.cs`, and `Actor_Unit.cs`. Each has a dated conversion notice; `CHANGES.md` lists the paths. Actual `License.txt` sections 4–5 reviewed; prior legal and attribution notices preserved. No outside code/assets/dependencies introduced. Updated README and added `docs/implementation/tactical-ai-turn-choice-review.md` with provisional scoring weights and an in-game checklist. No Unity compile, automated test or playtest was run because verification was not requested. NEXT: await the user's review/test feedback; preserve all unrelated dirty work and do not change the existing 200-turn stalemate fallback.
+
+## FOLLOW-UP — AI and High Scores responsiveness review, 2026-11-09
+
+User approved both a post-AI-change small-battle auto-resolve check and a synthetic large-archive High Scores check. Four synthetic 3v3 battles resolved in 0.16–0.83 seconds over 21–40 rounds, with no 200-turn stalemate; one ranged-focused seed ended the company, so do not treat this small sample as a balance assessment. Native report: `Logs/balance34f-d7474021920b4df98c99084f90f71295/report.json`.
+
+High Scores was blocking: synchronous parsing and sorting of 5,000 synthetic score records took about 2.3 seconds before the fix. It now opens a loading view immediately, reads/sorts records on a background worker, prevents a late load from overwriting a later page, and reuses the loaded catalog for paging/details. Unity audit passed at 100/1,000/5,000 records; the main-thread screen call measured 0.9–6.9 ms, all valid records appeared in correct order, and one corrupt record was skipped without hiding valid entries. Report: `Logs/highscores-scale-result.json`; test data remains under its recorded `Logs/highscores-scale-*` directory. No personal saves were accessed or removed.
+
+Changed source: `CompanyHistory.cs`, `CompanyMissionsUI.cs`, `CompanyManagementUI.cs`, `CompanySavePersistenceAudit.cs`, and diagnostic `CompanyBalanceAudit.cs`. Dated notices and the root `CHANGES.md` entry were reviewed against the diff. Actual `License.txt` sections 4–5 reviewed; existing notices retained, no outside code/assets/dependencies introduced. Unity 2018.3.12f1 editor audits compiled and passed. No player build or manual UI playtest was requested or performed. NEXT: the AI timing check and High Scores responsiveness fix are complete; the loading state can be visually reviewed in-game if desired, then continue with another code/design opportunity rather than repeat these stress tests.
+
+## CURRENT HANDOFF — Boss contracts, 2026-11-09
+
+Implemented one “Rout the boss” offer per standard four-contract town refresh after the three opening contracts, when an enabled sapient species is available. Boss-force generation remains deferred until arrival, persists for retries and fits the existing rating power band. The boss is explicitly marked in saved contract data, one level above rating, ranged-focused, and equipped with both weapon classes. Boss downing, digestion, death or flight completes the objective; other enemies retain their actual battle outcomes and use only their normal retreat behavior. This works when the company retreats, with the normal reward/reputation/contract XP, and returns the company to its pre-move tile. Boss digestion participates in the existing exceptional post-battle event flow; leader digestion may trigger the existing Grudge outcome. After payout and result/event recording, generated enemy records are removed; campaign rules version 7 applies that cleanup to boss contracts already completed in older saves.
+
+Changed source: `CompanyContracts.cs`, `CompanyBattle.cs`, `CompanyPostBattleTraits.cs`, `CompanyMissionsUI.cs`, `CompanyCampaign.cs`, `CompanyEconomy.cs`, and `CompanyBalanceEconomyAudit.cs`; dated notices were added to each. Updated 09 contract spec, 40D event docs and campaign plan; `CHANGES.md` records the source paths. Reviewed `License.txt` sections 4–5; existing attribution/legal notices remain, no third-party code/assets/dependencies added. Additive contract fields default older saves to ordinary rout-force objectives; campaign rules version 7 removes completed boss-force records and stale deployment references from older saves. No build, compile check, automated test or manual playtest was run. NEXT: review boss contract generation across ratings and confirm down/retreat, digestion, flight, post-payout cleanup, and failed-attempt retry in one grouped playtest. Preserve all unrelated working-tree changes and do not regenerate active saved forces.

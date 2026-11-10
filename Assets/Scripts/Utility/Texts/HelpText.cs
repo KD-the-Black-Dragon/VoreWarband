@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Explain the eight-member campaign battle deployment limit (balance follow-up item 2).
 // 2026-11-08: Update equipment guidance for renamed armor and tiered weapon progression.
 // 2026-11-05: Describe upkeep-first payday, insolvency and prospective wage changes (spec 38 phase B).
 // 2026-11-05: Update cleared-road/farm, new daily allowance and 10/20/30 HP recovery information (spec 36).
@@ -48,7 +49,7 @@ Tactical battles take no campaign days. Moving to a contract target opens final 
 
 Each town has a small separate recruit pool that refreshes over time. Higher company reputation allows more and stronger candidates. Species talents affect roles, but any sapient recruit can develop in any direction. Appearance is fixed; ordinary members may be nicknamed. The leader's creation choices remain fixed.
 
-There is no fixed roster or deployment cap. Wages are the main growth constraint and include rations/upkeep in the fiction. Active and reserve members both draw wages, including when injured. Mark reserves from Company or final deployment; the leader always deploys.
+There is no fixed company roster cap. Each campaign battle allows up to eight active members; reserves stay out, and the leader always deploys. Wages are the main growth constraint and include rations/upkeep in the fiction. Active and reserve members both draw wages, including when injured. Mark reserves from Company or final deployment.
 
 Wages are paid in advance every seven days, first due seven days after campaign start. Midweek hiring costs a prorated advance through the next payday, plus any old debt. Quoted weekly wages rise with level. Before choosing a level-up, review the next weekly wage and company total. The increase starts at the next regular payday, with no midweek top-up.
 

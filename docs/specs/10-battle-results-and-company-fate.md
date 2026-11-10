@@ -24,7 +24,7 @@ The [combat/result study](../architecture/01c-combat-equipment-and-results.md) a
 ### Agreed scope
 
 - Moving onto a contract target triggers a final deployment review every time, showing generated enemies and held weapons and allowing last-minute active/reserve changes.
-- Deploy all active members with no cap and always deploy the leader; preserve terrain selection, enemy tactical AI, retained vore/digestion mechanics, and edge-of-map retreat.
+- Deploy up to eight active members and always include the leader; preserve terrain selection, enemy tactical AI, retained vore/digestion mechanics, and edge-of-map retreat.
 - Replace all surrendered states with downed, including fear/pain effects above 0 HP. Reaching 0 HP always downs persistent units rather than killing them. Downed units cannot act or receive commands for the rest of battle, even if healed. Summons disappear rather than becoming downed. Remove voluntary surrender controls in both modes.
 - Ordinary attacks do not directly target downed units; collateral damage cannot permanently kill them. Consumption succeeds against downed units with 100% chance. Preserve the existing simulated battle resolution and make AI prioritize consuming downed opponents during cleanup.
 - Downed/contained living units keep the battle running until a side is gone through final death/digestion/flight. Downed company members facing standing enemies remain in the battle for actual simulated consumption/digestion; no assumed off-screen death, abandonment state, or immediate retreat-loss reconciliation. The player can delegate the remainder to existing AI simulation.

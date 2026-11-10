@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-08: Block campaign battle launch when more than eight company members are active (balance follow-up item 2).
 // 2026-11-08: Remove the overlapping setup-page Load Game action; main-menu Load Game remains available (40E UI follow-up).
 // 2026-11-08: Add company naming, retirement access and durable high-score entry points (spec 40E).
 // 2026-11-06: Keep action rollback in memory and remove action-level autosave work.
@@ -630,6 +631,13 @@ public sealed class CompanyCampaignView : MonoBehaviour
     internal void LaunchBattle()
     {
         if (state.Battle == null || state.Battle.Phase != CompanyBattlePhase.Deployment) return;
+        int activeCount = state.Members.Count(m => !m.Reserve || m.CharacterId == state.LeaderId);
+        if (activeCount > CompanyBattleSession.MaximumCampaignBattleForceSize)
+        {
+            State.GameManager.CreateMessageBox("You currently have " + activeCount + " active mercenaries. You are only allowed to deploy " +
+                CompanyBattleSession.MaximumCampaignBattleForceSize + ".");
+            return;
+        }
         Mutate(() =>
         {
             var battle = state.Battle;

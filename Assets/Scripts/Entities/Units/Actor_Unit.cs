@@ -2,6 +2,8 @@
 // 2026-11-08: Display company weapon art for the last melee or ranged weapon used.
 // 2026-11-07: Keep inborn traits out of form-based trait sharing (spec 40D).
 // 2026-11-07: Persist per-actor evidence for post-battle trait progression (spec 40D).
+// 2026-11-09: Allow AI accuracy previews from proposed tiles without moving the actor (tactical AI review).
+// 2026-11-09: Release all living occupants immediately on every new Downed transition (tactical AI follow-up).
 // 2026-11-06: Use frozen per-character AP and body size (spec 40A).
 // 2026-11-05: Use the shared downed-prey capacity rule in special vore actions.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
@@ -137,12 +139,24 @@ public class Actor_Unit
                 if (value)
                 {
                     if (Unit.Type == UnitType.Summon) { Unit.Health = 0; Unit.Downed = false; }
-                    else { Unit.Downed = true; CompanyPostBattleTraits.RecordDowned(Unit); }
+                    else if (!Unit.Downed)
+                    {
+                        Unit.Downed = true;
+                        HandleDownedTransition();
+                    }
                     Movement = 0;
                 }
             }
             else surrendered = value;
         }
+    }
+
+    internal void HandleDownedTransition()
+    {
+        if (Unit == null || !Unit.BattleActive || !Unit.Downed || Unit.Type == UnitType.Summon || Unit.Digested)
+            return;
+        CompanyPostBattleTraits.RecordDowned(Unit);
+        PredatorComponent?.FreeAnyAlivePrey();
     }
 
     public bool DefectedThisTurn;
@@ -988,7 +1002,7 @@ public class Actor_Unit
             ? Mathf.Min(.20f, Unit.GetStat(Stat.Intelligence) * .002f) : 0f;
     }
 
-    public float GetAttackChance(Actor_Unit attacker, bool ranged, bool includeSecondaries = false, float mod = 0)
+    public float GetAttackChance(Actor_Unit attacker, bool ranged, bool includeSecondaries = false, float mod = 0, int distanceOverride = -1)
     {
         int attack;
         if (ranged)
@@ -1002,7 +1016,7 @@ public class Actor_Unit
             attacker.UpdateBestWeapons();
         }
 
-        int range = attacker.Position.GetNumberOfMovesDistance(Position);
+        int range = distanceOverride >= 0 ? distanceOverride : attacker.Position.GetNumberOfMovesDistance(Position);
         if (Surrendered || Unit.GetStatusEffect(StatusEffectType.Petrify) != null || Unit.GetStatusEffect(StatusEffectType.Sleeping) != null || Unit.GetStatusEffect(StatusEffectType.Frozen) != null)
             return 1f;
         const int maximumBoost = 75;
@@ -3164,10 +3178,6 @@ public class Actor_Unit
             {
                 Surrendered = true;
                 Movement = 0;
-                if (State.Rand.NextDouble() <= Config.SurrenderedPredAutoRegur)
-                {
-                    PredatorComponent?.FreeAnyAlivePrey();
-                }
                 State.GameManager.TacticalMode.Log.RegisterMiscellaneous($"{Unit.Name} is downed.");
             }
         }
@@ -3210,10 +3220,6 @@ public class Actor_Unit
             Unit.Health = 1;
             Surrendered = true;
             Movement = 0;
-            if (State.Rand.NextDouble() <= Config.SurrenderedPredAutoRegur)
-            {
-                PredatorComponent?.FreeAnyAlivePrey();
-            }
         }
 
         if (Config.DamageNumbers == false && !State.GameManager.TacticalMode.turboMode)

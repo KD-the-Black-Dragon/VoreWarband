@@ -36,6 +36,19 @@ Campaigns saved under rules version 4 enroll at their current elapsed day when m
 
 Stochastic rounding means the exact rating bonus varies by generated offer. Day 100 is a pacing target, not a guaranteed loss or survival day. The contract ramp eventually becomes very large; the separate road-event multiplier deliberately has a fourfold ceiling and will not itself continue to accelerate indefinitely.
 
+## Exploratory late-curve comparison — 2026-11-09
+
+The editor-only audit compared the production curve with two provisional variants that preserved the production curve through enrolled Day 100, then scaled only additional pressure by 1.5× or 2×. It ran four paired seeds (40701–40704) with the native balanced company policy and a 180-day horizon. All 12 histories completed without driver errors and all 96 economy/calendar/opening assertions passed.
+
+| Seed | End day, all three curves | Contract battles | Permanent mercenary losses | Outcome |
+| ---: | ---: | ---: | ---: | --- |
+| 40701 | 60 | 40 | 6 | Company wipeout |
+| 40702 | 32 | 22 | 4 | Company wipeout |
+| 40703 | 30 | 21 | 2 | Company wipeout |
+| 40704 | 37 | 23 | 2 | Company wipeout |
+
+Every seed produced the same end day, battle count, losses, completed contracts and remaining gold under `current`, `late-1.5x` and `late-2x`. Each run ended before Day 100, so none reached the point where the candidate curves diverged. These results cannot support increasing the late ramp; the production curve remains unchanged. The outcomes also show early company wipeout under this synthetic AI policy, but are not a prediction of skilled human play. Full synthetic data: `Logs/balance34f-8207824ca9ad4235b93378de3ab91643/economy-campaigns.json`; Unity log: `Logs/balance40f-calendar-curves.log`.
+
 ## Verification
 
 Unity 2018.3.12f1 completed the grouped editor audit with **81 checks**, including:

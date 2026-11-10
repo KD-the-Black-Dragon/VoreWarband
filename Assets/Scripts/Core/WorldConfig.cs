@@ -3,6 +3,8 @@
 // 2026-11-03: Remove permanently retired identity branches/entries while preserving shared behavior (spec 21).
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 // 2026-11-03: Implement four active stats and agreed combat rules (spec 29).
+// 2026-11-08: Default downed predators to immediately regurgitate all occupants (100% chance).
+// 2026-11-08: Set provisional campaign absorption tuning: 1.25x speed and 0.5x HP healing (balance item 1).
 using OdinSerializer;
 using System;
 using System.Collections.Generic;
@@ -253,7 +255,7 @@ public class WorldConfig
     [OdinSerialize]
     internal float DigestionSpeedMult = 1f;
     [OdinSerialize]
-    internal float AbsorbSpeedMult = 1f;
+    internal float AbsorbSpeedMult = 1.25f;
     [OdinSerialize]
     internal float BellyRubEffMult = 1f;
     [OdinSerialize]
@@ -269,7 +271,7 @@ public class WorldConfig
     [OdinSerialize]
     internal float AbsorbRamp = .1f;
     [OdinSerialize]
-    internal float AbsorbResourceMod = 1;
+    internal float AbsorbResourceMod = 0.5f;
     [OdinSerialize]
     internal float DigestionFlatDmg = -.01f;
     [OdinSerialize]
@@ -281,7 +283,7 @@ public class WorldConfig
     [OdinSerialize]
     internal float SurrenderedPredEscapeMult = 1;
     [OdinSerialize]
-    internal float SurrenderedPredAutoRegur = 0;
+    internal float SurrenderedPredAutoRegur = 1f;
 
     [OdinSerialize]
     internal int TacticalMovementSoftCap = -1;
@@ -446,6 +448,7 @@ public class WorldConfig
         {
             ["RaceTraitsEnabled"] = true,
             ["FriendlyRegurgitation"] = true,
+            ["CanUseStomachRubOnEnemies"] = true,
             ["Unbirth"] = false,
             ["CockVore"] = false,
             ["CockVoreHidesClothes"] = false,

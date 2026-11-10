@@ -6,6 +6,7 @@
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 // 2026-11-04: Apply approved Dodger, KeenEye and action-economy trait refinements (spec 31).
 // 2026-11-04: Distinguish Juggernaut active turns from scheduled and actual skipped turns (grouped review).
+// 2026-11-09: Share projected weapon values and unarmed-sapient filtering with tactical AI planning (tactical AI review).
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,6 +44,13 @@ internal sealed class OpportunityAttacks
             enemy != mover && CanAct(enemy) && enemy.BestMelee != null &&
             enemy.Position.GetNumberOfMovesDistance(position) == 1 &&
             TacticalUtilities.TreatAsHostile(enemy, mover));
+    }
+
+    internal static IEnumerable<Actor_Unit> AIThreats(Actor_Unit mover, Vec2i position)
+    {
+        // AI planning discounts weak barehanded sapient reactions. Threats() is
+        // unchanged, so these attacks still resolve normally in battle.
+        return Threats(mover, position).Where(enemy => !IsUnarmedSapient(enemy));
     }
 
     internal bool Begin(Actor_Unit mover, Vec2i target)
@@ -127,10 +135,16 @@ internal sealed class OpportunityAttacks
     {
         bool mage = target.Unit.GetStat(Stat.Intelligence) > target.Unit.GetStat(Stat.Strength);
         bool archer = target.Unit.GetStat(Stat.Agility) > target.Unit.GetStat(Stat.Strength);
+        return mage || archer || IsUnarmedSapient(target);
+    }
+
+    internal static bool IsUnarmedSapient(Actor_Unit target)
+    {
+        if (target == null || target.Unit == null)
+            return false;
         bool sapient = SpeciesPolicy.IsCurated(target.Unit.Race) ?
             SpeciesPolicy.GetKind(target.Unit.Race) == SpeciesKind.Sapient : !target.Unit.HasTrait(Traits.Feral);
-        bool unarmedSapient = sapient && !(target.Unit.Items ?? new Item[0]).OfType<Weapon>().Any(w => w.Range <= 1);
-        return mage || archer || unarmedSapient;
+        return sapient && !(target.Unit.Items ?? new Item[0]).OfType<Weapon>().Any(weapon => weapon.Range <= 1);
     }
 
     internal static int MoveCost(Actor_Unit actor, PathNode node)
@@ -141,31 +155,41 @@ internal sealed class OpportunityAttacks
     internal static float ExpectedDamage(Actor_Unit attacker, Actor_Unit target)
     {
         // No random rolls and no temporarily changed positions/stats during planning.
-        float chance = Mathf.Clamp01(target.GetAttackChance(attacker, false, true));
+        return ExpectedWeaponDamage(attacker, target, false, true);
+    }
+
+    internal static float ExpectedWeaponDamage(Actor_Unit attacker, Actor_Unit target, bool ranged,
+        bool opportunity = false, int distanceOverride = -1)
+    {
+        float chance = Mathf.Clamp01(target.GetAttackChance(attacker, ranged, true, distanceOverride: distanceOverride));
         float graze = chance >= .51f ? (1 - chance) * (attacker.Unit.HasTrait(Traits.KeenEye) ? 1f : chance) : 0;
         float crit = attacker.CritCheck(attacker, target) + attacker.Unit.TraitBoosts.Outgoing.CritRateShift -
             target.Unit.TraitBoosts.Incoming.CritRateShift;
         crit = Mathf.Clamp01(crit * TagConditionChecker.ApplyTagEffect(attacker.Unit, target.Unit, UnitTagModifierEffect.CritRateShift));
         crit = Mathf.Clamp01(crit + TieredTraits.Amount(attacker.Unit, TierEffect.CriticalChance) - CompanyInjuries.CriticalPenalty(attacker.Unit));
-        return chance * ((1 - crit) * attacker.PreviewWeaponDamageAgainstTarget(target, false, opportunity: true) +
-            crit * attacker.PreviewWeaponDamageAgainstTarget(target, false, attacker.ResultDamageMultiplier(target, 2), true)) +
-            graze * attacker.PreviewWeaponDamageAgainstTarget(target, false, attacker.ResultDamageMultiplier(target, 3), true);
+        return chance * ((1 - crit) * attacker.PreviewWeaponDamageAgainstTarget(target, ranged, opportunity: opportunity) +
+            crit * attacker.PreviewWeaponDamageAgainstTarget(target, ranged, attacker.ResultDamageMultiplier(target, 2), opportunity)) +
+            graze * attacker.PreviewWeaponDamageAgainstTarget(target, ranged, attacker.ResultDamageMultiplier(target, 3), opportunity);
     }
 
-    internal static float RouteRisk(Actor_Unit actor, Vec2i start, IList<PathNode> route, int budget, out int cost)
+    internal static float AIRouteRisk(Actor_Unit actor, Vec2i start, IList<PathNode> route, out int cost)
     {
         float risk = 0;
         cost = 0;
         Vec2i position = start;
         foreach (var node in route)
         {
-            int step = MoveCost(actor, node);
-            if (cost + step > budget) break;
-            foreach (var enemy in Threats(actor, position)) risk += ExpectedDamage(enemy, actor);
-            cost += step;
+            foreach (var enemy in AIThreats(actor, position)) risk += ExpectedDamage(enemy, actor);
+            cost += MoveCost(actor, node);
             position = new Vec2i(node.X, node.Y);
         }
         return risk;
+    }
+
+    internal static bool AIRouteRiskAllowed(Actor_Unit actor, IList<PathNode> route, float maximumRisk)
+    {
+        int cost;
+        return AIRouteRisk(actor, actor.Position, route, out cost) <= maximumRisk + .01f;
     }
 
     internal static bool RouteAllowed(Actor_Unit actor, IList<PathNode> route, Actor_Unit target)
@@ -176,7 +200,7 @@ internal sealed class OpportunityAttacks
         {
             budget -= MoveCost(actor, node);
             if (budget < 0) break;
-            if (Threats(actor, from).Any()) return target != null && CanAffordCharge(actor, target, route);
+            if (AIThreats(actor, from).Any()) return target != null && CanAffordCharge(actor, target, route);
             from = new Vec2i(node.X, node.Y);
         }
         return true;
@@ -187,7 +211,7 @@ internal sealed class OpportunityAttacks
         if (!CanAct(target) || !TacticalUtilities.TreatAsHostile(actor, target) || route == null || route.Count == 0)
             return false;
         int cost;
-        float risk = RouteRisk(actor, actor.Position, route, int.MaxValue, out cost);
+        float risk = AIRouteRisk(actor, actor.Position, route, out cost);
         var end = route[route.Count - 1];
         // Reserve one real AP for the legal ordinary melee attack at the endpoint.
         if (cost >= actor.Movement || new Vec2i(end.X, end.Y).GetNumberOfMovesDistance(target.Position) != 1 ||

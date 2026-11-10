@@ -1,4 +1,6 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Verify background High Scores loading against large synthetic archives isolated under Logs.
+// 2026-11-09: Pass the optional enemy flag explicitly in synthetic reflected character creation.
 // 2026-11-06: Verify spell hazard ownership across a real battle save and restore (spec 40C).
 // 2026-11-06: Check queued autosaves, detached capture and player-turn cadence using isolated synthetic saves.
 // 2026-11-03: Authorized synthetic save/restore checks in the real Unity battle runtime (spec 19).
@@ -22,8 +24,10 @@ public static class CompanySavePersistenceAudit
     static IEnumerator steps;
     static double started;
     static readonly List<string> checks = new List<string>();
-    [Serializable] public class Report { public bool passed; public string error, directory; public List<string> checks; }
+    [Serializable] public class HistoryScaleRow { public int recordsRead, corruptRecords; public double firstOpenMilliseconds, repeatOpenMilliseconds; }
+    [Serializable] public class Report { public bool passed; public string error, directory; public List<string> checks; public List<HistoryScaleRow> historyScale; }
     static string directory;
+    static readonly List<HistoryScaleRow> historyScale = new List<HistoryScaleRow>();
     static CompanySavePersistenceAudit() { EditorApplication.update += Update; }
     public static void Run()
     {
@@ -51,8 +55,10 @@ public static class CompanySavePersistenceAudit
     static void Finish(Exception ex)
     {
         SessionState.SetBool(Key, false);
-        var report = new Report { passed = ex == null, error = ex == null ? null : ex.ToString(), directory = directory, checks = checks };
-        File.WriteAllText(Environment.GetCommandLineArgs().Contains("-spellReview") ? "Logs/spells40c-save-result.json" : "Logs/save41-runtime-result.json", JsonUtility.ToJson(report, true));
+        var report = new Report { passed = ex == null, error = ex == null ? null : ex.ToString(), directory = directory, checks = checks, historyScale = historyScale };
+        string resultPath = Environment.GetCommandLineArgs().Contains("-historyArchiveReview") ? "Logs/highscores-scale-result.json" :
+            Environment.GetCommandLineArgs().Contains("-spellReview") ? "Logs/spells40c-save-result.json" : "Logs/save41-runtime-result.json";
+        File.WriteAllText(resultPath, JsonUtility.ToJson(report, true));
         Debug.Log("Company save audit: " + (ex == null ? "PASS" : ex.ToString()));
         SessionState.SetInt(Key + ".exit", ex == null ? 1 : 2);
         EditorApplication.isPlaying = false;
@@ -89,9 +95,15 @@ public static class CompanySavePersistenceAudit
         Set(Type("CompanyCampaignSave"), "DiagnosticDirectory", directory);
         Directory.CreateDirectory(directory);
         var view = Get(gm.Start_Mode, "CompanySaveView");
+        if (Environment.GetCommandLineArgs().Contains("-historyArchiveReview"))
+        {
+            var archiveSteps = HistoryArchiveScale(view);
+            while (archiveSteps.MoveNext()) yield return archiveSteps.Current;
+            yield break;
+        }
         Expect(!((CompanyCampaignView)view).IsOpen, "Opening the load browser does not expose an uninitialized campaign page");
         var state = Call(Type("CompanyCampaign"), "Generate", 173, false);
-        var leader = Call(Type("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1);
+        var leader = Call(Type("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1, false);
         Call(Type("CompanyEconomy"), "Begin", state, leader);
         var town = List(state, "Towns").Cast<object>().Single(t => (int)Get(t, "Tile") == (int)Get(state, "Position"));
         foreach (var candidate in ((IEnumerable)Call(Type("CompanyEconomy"), "Offers", state, town)).Cast<object>().Take(2).ToArray())
@@ -250,6 +262,60 @@ public static class CompanySavePersistenceAudit
         Call(browser, "Render");
         Expect(CompanyCampaignSave.Hydrations == beforeCatalog, "Browser redraw reuses its summary catalog");
         File.WriteAllText(Path.Combine(directory, "browser-open-time.txt"), openTimer.Elapsed.TotalMilliseconds + " ms");
+    }
+    static IEnumerator HistoryArchiveScale(object view)
+    {
+        directory = Path.GetFullPath("Logs/highscores-scale-" + Guid.NewGuid().ToString("N"));
+        Set(Type("CompanyCampaignSave"), "DiagnosticDirectory", directory);
+        string historyDirectory = Path.Combine(directory, "HighScores");
+        Directory.CreateDirectory(historyDirectory);
+        var missions = Get(view, "missions");
+        int created = 0;
+        foreach (int target in new[] { 100, 1000, 5000 })
+        {
+            for (; created < target; created++)
+            {
+                string endingId = Guid.NewGuid().ToString("N");
+                string campaignId = Guid.NewGuid().ToString("N");
+                string record = "{\"Schema\":1,\"CampaignId\":\"" + campaignId + "\",\"EndingId\":\"" + endingId +
+                    "\",\"CompanyName\":\"Synthetic Company " + created + "\",\"LeaderName\":\"Test Leader\",\"EndReason\":\"Synthetic record\"," +
+                    "\"EndingKind\":\"Retired\",\"Day\":" + created + ",\"ScoreFormulaVersion\":\"40E-2\",\"Score\":{\"FinalScore\":" + created +
+                    ",\"ReputationPoints\":0,\"DaysPoints\":0,\"MercenaryLossPenalty\":0,\"LeaderDigestionPenalty\":0,\"BeforeWipeoutMultiplier\":0,\"WipeoutMultiplier\":1}," +
+                    "\"Memorial\":[],\"MercenariesLost\":0,\"LeaderDigestions\":0}";
+                File.WriteAllText(Path.Combine(historyDirectory, endingId + ".score"), record);
+                if (created % 250 == 249) yield return null;
+            }
+
+            var row = new HistoryScaleRow { recordsRead = target };
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            Call(missions, "HighScores", 0, true);
+            timer.Stop(); row.firstOpenMilliseconds = timer.Elapsed.TotalMilliseconds;
+            Expect(row.firstOpenMilliseconds < 250, "High Scores opens without waiting for the " + target + "-record archive read");
+            while ((bool)Get(missions, "HistoryLoadPending")) yield return null;
+
+            timer.Restart();
+            Call(missions, "HighScores", 0, true);
+            timer.Stop(); row.repeatOpenMilliseconds = timer.Elapsed.TotalMilliseconds;
+            Expect(row.repeatOpenMilliseconds < 250, "High Scores reopens without waiting for the " + target + "-record archive read");
+            while ((bool)Get(missions, "HistoryLoadPending")) yield return null;
+
+            var catalog = Get(missions, "historyCatalog");
+            var records = List(catalog, "Records").Cast<object>().ToArray();
+            var ordered = ((IEnumerable)Get(missions, "historyRecords")).Cast<object>().ToArray();
+            Expect(records.Length == target, "High Scores reads all " + target + " synthetic records");
+            Expect(ordered.Length > 0 && (int)Get(ordered[0], "Day") == target - 1,
+                "High Scores ordering keeps the highest-scoring synthetic company first at " + target + " records");
+            row.corruptRecords = (int)Get(catalog, "CorruptRecords");
+            historyScale.Add(row);
+            yield return null;
+        }
+
+        File.WriteAllText(Path.Combine(historyDirectory, "synthetic-corrupt.score"), "not a score record");
+        Call(missions, "HighScores", 0, true);
+        while ((bool)Get(missions, "HistoryLoadPending")) yield return null;
+        var withCorrupt = Get(missions, "historyCatalog");
+        Expect(List(withCorrupt, "Records").Count == 5000 && (int)Get(withCorrupt, "CorruptRecords") == 1,
+            "One corrupt score record is skipped without hiding the 5000 valid records");
     }
     static IEnumerable BackgroundChecks(CompanyCampaign state, CompanyCampaignView view)
     {

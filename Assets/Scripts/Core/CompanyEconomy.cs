@@ -1,7 +1,10 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Migrate completed boss contracts by releasing their generated enemy records (mission follow-up).
+// 2026-11-09: Keep generated campaign spellbooks and NaturalCaster spells within the character's power tier.
 // 2026-11-08: Rebind generic tiered weapon labels in saved company inventory.
 // 2026-11-08: Mark upkeep insolvency as a uniquely identified 40E ending (spec 40E).
 // 2026-11-08: Enroll existing campaigns into calendar difficulty without backdating pressure (spec 40F).
+// 2026-11-08: Clear only unaccepted legacy offer rosters for deferred enemy generation (spec 09 follow-up).
 // 2026-11-07: Persist Grudge raises on level-ups and preview their next wage (spec 40D).
 // 2026-11-06: Generate reputation-eligible spellbooks for experienced mages (spec 40C).
 // Added by the VoreWar mercenary-company conversion fork.
@@ -31,7 +34,7 @@ internal static class CompanyEconomy
         try { int seed = state.Next(int.MaxValue); State.Rand = new Rand(seed); UnityEngine.Random.InitState(seed); return operation(); }
         finally { State.Rand = old; UnityEngine.Random.state = unity; }
     }
-    internal static CompanyCharacter Create(CompanyCampaign state, Race race, int focus, bool leader, int level = 1)
+    internal static CompanyCharacter Create(CompanyCampaign state, Race race, int focus, bool leader, int level = 1, bool enemy = false)
     {
         if (!SpeciesPolicy.IsAllowed(race, leader ? SpeciesUse.Leader : SpeciesUse.Mercenary)) throw new InvalidOperationException("That species is not enabled for recruitment.");
         return Random(state, () =>
@@ -46,6 +49,7 @@ internal static class CompanyEconomy
             if (leader) foreach (var stat in WarbandStats.Active) unit.SetStatBase(stat, unit.GetStatBase(stat) + 3);
             for (int i = 1; i < level; i++) unit.LevelUp((Stat)(focus == 1 ? (int)Stat.Agility : focus == 2 ? (int)Stat.Intelligence : (int)Stat.Strength));
             if (level > 1) unit.SetExp(unit.GetExperienceRequiredForLevel(level - 1));
+            FitGeneratedSpellsToLevel(state, unit, level);
             string weaponId = level == 1 ? (focus == 1 ? "weapon.bow" : "weapon.mace") :
                 CompanyEquipment.Generated(state, focus == 1 ? CompanySlot.Ranged : CompanySlot.Melee, level).Id;
             Item weapon = CompanyEquipment.Create(weaponId);
@@ -55,9 +59,9 @@ internal static class CompanyEconomy
                 unit.SetItem(CompanyEquipment.Create("spell.bolt"), (int)CompanySlot.Spell1);
                 if (level >= 3)
                 {
-                    int maxTier = level >= 10 ? 3 : level >= 5 ? 2 : 1;
-                    var books = CompanyEquipment.Available(state).Where(d => d.Slot == CompanySlot.Spell1 &&
-                        d.Tier <= maxTier && d.Id != "spell.bolt").ToArray();
+                    int maxTier = CompanyEquipment.SpellTierForLevel(level);
+                    var books = CompanyEquipment.Spellbooks(state, maxTier, enemy)
+                        .Where(d => d.Id != "spell.bolt" && (!enemy || d.SpellPowerTier == maxTier)).ToArray();
                     if (books.Length > 0) unit.SetItem(CompanyEquipment.Create(books[state.Next(books.Length)].Id), (int)CompanySlot.Spell2);
                 }
             }
@@ -65,6 +69,26 @@ internal static class CompanyEconomy
             if (level >= 6) { var armor = CompanyEquipment.Generated(state, state.Next(2) == 0 ? CompanySlot.Legs : CompanySlot.Arms, level); unit.SetItem(CompanyEquipment.Create(armor.Id), (int)armor.Slot); }
             unit.UpdateSpells(); unit.Health = unit.MaxHealth; unit.RestoreManaPct(1);
             return record;
+        });
+    }
+    static void FitGeneratedSpellsToLevel(CompanyCampaign state, Unit unit, int level)
+    {
+        int maxTier = CompanyEquipment.SpellTierForLevel(level);
+        if (unit.HasTrait(Traits.NaturalCaster))
+        {
+            var naturalCasterSpells = new[] { SpellTypes.Fireball, SpellTypes.LightningBolt, SpellTypes.PowerBolt, SpellTypes.Poison };
+            unit.InnateSpells.RemoveAll(type => naturalCasterSpells.Contains(type));
+            var eligible = naturalCasterSpells.Where(type =>
+            {
+                Spell spell;
+                return SpellList.SpellDict.TryGetValue(type, out spell) && spell.Tier > 0 && spell.Tier <= maxTier;
+            }).ToArray();
+            if (eligible.Length > 0) unit.InnateSpells.Add(eligible[state.Next(eligible.Length)]);
+        }
+        unit.InnateSpells.RemoveAll(type =>
+        {
+            Spell spell;
+            return SpellList.SpellDict.TryGetValue(type, out spell) && spell.Tier > maxTier;
         });
     }
     internal static void Begin(CompanyCampaign state, CompanyCharacter leader)
@@ -138,6 +162,25 @@ internal static class CompanyEconomy
             // Start the protected period on the current saved day; never punish a returning campaign for elapsed time.
             state.CalendarDifficultyStartDay = state.ElapsedDays;
             state.CompanyRulesVersion = 5;
+        }
+        if (state.CompanyRulesVersion < 6)
+        {
+            foreach (var contract in state.Contracts.Where(c => c.Status == CompanyContractStatus.Offered))
+            {
+                var offeredIds = new HashSet<string>(contract.EnemyIds ?? new List<string>());
+                state.Characters.RemoveAll(c => offeredIds.Contains(c.Id));
+                contract.EnemyIds = new List<string>();
+                contract.DefeatedIds = new List<string>();
+                contract.Power = 0;
+            }
+            state.CompanyRulesVersion = 6;
+        }
+        if (state.CompanyRulesVersion < 7)
+        {
+            foreach (var contract in state.Contracts.Where(c => c.Status == CompanyContractStatus.Completed &&
+                c.Objective == CompanyContractObjective.RoutBoss).ToArray())
+                CompanyContracts.ReleaseCompletedBossForce(state, contract);
+            state.CompanyRulesVersion = 7;
         }
         foreach (var c in state.Characters)
         {

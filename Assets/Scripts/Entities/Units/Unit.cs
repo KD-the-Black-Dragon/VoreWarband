@@ -1,7 +1,9 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Remove retired Icicle from NaturalCaster and replace redundant Dragon Pyre with Cinder Field.
 // 2026-11-08: Rebind loaded company weapon names and native art families from stable catalog IDs.
 // 2026-11-08: Persist the last weapon category used by company campaign characters.
 // 2026-11-08: Refresh saved company gear display names from the current catalog without changing item values.
+// 2026-11-09: Release a unit's living occupants as soon as battle HP downs it (tactical AI follow-up).
 // 2026-11-07: Preserve inborn traits through campaign changes and disable size alteration (spec 40D).
 // 2026-11-07: Keep Grudge tiers distinct while applying permanent post-battle traits (spec 40D).
 // 2026-11-07: Record lasting battle damage, incapacitation and mana use for post-battle evidence (spec 40D).
@@ -130,8 +132,14 @@ public class Unit
                 else if (value > health && !lastingHealing) TemporaryHealth += value - health;
                 if (value <= 0 && Type != UnitType.Summon)
                 {
+                    bool newlyDowned = !Downed;
                     health = 0; Downed = true; TemporaryHealth = 0;
                     CompanyPostBattleTraits.RecordReducedToZero(this);
+                    if (newlyDowned)
+                    {
+                        var actor = TacticalUtilities.Units?.FirstOrDefault(candidate => ReferenceEquals(candidate.Unit, this));
+                        actor?.HandleDownedTransition();
+                    }
                     return;
                 }
             }
@@ -215,10 +223,17 @@ public class Unit
     internal void SetLabResources(int lasting, int temporary, int mana)
     {
         if (!DeveloperBattleLab.IsOpen) throw new InvalidOperationException("Developer lab is not open.");
+        bool wasDowned = Downed;
         lasting = Math.Max(0, Math.Min(MaxHealth, lasting));
         TemporaryHealth = Math.Max(0, Math.Min(MaxHealth - lasting, temporary));
         health = lasting + TemporaryHealth; Mana = Math.Max(0, Math.Min(MaxMana, mana));
         Downed = health == 0; BattleActive = true;
+        if (!wasDowned && Downed)
+        {
+            CompanyPostBattleTraits.RecordReducedToZero(this);
+            var actor = TacticalUtilities.Units?.FirstOrDefault(candidate => ReferenceEquals(candidate.Unit, this));
+            actor?.HandleDownedTransition();
+        }
     }
     internal void ClampInjuryMana() { Mana = Math.Min(Mana, MaxMana); }
 
@@ -892,18 +907,17 @@ public class Unit
         {
             int rand = State.Rand.Next(3);
             if (rand == 0) InnateSpells.Add(SpellTypes.IceBlast);
-            if (rand == 1) InnateSpells.Add(SpellTypes.Pyre);
+            if (rand == 1) InnateSpells.Add(SpellTypes.CinderField);
             if (rand == 2) InnateSpells.Add(SpellTypes.LightningBolt);
         }
 
         if (HasTrait(Traits.NaturalCaster))
         {
-            int rand = State.Rand.Next(5);
-            if (rand == 0) InnateSpells.Add(SpellTypes.Icicle);
-            if (rand == 1) InnateSpells.Add(SpellTypes.Fireball);
-            if (rand == 2) InnateSpells.Add(SpellTypes.LightningBolt);
-            if (rand == 3) InnateSpells.Add(SpellTypes.PowerBolt);
-            if (rand == 4) InnateSpells.Add(SpellTypes.Poison);
+            int rand = State.Rand.Next(4);
+            if (rand == 0) InnateSpells.Add(SpellTypes.Fireball);
+            if (rand == 1) InnateSpells.Add(SpellTypes.LightningBolt);
+            if (rand == 2) InnateSpells.Add(SpellTypes.PowerBolt);
+            if (rand == 3) InnateSpells.Add(SpellTypes.Poison);
         }
 
         RandomSkills();

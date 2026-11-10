@@ -1,6 +1,8 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-09: Advance campaign rules version for pruning paid boss-contract forces from saved campaigns (mission follow-up).
 // 2026-11-08: Persist company identity and terminal-history state (spec 40E).
 // 2026-11-08: Persist the calendar-difficulty enrollment day for safe campaign migration (spec 40F).
+// 2026-11-08: Version saved contracts for deferred enemy generation at first battle entry (spec 09 follow-up).
 // 2026-11-07: Persist permanent Grudge wage raises after post-battle events (spec 40D).
 // 2026-11-06: Keep action rollback in memory and remove action-level autosave work.
 // Modified for the VoreWar mercenary-company conversion.
@@ -96,7 +98,7 @@ internal sealed class CompanyCampaign
     public string SaveSlot, SaveLabel;
     public int SaveKind;
 
-    public int CompanyRulesVersion = 5;
+    public int CompanyRulesVersion = 7;
     // Existing saves enroll here on upgrade, so loading them cannot jump straight into late pressure.
     public int CalendarDifficultyStartDay;
     public bool LeaderRevival = true;

@@ -25,7 +25,7 @@ Status: Implemented; provisional gameplay values await grouped player review. No
 - Last active survivor: starting force has at least four company fighters and a surviving mercenary was the only active company member at some point.
 - Damage over normal maximum HP without downing, and taking more incoming opportunity attacks than ordinary attacks, are separate exceptional events.
 - Majority-downing requires at least six enemies. Rate comparisons require at least five attempts per compared mercenary; current event list compares melee/ranged hit rates and melee/ranged critical rates. Grazes count as neither hits nor criticals but their damage still counts in damage totals. Highest damage and mana-use comparisons require at least two eligible subjects and a nonzero result.
-- Boss digestion is intentionally stubbed out until boss-bearing contracts exist.
+- Boss digestion outcomes are now connected to boss contracts through the contract's recorded boss character ID; only digestion of that marked boss qualifies for the boss-digestion occurrence.
 
 ## Grouped player review
 

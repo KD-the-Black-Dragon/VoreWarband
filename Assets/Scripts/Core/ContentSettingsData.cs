@@ -7,6 +7,8 @@
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 // Defaults and loading logic are extracted from the upstream ContentSettings component.
 // 2026-11-03: Implement four active stats and agreed combat rules (spec 29).
+// 2026-11-08: Lock downed-predator auto-regurgitation to a 100% chance.
+// 2026-11-08: Lock provisional absorption tuning and enable enemy belly-rub preference by default (balance item 1).
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -102,7 +104,7 @@ internal static class ContentSettingsData
         ["Cumstains"] = true,
         ["BurpOnDigest"] = false,
         ["FartOnAbsorb"] = false,
-        ["CanUseStomachRubOnEnemies"] = false,
+        ["CanUseStomachRubOnEnemies"] = true,
         ["DayNightEnabled"] = false,
         ["DayNightCosmetic"] = false,
         ["DayNightSchedule"] = true,
@@ -199,8 +201,8 @@ internal static class ContentSettingsData
         world.FartFraction = .1f;
         world.WeightGainFraction = .5f;
         world.DigestionSpeedMult = 1;
-        world.AbsorbSpeedMult = 1;
-        world.AbsorbResourceMod = 1;
+        world.AbsorbSpeedMult = 1.25f;
+        world.AbsorbResourceMod = 0.5f;
         world.BellyRubEffMult = 1;
         world.BellyRubsPerTurn = 1;
         world.DigestionRamp = 0;
@@ -213,7 +215,7 @@ internal static class ContentSettingsData
         world.DigestionFlatDmg = 0;
         world.DigestionGraceTurns = 0;
         world.SurrenderedPredEscapeMult = 1;
-        world.SurrenderedPredAutoRegur = 0;
+        world.SurrenderedPredAutoRegur = 1f;
         world.ArmyMP = 3;
         world.ScoutMP = 3;
         world.ScoutMax = 4;

@@ -1,4 +1,5 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Recognize digestion of a contract's explicitly marked boss in post-battle events (campaign mission expansion).
 // 2026-11-07: Record battle evidence and settle balanced post-battle trait outcomes (spec 40D).
 // 2026-11-07: Use the retained Cowardly enum identity for the displayed Opossum trait in outcomes.
 // See CHANGES.md for the fork's change record and License.txt for GPL-3.0 terms.
@@ -197,6 +198,20 @@ internal static class CompanyPostBattleTraits
         var company = participants.Where(p => !p.IsLeader).ToArray();
         int enemyCount = campaign.Battle.InitialEnemyCount;
         var leader = participants.FirstOrDefault(p => p.IsLeader);
+        if (!string.IsNullOrEmpty(campaign.Battle.ContractId))
+        {
+            var bossContract = campaign.Contracts.FirstOrDefault(c => c.Id == campaign.Battle.ContractId &&
+                c.Objective == CompanyContractObjective.RoutBoss && !string.IsNullOrEmpty(c.BossCharacterId));
+            var boss = bossContract == null ? null : campaign.Characters.FirstOrDefault(c => c.Id == bossContract.BossCharacterId);
+            if (boss != null && boss.Unit.Digested && boss.Unit.KilledBy != null)
+            {
+                var killer = participants.FirstOrDefault(p => ReferenceEquals(p.Source.Unit, boss.Unit.KilledBy));
+                if (killer != null && killer.IsLeader && eligible.Count > 0)
+                    AddCandidates(result, 0, eligible, "the company leader digested the contract boss", null, new[] { Traits.Grudge }, true);
+                else if (killer != null && eligible.Any(p => p.Id == killer.Id))
+                    Add(result, 0, killer.Id, "digested the contract boss", DigestGood, DigestBad);
+            }
+        }
         if (enemyCount >= 6)
         {
             int highestDigestions = participants.Max(p => p.Source.Unit.EnemiesDigestedThisBattle);

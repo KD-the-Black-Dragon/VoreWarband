@@ -3,6 +3,7 @@
 // 2026-11-06: Keep phase-40B grouped regression evidence separate from earlier reviews.
 // 2026-11-06: Keep the 40A grouped regression result separate from accepted earlier evidence (spec 40A).
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-09: Pass the optional enemy flag explicitly in synthetic reflected character creation.
 // 2026-11-05: Preserve separate grouped regression evidence for injury validation phase D.
 // 2026-11-05: Preserve separate grouped regression evidence for display/input phase C.
 // 2026-11-05: Preserve separate grouped regression evidence for economy phase B.
@@ -119,7 +120,7 @@ public static class TraitCurationAudit
             CheckWorld(gm,Get(gm.Start_Mode,"CompanySaveView"));yield break;
         }
         var state = Call(Type("CompanyCampaign"), "Generate", 173, false);
-        var leader = Call(Type("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1);
+        var leader = Call(Type("CompanyEconomy"), "Create", state, Race.Lizards, 2, true, 1, false);
         Call(Type("CompanyEconomy"), "Begin", state, leader);
         var view = Get(gm.Start_Mode, "CompanySaveView");
         Call(view, "Install", state);
@@ -330,7 +331,7 @@ public static class TraitCurationAudit
     static void CheckMerchant(GameManager gm,object view)
     {
         var state=Call(Type("CompanyCampaign"),"Generate",918,false);
-        var leader=Call(Type("CompanyEconomy"),"Create",state,Race.Gnolls,0,true,1);Call(Type("CompanyEconomy"),"Begin",state,leader);
+        var leader=Call(Type("CompanyEconomy"),"Create",state,Race.Gnolls,0,true,1,false);Call(Type("CompanyEconomy"),"Begin",state,leader);
         Call(view,"Install",state);var ui=Get(view,"management");Call(ui,"Shop",0);
         var page=(GameObject)Get(ui,"Page");
         foreach(var label in new[]{"All","Helmet","Torso Armor","Leg Armor","Arm Armor","Accessory","Melee Weapon","Ranged Weapon","Spells"})
@@ -409,7 +410,7 @@ public static class TraitCurationAudit
         Set(state,"Reputation",0);Set(ui,"shopCategory",5);Call(ui,"Shop",1000);
         Expect(page.GetComponentsInChildren<UnityEngine.UI.Text>().Any(t=>t.text.StartsWith("Mace —")),"Merchant clamps stale page after reputation loss");
         var starter=Call(Type("CompanyCampaign"),"Generate",456,false);
-        var leader=Call(economy,"Create",starter,Race.Lizards,2,true,1);Call(economy,"Begin",starter,leader);
+        var leader=Call(economy,"Create",starter,Race.Lizards,2,true,1,false);Call(economy,"Begin",starter,leader);
         var candidates=List(starter,"Characters").Cast<object>().Where(c=>Get(c,"Employment").ToString()=="Candidate").ToArray();
         var prices=candidates.Select(c=>(int)Call(economy,"HirePrice",starter,c)).OrderBy(x=>x).ToArray();
         int initial=(int)Get(starter,"Gold");
@@ -865,7 +866,7 @@ public static class TraitCurationAudit
         for(int seed=71;seed<76;seed++)
         {
             var state=Call(Type("CompanyCampaign"),"Generate",seed,false);
-            var leader=Call(Type("CompanyEconomy"),"Create",state,Race.Lizards,2,true,1);Call(Type("CompanyEconomy"),"Begin",state,leader);
+            var leader=Call(Type("CompanyEconomy"),"Create",state,Race.Lizards,2,true,1,false);Call(Type("CompanyEconomy"),"Begin",state,leader);
             var offers=List(state,"Contracts").Cast<object>().ToArray();Expect(offers.Length>=2,"Starter contracts fill fixed power band: seed "+seed);
             foreach(var c in offers)
             {
@@ -972,7 +973,7 @@ public static class TraitCurationAudit
         Expect((int)Get(upgraded,"DailyActions")==10 && (int)Get(upgraded,"Actions")==4,"Existing campaign action allowance and partial-day progress are preserved");
         Call(view,"Open",gm.Start_Mode);Call(view,"Install",legacy);
         Expect(oldTerrain.SequenceEqual((int[])Get(legacy,"Terrain")) && oldTowns.SequenceEqual(List(legacy,"Towns").Cast<object>().Select(t=>(int)Get(t,"Tile"))),"Opening legacy geography does not regenerate towns or terrain");
-        var leader=Call(Type("CompanyEconomy"),"Create",sample,Race.Avians,1,true,1);Call(Type("CompanyEconomy"),"Begin",sample,leader);Call(view,"Install",sample);
+        var leader=Call(Type("CompanyEconomy"),"Create",sample,Race.Avians,1,true,1,false);Call(Type("CompanyEconomy"),"Begin",sample,leader);Call(view,"Install",sample);
         Canvas.ForceUpdateCanvases();Call(view,"RefreshMapTiles",true);
         var graphics=((Array)Get(view,"roadGraphics")).Cast<object>().ToArray();var indices=(int[])Get(view,"tileIndices");
         Expect(graphics.Length==348 && ((Array)Get(view,"tiles")).Length==348,"Large map uses a bounded348-tile display pool");

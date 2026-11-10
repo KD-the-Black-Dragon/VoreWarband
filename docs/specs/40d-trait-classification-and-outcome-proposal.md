@@ -76,7 +76,7 @@ These are the working reward pools. The event must first qualify under the occur
 | Leader digests an unusually large share | No Good counterpart; this occurrence is workable only when Bad is selected | Grudge I–III for an eligible surviving mercenary |
 | Mercenary escapes/is freed 3+ times and has the highest count | EscapeArtist, InvigoratingEscape | Timid, Opossum |
 | Mercenary sustains 3+ injuries | Resilient, Tenacious | WeakBones, Frail |
-| Digests a marked boss (future boss-contract phase only) | GiantSlayer, or the matching melee/ranged/magic damage family | Opposing weakness family for the attack type that defeated the boss |
+| Digests a marked boss | Frenzy, WideMaw, FastDigestion | Nauseous, WeakGullet, SlowDigestion |
 | More than half of deployed company combatants are digested | Resilient, Tenacious, PackTactics | Timid, Opossum, EasyPrey |
 | Mercenary is adjacent to a digestion at least twice | Berserk, TasteForBlood | Timid, Opossum, PoorConstitution |
 | Mercenary is the last active company member standing and survives | Resilient, Tenacious, Perseverance | Timid, Opossum, PoorConstitution |
@@ -128,7 +128,7 @@ For scale, the current normal wage increase from level 1 to 2 is 5 gold, so Grud
 - Tier III contributes three points everywhere. A selected downgrade reduces a tier by one step, and tier I or an untiered trait may be removed only after the weighted total reaches eight. The current reduction chance starts at 5% at eight points and rises 5 percentage points per additional point, capped at 30%.
 - The code uses a five-attempt minimum for rate comparisons; random occurrence/tie selection; at least six enemies for majority events; at least four deployed company fighters for the last-active event; and strictly more than 50% company losses. These are provisional implementation choices, not final balance values.
 - Grudge I/II/III currently adds 25%/50%/100% of a future normal level-up wage increase (round up, at least one gold for a positive raise). Each earned raise is permanent after Grudge is removed and affects pay from the next regular payday.
-- Boss-related events remain disabled until boss-bearing contracts are designed. No generic event fallback is used. If no occurrence or polarity-valid trait outcome remains, the battle has no post-battle event.
+- Boss digestion is recognized for explicitly marked boss contracts. No generic event fallback is used. If no occurrence or polarity-valid trait outcome remains, the battle has no post-battle event.
 
 The main phase specification describes the event sequence, saved evidence and remaining grouped player acceptance. No build or gameplay tests have been reported for this implementation yet.
 
