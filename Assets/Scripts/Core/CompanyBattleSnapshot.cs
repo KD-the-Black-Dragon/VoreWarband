@@ -1,4 +1,5 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-10: Preserve and validate the queued independent Grudge event (spec 40D narrative follow-up).
 // 2026-11-07: Preserve battle evidence and settled post-battle events across saves (spec 40D).
 // 2026-11-06: Verify hazard ownership survives battle snapshot restoration (spec 40C).
 // 2026-11-03: Validate canonical company/battle graph identity and exact tactical snapshot preservation (spec 19).
@@ -23,8 +24,8 @@ internal static class CompanyBattleSnapshot
             (state.Battle.EvidenceVersion == 1 && state.Battle.InitialEnemyCount < 1)))
             throw new InvalidOperationException("Invalid saved post-battle evidence version.");
         if (state.Battle != null && (state.Battle.Phase == CompanyBattlePhase.PostBattleEvent && state.Battle.PostBattleEvent == null ||
-            state.Battle.PostBattleEvent != null && (!state.Battle.PostBattleEvent.HasTraitChange || string.IsNullOrEmpty(state.Battle.PostBattleEvent.SubjectId) ||
-                string.IsNullOrEmpty(state.Battle.PostBattleEvent.Description) || !state.Characters.Any(c => c.Id == state.Battle.PostBattleEvent.SubjectId))))
+            state.Battle.Phase == CompanyBattlePhase.PostBattleGrudgeEvent && state.Battle.GrudgeEvent == null ||
+            !ValidPostBattleEvent(state, state.Battle.PostBattleEvent, false) || !ValidPostBattleEvent(state, state.Battle.GrudgeEvent, true)))
             throw new InvalidOperationException("Invalid saved post-battle event.");
         if (!state.InBattle) return;
         var battle = state.Battle;
@@ -41,6 +42,16 @@ internal static class CompanyBattleSnapshot
             if (!ReferenceEquals(actor.SelfPrey.Actor, actor) || !ReferenceEquals(actor.SelfPrey.Unit, actor.Unit) || !battle.Tactical.units.Contains(actor.SelfPrey.Predator))
                 throw new InvalidOperationException("Invalid saved containment links.");
     }
+    static bool ValidPostBattleEvent(CompanyCampaign state, CompanyPostBattleEvent outcome, bool grudge)
+    {
+        if (outcome == null) return true;
+        if (string.IsNullOrEmpty(outcome.SubjectId) || string.IsNullOrEmpty(outcome.Description) ||
+            !state.Characters.Any(c => c.Id == outcome.SubjectId) || outcome.IsGrudgeEvent != grudge)
+            return false;
+        if (!outcome.HasTraitChange) return grudge;
+        if (grudge) return outcome.Trait == Traits.Grudge || outcome.Trait == Traits.GrudgeII || outcome.Trait == Traits.GrudgeIII;
+        return true;
+    }
     internal static void RequirePreserved(CompanyCampaign source, CompanyCampaign copy)
     {
         if (source.InBattle != copy.InBattle) throw new InvalidOperationException("Battle phase changed while saving.");
@@ -49,7 +60,8 @@ internal static class CompanyBattleSnapshot
             source.Battle.EvidenceVersion != copy.Battle.EvidenceVersion || source.Battle.InitialEnemyCount != copy.Battle.InitialEnemyCount ||
             source.Battle.Summary != copy.Battle.Summary ||
             !(source.Battle.DeployedIds == null ? copy.Battle.DeployedIds == null : copy.Battle.DeployedIds != null && source.Battle.DeployedIds.SequenceEqual(copy.Battle.DeployedIds)) ||
-            !CompanyPostBattleEvent.Same(source.Battle.PostBattleEvent, copy.Battle.PostBattleEvent)))
+            !CompanyPostBattleEvent.Same(source.Battle.PostBattleEvent, copy.Battle.PostBattleEvent) ||
+            !CompanyPostBattleEvent.Same(source.Battle.GrudgeEvent, copy.Battle.GrudgeEvent)))
             throw new InvalidOperationException("Battle result or post-battle event changed while saving.");
         if (!source.InBattle) return;
         Validate(copy);

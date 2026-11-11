@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "contexts": {
+    "companyPredator": {
+      "oral": {
+        "action": [],
+        "nearDigestion": [],
+        "digestionProgress": [],
+        "digestionComplete": [],
+        "absorptionComplete": [],
+        "escape": [],
+        "freed": ["{target.display} was freed due to {actor.display} being downed."],
+        "bellyRub": [],
+        "resist": ["{actor.display} failed to swallow {target.display}."],
+        "regurgitated": ["{actor.display} realizes {target.display} is in {actor.his} {stomach} and quickly lets {target.him} out."]
+      },
+      "womb": {
+        "action": [],
+        "nearDigestion": [],
+        "digestionProgress": [],
+        "digestionComplete": [],
+        "absorptionComplete": [],
+        "escape": [],
+        "freed": ["{target.display} was freed due to {actor.display} being downed."],
+        "bellyRub": [],
+        "resist": ["{actor.display} failed to swallow {target.display}."],
+        "regurgitated": ["{actor.display} realizes {target.display} is in {actor.his} womb and quickly lets {target.him} out."]
+      },
+      "cock": {
+        "action": [],
+        "nearDigestion": [],
+        "digestionProgress": [],
+        "digestionComplete": [],
+        "absorptionComplete": [],
+        "escape": [],
+        "freed": ["{target.display} was freed due to {actor.display} being downed."],
+        "bellyRub": [],
+        "resist": ["{actor.display} failed to swallow {target.display}."],
+        "ballMassage": [],
+        "regurgitated": ["{actor.display} realizes {target.display} is in {actor.his} {balls} and quickly lets {target.him} out."]
+      },
+      "anal": {
+        "action": [],
+        "nearDigestion": [],
+        "digestionProgress": [],
+        "digestionComplete": [],
+        "absorptionComplete": [],
+        "escape": [],
+        "freed": ["{target.display} was freed due to {actor.display} being downed."],
+        "bellyRub": [],
+        "resist": ["{actor.display} failed to swallow {target.display}."],
+        "regurgitated": ["{actor.display} realizes {target.display} is in {actor.his} {stomach} and quickly lets {target.him} out."]
+      },
+      "enemySapientPredator": {
+        "oral": {
+          "action": [],
+          "nearDigestion": [],
+          "digestionProgress": [],
+          "digestionComplete": [],
+          "absorptionComplete": [],
+          "escape": [],
+          "freed": ["{target.display} was freed due to {actor.display} being downed."],
+          "bellyRub": [],
+          "resist": ["{actor.display} failed to swallow {target.display}."],
+          "regurgitated": ["{actor.display} realizes an ally is in {actor.his} {stomach} and quickly lets {target.him} out."]
+        },
+        "womb": {
+          "action": [],
+          "nearDigestion": [],
+          "digestionProgress": [],
+          "digestionComplete": [],
+          "absorptionComplete": [],
+          "escape": [],
+          "freed": ["{target.display} was freed due to {actor.display} being downed."],
+          "bellyRub": [],
+          "resist": ["{actor.display} failed to swallow {target.display}."],
+          "regurgitated": ["{actor.display} realizes an ally is in {actor.his} womb and quickly lets {target.him} out."]
+        },
+        "cock": {
+          "action": [],
+          "nearDigestion": [],
+          "digestionProgress": [],
+          "digestionComplete": [],
+          "absorptionComplete": [],
+          "escape": [],
+          "freed": ["{target.display} was freed due to {actor.display} being downed."],
+          "bellyRub": [],
+          "resist": ["{actor.display} failed to swallow {target.display}."],
+          "ballMassage": [],
+          "regurgitated": ["{actor.display} realizes an ally is in {actor.his} {balls} and quickly lets {target.him} out."]
+        },
+        "anal": {
+          "action": [],
+          "nearDigestion": [],
+          "digestionProgress": [],
+          "digestionComplete": [],
+          "absorptionComplete": [],
+          "escape": [],
+          "freed": ["{target.display} was freed due to {actor.display} being downed."],
+          "bellyRub": [],
+          "resist": ["{actor.display} failed to swallow {target.display}."],
+          "regurgitated": ["{actor.display} realizes an ally is in {actor.his} {stomach} and quickly lets {target.him} out."]
+        },
+        "enemyAnimalPredator": {
+          "oral": {
+            "action": [],
+            "nearDigestion": [],
+            "digestionProgress": [],
+            "digestionComplete": [],
+            "absorptionComplete": [],
+            "escape": [],
+            "freed": ["{target.display} was freed due to {actor.display} being downed."],
+            "bellyRub": [],
+            "resist": ["{actor.display} failed to swallow {target.display}."],
+            "regurgitated": ["{actor.display} gags, coughs, and eventually releases {target.display} from {actor.his} {stomach}."]
+          },
+          "womb": {
+            "action": [],
+            "nearDigestion": [],
+            "digestionProgress": [],
+            "digestionComplete": [],
+            "absorptionComplete": [],
+            "escape": [],
+            "freed": ["{target.display} was freed due to {actor.display} being downed."],
+            "bellyRub": [],
+            "resist": ["{actor.display} failed to swallow {target.display}."],
+            "regurgitated": ["{actor.display} whimpers as {actor.he} prematurely releases {target.display} from {actor.his} womb."]
+          },
+          "cock": {
+            "action": [],
+            "nearDigestion": [],
+            "digestionProgress": [],
+            "digestionComplete": [],
+            "absorptionComplete": [],
+            "escape": [],
+            "freed": ["{target.display} was freed due to {actor.display} being downed."],
+            "bellyRub": [],
+            "resist": ["{actor.display} failed to swallow {target.display}."],
+            "ballMassage": [],
+            "regurgitated": ["{actor.display} looks annoyed as {actor.he} allows {target.display} to escape from {actor.his} {balls} without a proper orgasm."]
+          },
+          "anal": {
+            "action": [],
+            "nearDigestion": [],
+            "digestionProgress": [],
+            "digestionComplete": [],
+            "absorptionComplete": [],
+            "escape": [],
+            "freed": ["{target.display} was freed due to {actor.display} being downed."],
+            "bellyRub": [],
+            "resist": ["{actor.display} failed to swallow {target.display}."],
+            "regurgitated": ["{actor.display} gags, coughs, and eventually releases {target.display} from {actor.his} {stomach}."]
+          }
+        }
+      }
+    }
+  }
+}

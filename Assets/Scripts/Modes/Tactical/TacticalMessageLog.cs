@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-11: Resolve vore log lines from editable method/context JSON and persist each rendered line.
 // 2026-11-08: Show native species weapon names in campaign battle logs while retaining generic shop names.
 // 2026-10-30: Replace typed combat prose with neutral functional feedback; remove Human dummy context (spec 04B1).
 // Upstream narrative contributions credited to Tatltuae are retained in this notice.
@@ -63,6 +64,7 @@ public class TacticalMessageLog
         internal string Extra;
         [OdinSerialize] internal string WeaponResult;
         [OdinSerialize] internal bool Opportunity;
+        [OdinSerialize] internal string NarrativeText;
     }
 
 
@@ -213,6 +215,9 @@ public class TacticalMessageLog
     {
         if (action == null)
             return "Battle event unavailable.";
+        string narrativeText;
+        if (InBattleVoreNarratives.TryGetNarrative(action, out narrativeText))
+            return CompleteDescription(action, narrativeText);
         string actor = StoredLogTexts.UnitName(action.Unit);
         string target = StoredLogTexts.UnitName(action.Target);
         string weapon = action.Weapon == null ? "unarmed attack" : action.Unit != null && action.Unit.CompanyLoadout
@@ -364,6 +369,11 @@ public class TacticalMessageLog
                 message = StoredLogTexts.Describe(action, "Unrecognized battle event");
                 break;
         }
+        return CompleteDescription(action, message);
+    }
+
+    private string CompleteDescription(EventLog action, string message)
+    {
         if (ShowOdds && action.Odds > 0)
             message += $" ({Math.Round(action.Odds * 100f, 2)}% success)";
         return action.Opportunity ? "Opportunity attack: " + message : message;
@@ -648,7 +658,7 @@ public class TacticalMessageLog
         UpdateListing();
     }
 
-    public void RegisterTransferFail(Unit predator, Unit prey, float odds)
+    public void RegisterTransferFail(Unit predator, Unit prey, float odds, PreyLocation loc)
     {
         events.Add(new EventLog
         {
@@ -656,6 +666,7 @@ public class TacticalMessageLog
             Unit = predator,
             Target = prey,
             Odds = odds,
+            preyLocation = loc,
         });
         UpdateListing();
     }
@@ -688,14 +699,15 @@ public class TacticalMessageLog
         UpdateListing();
     }
 
-    public void RegisterResist(Unit predator, Unit prey, float odds)
+    public void RegisterResist(Unit predator, Unit prey, PreyLocation loc, float odds)
     {
         events.Add(new EventLog
         {
             Type = MessageLogEvent.Resist,
             Unit = predator,
             Target = prey,
-            Odds = odds
+            Odds = odds,
+            preyLocation = loc
         });
         UpdateListing();
     }

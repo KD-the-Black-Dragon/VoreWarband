@@ -4,6 +4,7 @@
 // 2026-11-07: Persist per-actor evidence for post-battle trait progression (spec 40D).
 // 2026-11-09: Allow AI accuracy previews from proposed tiles without moving the actor (tactical AI review).
 // 2026-11-09: Release all living occupants immediately on every new Downed transition (tactical AI follow-up).
+// 2026-11-10: Record spell activity once per cast for post-battle event eligibility (spec 40D narrative follow-up).
 // 2026-11-06: Use frozen per-character AP and body size (spec 40A).
 // 2026-11-05: Use the shared downed-prey capacity rule in special vore actions.
 // See CHANGES.md and License.txt for GPL-3.0 terms.
@@ -3390,6 +3391,7 @@ public class Actor_Unit
     {
         if (Unit.SpendMana(spell.ManaCost) == false && spell.IsFree != true)
             return false;
+        CompanyPostBattleTraits.RecordSpellCast(this, false);
         Unit.GiveExp(1);
         OnSpellCast(spell, target);
         //if (target != null && target.DefendSpellCheck(spell, this, out float chance) == false)
@@ -3430,6 +3432,7 @@ public class Actor_Unit
             return;
         if (Unit.SpendMana(spell.ManaCost) == false && spell.IsFree != true)
             return;
+        CompanyPostBattleTraits.RecordSpellCast(this, false);
         OnSpellCast(spell, target);
         State.GameManager.SoundManager.PlaySpellCast(spell, this);
         if (target != null)
@@ -3468,6 +3471,7 @@ public class Actor_Unit
     {
         if (Unit.SpendMana(spell.ManaCost) == false && spell.IsFree != true)
             return;
+        CompanyPostBattleTraits.RecordSpellCast(this, true);
         State.GameManager.SoundManager.PlaySpellCast(spell, this);
         OnSpellCast(spell, target);
 
@@ -3554,6 +3558,7 @@ public class Actor_Unit
             return false;
         if (Unit.SpendMana(spell.ManaCost) == false && spell.IsFree != true)
             return false;
+        CompanyPostBattleTraits.RecordSpellCast(this, false);
         OnSpellCast(spell, target);
         bool hit = false;
 

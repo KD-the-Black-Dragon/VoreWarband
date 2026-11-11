@@ -8,6 +8,7 @@
 // 2026-11-01: Label the tactical enemy side as Enemy forces, keeping contract ratings in mission views (09–10 feedback).
 // 2026-11-03: Route save/load to the company browser and pause input while it is open (spec 19).
 // 2026-11-03: Keep Help input modal and close it with Escape without advancing the underlying battle (spec 20).
+// 2026-11-11: Load and validate the editable in-battle vore narrative catalogs at startup.
 // See CHANGES.md for the fork change record and License.txt for GPL-3.0 terms.
 using System.Linq;
 using UnityEngine;
@@ -118,6 +119,7 @@ public class GameManager : MonoBehaviour
         Start_Mode.UI.SetActive(true);
         currentScene = Start_Mode;
         State.GameManager = this;
+        InBattleVoreNarratives.Load();
         Application.wantsToQuit += () => WantsToQuit();
     }
 

@@ -1,4 +1,5 @@
 // Modified for the VoreWar mercenary-company conversion.
+// 2026-11-11: Preserve the contained prey's method when logging failed transfers for narrative lookup.
 // 2026-11-07: Protect inborn traits from assimilation and extraction (spec 40D).
 // 2026-11-07: Record escapes and completed digestions for post-battle event evidence (spec 40D).
 // 2026-11-08: Make absorption 25% faster, halve HP absorption healing, and remove absorption mana recovery (balance item 1).
@@ -3566,6 +3567,7 @@ public class PredatorComponent
 
     private void TransferFail(Prey transfer)
     {
+        PreyLocation transferLocation = Location(transfer);
         FreePrey(transfer, true);
         foreach (Prey preyUnit in balls)
         {
@@ -3575,7 +3577,7 @@ public class PredatorComponent
                 break;
             }
         }
-        TacticalUtilities.Log.RegisterTransferFail(unit, transfer.Unit, .3f);
+        TacticalUtilities.Log.RegisterTransferFail(unit, transfer.Unit, .3f, transferLocation);
     }
 
     public float TransferBulk()

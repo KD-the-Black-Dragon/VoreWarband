@@ -1,4 +1,5 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-10: Persist and sequence the independent leader-glory Grudge notice after the ordinary post-battle event (spec 40D narrative follow-up).
 // 2026-11-09: Prune boss-contract enemies after result and post-battle event settlement (mission follow-up).
 // 2026-11-09: Keep surviving enemies in their actual battle state when a boss objective is completed (campaign mission follow-up).
 // 2026-11-09: Settle boss objectives on downing, digestion or flight before combat cleanup (campaign mission expansion).
@@ -19,7 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // Keep the original serialized enum values stable; append the new phase.
-internal enum CompanyBattlePhase { Deployment = 0, Summary = 1, Revival = 2, Returned = 3, PostBattleEvent = 4 }
+internal enum CompanyBattlePhase { Deployment = 0, Summary = 1, Revival = 2, Returned = 3, PostBattleEvent = 4, PostBattleGrudgeEvent = 5 }
 [Serializable]
 internal sealed class CompanyBattleRecord
 {
@@ -36,6 +37,7 @@ internal sealed class CompanyBattleRecord
     public int WorldTurn;
     public bool WorldNight;
     public CompanyPostBattleEvent PostBattleEvent;
+    public CompanyPostBattleEvent GrudgeEvent;
 }
 [Serializable]
 internal sealed class CompanyMemorial
@@ -230,7 +232,10 @@ internal sealed class CompanyBattleSession
         }
         else if (!paid || (bossRouted && companyRetreatedOrLost)) result.Position = battle.ReturnTile;
         if (!result.Ended)
+        {
             battle.PostBattleEvent = CompanyPostBattleTraits.Resolve(state, result, actors);
+            battle.GrudgeEvent = CompanyPostBattleTraits.ResolveLeaderGloryGrudge(state, result, actors);
+        }
         battle.Summary = (stalemate ? "Stalemate: everyone remaining fled and survived.\n" : "Battle settled.\n") +
             "Enemies defeated: " + (defeated + temporaryEnemies) + "\nMercenaries lost: " + losses.Length + "\n" +
             (contract == null ? "Road encounter settled. No gold or reputation awarded.\n" : paid ?
@@ -248,12 +253,19 @@ internal sealed class CompanyBattleSession
         if (state.Battle.Phase != CompanyBattlePhase.Summary) throw new InvalidOperationException("No battle summary is pending.");
         var leader = state.Characters.Single(c => c.Id == state.LeaderId);
         state.Battle.Phase = !state.Ended && leader.Unit.Digested ? CompanyBattlePhase.Revival :
-            state.Battle.PostBattleEvent != null ? CompanyBattlePhase.PostBattleEvent : CompanyBattlePhase.Returned;
+            state.Battle.PostBattleEvent != null ? CompanyBattlePhase.PostBattleEvent :
+            state.Battle.GrudgeEvent != null ? CompanyBattlePhase.PostBattleGrudgeEvent : CompanyBattlePhase.Returned;
     }
     internal static void AcknowledgePostBattle(CompanyCampaign state)
     {
         if (state.Battle == null || state.Battle.Phase != CompanyBattlePhase.PostBattleEvent || state.Battle.PostBattleEvent == null)
             throw new InvalidOperationException("No post-battle event is pending.");
+        state.Battle.Phase = state.Battle.GrudgeEvent == null ? CompanyBattlePhase.Returned : CompanyBattlePhase.PostBattleGrudgeEvent;
+    }
+    internal static void AcknowledgeGrudge(CompanyCampaign state)
+    {
+        if (state.Battle == null || state.Battle.Phase != CompanyBattlePhase.PostBattleGrudgeEvent || state.Battle.GrudgeEvent == null)
+            throw new InvalidOperationException("No post-battle Grudge event is pending.");
         state.Battle.Phase = CompanyBattlePhase.Returned;
     }
     internal static int RevivalCost(CompanyCampaign state) { return 20 * state.Characters.Single(c => c.Id == state.LeaderId).Unit.Level; }
@@ -266,7 +278,8 @@ internal sealed class CompanyBattleSession
         var town = RevivalTown(state); state.Gold = Math.Max(0, state.Gold - RevivalCost(state)); state.Position = town.Tile;
         state.Reveal(); leader.Digested = false; leader.BattleActive = false; leader.Downed = false;
         leader.TemporaryHealth = 0; leader.Health = leader.MaxHealth; leader.StatusEffects.Clear(); leader.Injuries.Clear();
-        state.Battle.Phase = state.Battle.PostBattleEvent == null ? CompanyBattlePhase.Returned : CompanyBattlePhase.PostBattleEvent;
+        state.Battle.Phase = state.Battle.PostBattleEvent != null ? CompanyBattlePhase.PostBattleEvent :
+            state.Battle.GrudgeEvent != null ? CompanyBattlePhase.PostBattleGrudgeEvent : CompanyBattlePhase.Returned;
         CompanyEconomy.Visit(state, town); // No elapsed days, wages or deadlines advance.
     }
 }

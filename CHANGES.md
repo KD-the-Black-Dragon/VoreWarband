@@ -1,5 +1,45 @@
 # VoreWar fork changes
 
+## 2026-11-11 — Omit selected in-battle narrative stages
+
+- Removed every `greatEscapeKeep`, `greatEscapeFlee`, `manualRegurgulation`, `curseExpires`, `diminishmentExpires`, `birth`, `transferSuccess`, `kissTransfer`, `voreStealSuccess`, and `voreStealFail` entry from `Assets/StreamingAssets/Narrative/InBattleVoreNarratives.json` (162 entries across three contexts). Kept the `regurgitated` entries because automatic ally regurgitation can occur. The other event mechanics and log records remain; if one occurs, the catalog's keyed technical fallback and startup validation warning will indicate the missing text.
+- Reviewed `License.txt` sections 4–5. The JSON change is recorded here rather than with an invalid in-file source comment; existing license, copyright, and attribution notices remain intact. No third-party material was introduced.
+
+## 2026-11-11 — Add editable in-battle vore narrative catalogs
+
+- Modified `Assets/Scripts/Modes/Tactical/TacticalMessageLog.cs`, `Assets/Scripts/Entities/Units/PredatorComponent.cs`, and `Assets/Scripts/Core/GameManager.cs`, and added `Assets/Scripts/Modes/Tactical/Log/InBattleVoreNarratives.cs` with its Unity metadata. The catalog loads at startup, validates required entries/tokens, selects context/method-specific variants without advancing gameplay randomness, and caches each rendered line in the saved tactical event.
+- Routed existing vore-action, containment, digestion, absorption, escape, release, transfer, feeding and related log notices through separate company-predator, enemy-sapient-predator and enemy-animal-predator contexts. Failed-transfer records now retain the containment method needed for correct lookup.
+- Added `Assets/StreamingAssets/Narrative.meta`, `Assets/StreamingAssets/Narrative/InBattleVoreNarratives.json` and its metadata, plus `Assets/StreamingAssets/Narrative/NarrativeSynonyms.json` and its metadata. The narrative arrays are intentionally empty until the curator supplies text; startup reports exact missing entries and the log shows a keyed technical fallback. Added the schema and token guide at `docs/specs/in-battle-vore-narratives-json.md`.
+- Reviewed `License.txt` sections 4–5. Dated modification notices are present on each changed source file; existing copyright, license, attribution and warranty notices remain intact. No third-party code, text, assets or dependencies were introduced. No build or gameplay test was run.
+
+## 2026-11-10 — Apply curator post-battle narratives and activity floors
+
+- Replaced the remaining assistant-drafted post-battle event text with curator-authored passages in `Assets/Scripts/Core/CompanyPostBattleNarratives.cs` (and its Unity metadata file); the single-escape entry uses the milder adaptation the curator approved. The high- and low-melee-hit-rate events have distinct narratives. Added support for capitalized `[His]` pronoun placeholders.
+- Updated `Assets/Scripts/Core/CompanyPostBattleTraits.cs` and `Assets/Scripts/Entities/Units/Actor_Unit.cs` with the approved comparison minimums: 10 melee/ranged attacks, at least half missed for low hit-rate events, 10 successful hits for critical-rate comparisons, five offensive damage spell casts for magic-damage comparisons, and five total spell casts for mana comparisons. Casts count once per cast, not once per target.
+- Updated the 40D spec, implementation notes and resume checkpoint. Reviewed `License.txt` sections 4–5; dated fork notices remain on the source files and existing legal/attribution notices are preserved. No third-party material was introduced. `git diff --check` passed; no build or gameplay test was run.
+
+## 2026-11-10 — Revise post-battle narrative voice
+
+- Revised the assistant-written post-battle event passages in `Assets/Scripts/Core/CompanyPostBattleNarratives.cs` to use plainer, more conversational wording in line with the curator's five examples. The curator's five passages and the mechanical trait notices were left unchanged.
+- Reviewed `License.txt` sections 4–5. The source file retains its fork/addition notice and has a dated description of this revision. No third-party text, code, assets or dependencies were introduced.
+
+## 2026-11-10 — Keep post-battle narrative conditions implicit
+
+- Revised the assistant-written post-battle passages in `Assets/Scripts/Core/CompanyPostBattleNarratives.cs` so they describe a mercenary's reaction without stating event thresholds, rankings, or specific qualifying actions. Curator-written passages and mechanical trait notices remain unchanged.
+- Reviewed `License.txt` sections 4–5. The source file has a dated modification notice; existing notices remain. No third-party text, code, assets or dependencies were introduced.
+
+## 2026-11-10 — Author post-battle event narratives
+
+- Added character-focused prose and separate mechanical trait-change notices for the post-battle occurrence catalog. The curator's five personally written samples remain verbatim; the other event narratives now use the approved aftermath/positive/negative structure and existing unit pronouns.
+- Made leader-glory Grudge a separate saved event that follows the ordinary event and still fires when qualified. It is not part of Good/Bad trait parity. Mercenaries already at Grudge III cannot receive it; if every eligible mercenary is at that tier, the Grudge event is skipped. Boss digestion alone remains a non-event for the leader.
+- Updated `Assets/Scripts/Core/CompanyPostBattleTraits.cs`, `Assets/Scripts/Core/CompanyBattle.cs`, `Assets/Scripts/Core/CompanyBattleSnapshot.cs`, `Assets/Scripts/Subwindows/CompanyMissionsUI.cs`, and added `Assets/Scripts/Core/CompanyPostBattleNarratives.cs` with its Unity metadata. Updated the 40D specification, implementation record, and resume checkpoint.
+- Reviewed `License.txt` sections 4–5. Each modified C# file has a dated fork notice; existing copyright, license, attribution and warranty notices remain intact. The new narrative file is identified as added by this fork. No third-party text, code, assets or dependencies were introduced. `git diff --check` passed; no Unity build or gameplay test was run.
+
+## 2026-11-10 — Remove leader-boss Grudge trigger
+
+- Updated `Assets/Scripts/Core/CompanyPostBattleTraits.cs` so digesting the marked boss does not itself cause a post-battle reaction when the company leader is the eater. An eligible mercenary who digests the boss remains eligible for the normal boss-digestion event; the independent large-digestion Grudge threshold is unchanged.
+- Updated the 09 and 40D specifications, implementation notes and resume checkpoint to match. Reviewed `License.txt` sections 4–5; the dated source notice is present, existing copyright/license/attribution/warranty notices remain, and no third-party material was introduced. No build or gameplay test was run.
+
 ## 2026-11-09 — Release paid boss forces
 
 - Updated `Assets/Scripts/Core/CompanyBattle.cs` and `Assets/Scripts/Core/CompanyContracts.cs` to remove enemy characters and clear the generated roster from a boss contract after payout, battle summary, and post-battle event processing. Other enemies are not marked as fled; their battle outcomes continue to follow normal rules.

@@ -1,4 +1,9 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-10: Exclude Grudge III mercenaries as recipients and skip the notice when none can upgrade (40D follow-up).
+// 2026-11-10: Require meaningful activity samples for mundane performance events (40D narrative follow-up).
+// 2026-11-10: Count actual spell casts for the approved magic-event sample floors (40D narrative follow-up).
+// 2026-11-10: Render authored aftermath narratives and resolve leader-glory Grudge independently (spec 40D narrative follow-up).
+// 2026-11-10: Do not trigger a post-battle reaction when the leader digests the marked boss (40D narrative clarification).
 // 2026-11-09: Recognize digestion of a contract's explicitly marked boss in post-battle events (campaign mission expansion).
 // 2026-11-07: Record battle evidence and settle balanced post-battle trait outcomes (spec 40D).
 // 2026-11-07: Use the retained Cowardly enum identity for the displayed Opossum trait in outcomes.
@@ -19,6 +24,7 @@ internal sealed class CompanyBattleEvidence
     public int MeleeAttempts, MeleeHits, MeleeCriticals, MeleeDamage, MeleeDowns;
     public int RangedAttempts, RangedHits, RangedCriticals, RangedDamage, RangedDowns;
     public int MagicAttempts, MagicHits, MagicDamage, MagicDowns;
+    public int SpellCasts, OffensiveDamageSpellCasts;
     public int ManaSpent;
     public bool WasDowned;
     public bool WasReducedToZero;
@@ -43,6 +49,7 @@ internal sealed class CompanyBattleEvidence
     }
 
     internal void RecordSpell(bool hit) { MagicAttempts++; if (hit) MagicHits++; }
+    internal void RecordSpellCast(bool offensiveDamage) { SpellCasts++; if (offensiveDamage) OffensiveDamageSpellCasts++; }
     internal void RecordIncoming(bool opportunity) { if (opportunity) IncomingOpportunityAttacks++; else IncomingNormalAttacks++; }
     internal void RecordDamage(int amount) { DamageReceived = SaturatingAdd(DamageReceived, amount); }
     internal void RecordDealt(bool ranged, int amount)
@@ -59,7 +66,8 @@ internal sealed class CompanyBattleEvidence
         return StartingMaxHealth >= 0 && Injuries >= 0 && EscapesOrFreed >= 0 && IncomingNormalAttacks >= 0 && IncomingOpportunityAttacks >= 0 &&
             DamageReceived >= 0 && MeleeAttempts >= 0 && MeleeHits >= 0 && MeleeCriticals >= 0 && MeleeDamage >= 0 && MeleeDowns >= 0 &&
             RangedAttempts >= 0 && RangedHits >= 0 && RangedCriticals >= 0 && RangedDamage >= 0 && RangedDowns >= 0 &&
-            MagicAttempts >= 0 && MagicHits >= 0 && MagicDamage >= 0 && MagicDowns >= 0 && ManaSpent >= 0 && AdjacentEnemyDigestions >= 0;
+            MagicAttempts >= 0 && MagicHits >= 0 && MagicDamage >= 0 && MagicDowns >= 0 && SpellCasts >= 0 && OffensiveDamageSpellCasts >= 0 &&
+            OffensiveDamageSpellCasts <= SpellCasts && ManaSpent >= 0 && AdjacentEnemyDigestions >= 0;
     }
 
     static int SaturatingAdd(int current, int amount)
@@ -72,7 +80,8 @@ internal sealed class CompanyBattleEvidence
             a.IncomingNormalAttacks == b.IncomingNormalAttacks && a.IncomingOpportunityAttacks == b.IncomingOpportunityAttacks && a.DamageReceived == b.DamageReceived &&
             a.MeleeAttempts == b.MeleeAttempts && a.MeleeHits == b.MeleeHits && a.MeleeCriticals == b.MeleeCriticals && a.MeleeDamage == b.MeleeDamage && a.MeleeDowns == b.MeleeDowns &&
             a.RangedAttempts == b.RangedAttempts && a.RangedHits == b.RangedHits && a.RangedCriticals == b.RangedCriticals && a.RangedDamage == b.RangedDamage && a.RangedDowns == b.RangedDowns &&
-            a.MagicAttempts == b.MagicAttempts && a.MagicHits == b.MagicHits && a.MagicDamage == b.MagicDamage && a.MagicDowns == b.MagicDowns && a.ManaSpent == b.ManaSpent &&
+            a.MagicAttempts == b.MagicAttempts && a.MagicHits == b.MagicHits && a.MagicDamage == b.MagicDamage && a.MagicDowns == b.MagicDowns &&
+            a.SpellCasts == b.SpellCasts && a.OffensiveDamageSpellCasts == b.OffensiveDamageSpellCasts && a.ManaSpent == b.ManaSpent &&
             a.WasDowned == b.WasDowned && a.WasReducedToZero == b.WasReducedToZero && a.WasLastActiveCompanyMember == b.WasLastActiveCompanyMember &&
             a.AdjacentEnemyDigestions == b.AdjacentEnemyDigestions;
     }
@@ -88,12 +97,13 @@ internal sealed class CompanyPostBattleEvent
     public bool HasTraitChange;
     public bool WasDowngrade;
     public bool WasRemoval;
+    public bool IsGrudgeEvent;
 
     internal static bool Same(CompanyPostBattleEvent a, CompanyPostBattleEvent b)
     {
         if (a == null || b == null) return a == b;
         return a.SubjectId == b.SubjectId && a.Description == b.Description && a.Trait == b.Trait && a.PreviousTrait == b.PreviousTrait &&
-            a.HasTraitChange == b.HasTraitChange && a.WasDowngrade == b.WasDowngrade && a.WasRemoval == b.WasRemoval;
+            a.HasTraitChange == b.HasTraitChange && a.WasDowngrade == b.WasDowngrade && a.WasRemoval == b.WasRemoval && a.IsGrudgeEvent == b.IsGrudgeEvent;
     }
 }
 
@@ -118,7 +128,6 @@ internal static class CompanyPostBattleTraits
         internal string[] SubjectIds;
         internal string Description;
         internal Traits[] Good, Bad;
-        internal bool LeaderGlory;
     }
 
     sealed class TraitChange
@@ -131,7 +140,7 @@ internal static class CompanyPostBattleTraits
     static readonly HashSet<string> GoodNames = Names(@"
         AcidImmunity AcidResistant ArcaneMagistrate Berserk Biter BladeDance Blitz BoggingSlime BornToMove BoundWeapon Bulky ColdTolerance Colossal Crusher Dazzle DefensiveStance DexterousDefense DireInfection DoubleShot DualStomach Duelist EfficientGuts EscapeArtist FastAbsorption FastCaster FastDigestion FasterAbsorption FasterDigestion FearsomeAppetite Fit Finesse FocusedDodge ForcefulBlow Frenzy Fervor GiantSlayer GlueBomb Grounded HardSkin HotBlooded Huge Intimidating InvigoratingEscape IronGut KeenEye KeenReflexes Large LavaWalker MadMage MagicSynthesis ManaBurn ManaDynamo MetabolicSurge MountainWalker NaturalCaster NightEye NimbleClimber PackAgility PackMind PackStrength PackTactics PackVoracity Paralyzer PassThrough PeakCondition Perseverance Petrifier PoisonSpit PollenProjector Pounce PowerCaster QuickLearner RangedVore Ravenous Regeneration Resilient SedativeStomach SenseWeakness SmokeOut SpectralStep SpellBlade SteadyStomach Stinger StretchyInsides StunningStrike SweepingStrikes SwiftStrike TailStrike Talented TasteForBlood Tenacious ThrillSeeker Titanic Toxic Unflinching UnpleasantDigestion Vampirism VenomousBite VenomShock Vindication ViralBiology WaterWalker Webber ManaBattery Hearty KeenShot Dodger HardPrey MagicFinesse Precise WideMaw Assassin");
     static readonly HashSet<string> BadNames = Names(@"
-        AwfulAim DesertImpedence Diseased EasyPrey ElecVulnerable EasyToVore Farsighted FireVulnerable FoodComaProne Foolish ForestImpedence GrassImpedence Greedy HighlyAbsorbable HillImpedence IceVulnerable IdealSustenance Illness IntrusiveAppetite Lethargic Nauseous Opossum PleasantDigestion PoorConstitution ProteinRich SlowAbsorption SlowDigestion SlowerAbsorption SlowerDigestion SlowerMetabolism SlowMetabolism Small SnowImpedence SoftBody Spartan Submissive SwampImpedence Timid Tiny VolcanicImpedence Brutish Clumsy ErrantMage Fizzler Flatfooted Frail MagicIneptitude MagicVulnerable Nearsighted RangedIneptitude WeakAttack WeakBones WeakGullet Grudge");
+        AwfulAim DesertImpedence Diseased EasyPrey ElecVulnerable EasyToVore Farsighted FireVulnerable FoodComaProne Foolish ForestImpedence GrassImpedence Greedy HighlyAbsorbable HillImpedence IceVulnerable IdealSustenance Illness IntrusiveAppetite Lethargic Nauseous Opossum PleasantDigestion PoorConstitution ProteinRich SlowAbsorption SlowDigestion SlowerAbsorption SlowerDigestion SlowerMetabolism SlowMetabolism Small SnowImpedence SoftBody Spartan Submissive SwampImpedence Timid Tiny VolcanicImpedence Brutish Clumsy ErrantMage Fizzler Flatfooted Frail MagicIneptitude MagicVulnerable Nearsighted RangedIneptitude WeakAttack WeakBones WeakGullet");
     static readonly HashSet<string> SoftRetiredNames = Names(@"
         AcellularBody AllOutFirstStrike Competitive Crystaline Disgusting EasilySatisfied Elite Elementist Feral GelatinousBody HeavyPounce ManaAttuned ManaBarrier ManaDrain ManaRich PleasurableTouch SerialSwallower SiphoningAura SleepItOff Tasty Tempered WastefulProcessing WeaponChanneler");
     static readonly HashSet<string> InbornNames = Names("Colossal Featherweight Huge Large Small Tiny Titanic");
@@ -178,13 +187,14 @@ internal static class CompanyPostBattleTraits
                     CompanyTraitPolarity requested = direction > 0 ? CompanyTraitPolarity.Good : CompanyTraitPolarity.Bad;
                     Traits[] options = requested == CompanyTraitPolarity.Good ? occurrence.Good : occurrence.Bad;
                     if (options == null || options.Length == 0) continue;
-                    var changed = TryApplyOutcome(settled, subject.Settled.Unit, options, requested, direction, occurrence.LeaderGlory);
+                    var changed = TryApplyOutcome(settled, subject.Settled.Unit, options, requested, direction);
                     if (changed == null) continue;
                     var result = new CompanyPostBattleEvent { SubjectId = subject.Id, HasTraitChange = true,
                         Trait = changed.After, PreviousTrait = changed.Before,
                         WasDowngrade = changed.Change && !changed.Removal && TraitWeight(changed.After) < TraitWeight(changed.Before),
                         WasRemoval = changed.Removal };
-                    result.Description = Describe(subject.Settled.Unit.Name, occurrence.Description, changed);
+                    result.Description = CompanyPostBattleNarratives.Build(subject.Settled.Unit, occurrence.Description,
+                        requested == CompanyTraitPolarity.Good, changed.Removal, changed.Before, changed.After);
                     return result;
                 }
             }
@@ -192,12 +202,60 @@ internal static class CompanyPostBattleTraits
         return null;
     }
 
+    internal static CompanyPostBattleEvent ResolveLeaderGloryGrudge(CompanyCampaign source, CompanyCampaign settled, IList<Actor_Unit> actors)
+    {
+        if (source == null || settled == null || source.Battle == null || source.Battle.EvidenceVersion != 1 ||
+            source.Battle.DeployedIds == null || source.Battle.DeployedIds.Length < 3 || actors == null || settled.Ended || source.Battle.InitialEnemyCount < 6)
+            return null;
+        var leader = source.Characters.FirstOrDefault(c => c.Id == source.LeaderId && source.Battle.DeployedIds.Contains(c.Id));
+        var leaderActor = leader == null ? null : actors.FirstOrDefault(a => ReferenceEquals(a.Unit, leader.Unit));
+        if (leaderActor == null || leader.Unit.EnemiesDigestedThisBattle <= source.Battle.InitialEnemyCount / 2) return null;
+
+        var eligible = source.Battle.DeployedIds.Select(id =>
+        {
+            var old = source.Characters.FirstOrDefault(c => c.Id == id);
+            var now = settled.Characters.FirstOrDefault(c => c.Id == id);
+            return old == null || now == null ? null : new Participant
+            {
+                Id = id, Source = old, Settled = now, IsLeader = id == source.LeaderId,
+                Actor = actors.FirstOrDefault(a => ReferenceEquals(a.Unit, old.Unit))
+            };
+        }).Where(p => p != null && !p.IsLeader && p.Source.Employment == CompanyEmployment.Employed && p.Actor != null &&
+            settled.Members.Any(m => m.CharacterId == p.Id) && !p.Settled.Unit.Digested && !p.Settled.Unit.IsDead).ToList();
+        if (eligible.Count == 0) return null;
+
+        var canUpgrade = eligible.Where(p => GrudgeTier(p.Settled.Unit) < GrudgeFamily.Length).ToList();
+        if (canUpgrade.Count == 0) return null;
+        Participant subject = ChooseFewerTraits(settled, canUpgrade);
+        Traits before = subject.Settled.Unit.GetTraits.FirstOrDefault(GrudgeTiers.Contains);
+        Traits after = before == default(Traits) ? Traits.Grudge :
+            GrudgeFamily[Math.Min(GrudgeFamily.Length - 1, GrudgeTier(subject.Settled.Unit))];
+        if (before != default(Traits)) subject.Settled.Unit.RemoveTrait(before);
+        if (!subject.Settled.Unit.AddPermanentTrait(after))
+        {
+            if (before != default(Traits)) subject.Settled.Unit.AddPermanentTrait(before);
+            return null;
+        }
+
+        var result = new CompanyPostBattleEvent
+        {
+            SubjectId = subject.Id,
+            HasTraitChange = true,
+            IsGrudgeEvent = true,
+            Trait = after,
+            PreviousTrait = before,
+            WasDowngrade = false,
+            WasRemoval = false
+        };
+        result.Description = CompanyPostBattleNarratives.BuildGrudge(subject.Settled.Unit, before, after);
+        return result;
+    }
+
     static List<Occurrence> BuildOccurrences(CompanyCampaign campaign, List<Participant> participants, List<Participant> eligible)
     {
         var result = new List<Occurrence>();
         var company = participants.Where(p => !p.IsLeader).ToArray();
         int enemyCount = campaign.Battle.InitialEnemyCount;
-        var leader = participants.FirstOrDefault(p => p.IsLeader);
         if (!string.IsNullOrEmpty(campaign.Battle.ContractId))
         {
             var bossContract = campaign.Contracts.FirstOrDefault(c => c.Id == campaign.Battle.ContractId &&
@@ -206,9 +264,7 @@ internal static class CompanyPostBattleTraits
             if (boss != null && boss.Unit.Digested && boss.Unit.KilledBy != null)
             {
                 var killer = participants.FirstOrDefault(p => ReferenceEquals(p.Source.Unit, boss.Unit.KilledBy));
-                if (killer != null && killer.IsLeader && eligible.Count > 0)
-                    AddCandidates(result, 0, eligible, "the company leader digested the contract boss", null, new[] { Traits.Grudge }, true);
-                else if (killer != null && eligible.Any(p => p.Id == killer.Id))
+                if (killer != null && !killer.IsLeader && eligible.Any(p => p.Id == killer.Id))
                     Add(result, 0, killer.Id, "digested the contract boss", DigestGood, DigestBad);
             }
         }
@@ -218,8 +274,6 @@ internal static class CompanyPostBattleTraits
             if (highestDigestions > enemyCount / 2)
                 AddCandidates(result, 0, eligible.Where(p => p.Source.Unit.EnemiesDigestedThisBattle == highestDigestions),
                     "digested an unusually large share of the enemy force", DigestGood, DigestBad);
-            if (leader != null && leader.Source.Unit.EnemiesDigestedThisBattle > enemyCount / 2 && eligible.Count > 0)
-                AddCandidates(result, 0, eligible, "the company leader digested an unusually large share of the enemy force", null, new[] { Traits.Grudge }, true);
         }
 
         int highestEscape = participants.Max(p => p.Evidence.EscapesOrFreed);
@@ -262,10 +316,14 @@ internal static class CompanyPostBattleTraits
         foreach (var p in eligible.Where(p => p.Evidence.EscapesOrFreed == 1))
             Add(result, 2, p.Id, "escaped or was freed from vore once", EscapeGood, EscapeBad);
 
-        AddRanked(result, company, eligible, 2, "dealt the most melee damage", p => p.Evidence.MeleeDamage, MeleeGood, MeleeBad);
-        AddRanked(result, company, eligible, 2, "dealt the most ranged damage", p => p.Evidence.RangedDamage, RangedGood, RangedBad);
-        AddRanked(result, company, eligible, 2, "dealt the most magic damage", p => p.Evidence.MagicDamage, MagicGood, MagicBad);
-        AddRanked(result, company, eligible, 2, "spent the most mana", p => p.Evidence.ManaSpent, ManaGood, ManaBad);
+        AddRanked(result, company, eligible, 2, "dealt the most melee damage", p => p.Evidence.MeleeAttempts, 10,
+            p => p.Evidence.MeleeDamage, MeleeGood, MeleeBad);
+        AddRanked(result, company, eligible, 2, "dealt the most ranged damage", p => p.Evidence.RangedAttempts, 10,
+            p => p.Evidence.RangedDamage, RangedGood, RangedBad);
+        AddRanked(result, company, eligible, 2, "dealt the most magic damage", p => p.Evidence.OffensiveDamageSpellCasts, 5,
+            p => p.Evidence.MagicDamage, MagicGood, MagicBad);
+        AddRanked(result, company, eligible, 2, "spent the most mana", p => p.Evidence.SpellCasts, 5,
+            p => p.Evidence.ManaSpent, ManaGood, ManaBad);
         AddRate(result, company, eligible, "melee", p => p.Evidence.MeleeAttempts, p => p.Evidence.MeleeHits, false);
         AddRate(result, company, eligible, "melee", p => p.Evidence.MeleeAttempts, p => p.Evidence.MeleeHits, true);
         AddRate(result, company, eligible, "ranged", p => p.Evidence.RangedAttempts, p => p.Evidence.RangedHits, false);
@@ -298,32 +356,35 @@ internal static class CompanyPostBattleTraits
     static readonly Traits[] ManaGood = { Traits.ManaBattery, Traits.PowerCaster, Traits.MagicProwess };
     static readonly Traits[] ManaBad = { Traits.Fizzler, Traits.MagicIneptitude };
 
-    static void Add(List<Occurrence> list, int priority, string subject, string description, Traits[] good, Traits[] bad, bool leaderGlory = false)
-    { list.Add(new Occurrence { Priority = priority, SubjectId = subject, Description = description, Good = good, Bad = bad, LeaderGlory = leaderGlory }); }
+    static void Add(List<Occurrence> list, int priority, string subject, string description, Traits[] good, Traits[] bad)
+    { list.Add(new Occurrence { Priority = priority, SubjectId = subject, Description = description, Good = good, Bad = bad }); }
 
     static void AddCandidates(List<Occurrence> list, int priority, IEnumerable<Participant> candidates, string description,
-        Traits[] good, Traits[] bad, bool leaderGlory = false)
+        Traits[] good, Traits[] bad)
     {
         string[] ids = candidates.Select(p => p.Id).Distinct().ToArray();
         if (ids.Length == 0) return;
-        list.Add(new Occurrence { Priority = priority, SubjectIds = ids, Description = description, Good = good, Bad = bad, LeaderGlory = leaderGlory });
+        list.Add(new Occurrence { Priority = priority, SubjectIds = ids, Description = description, Good = good, Bad = bad });
     }
 
     static void AddRanked(List<Occurrence> result, Participant[] compared, List<Participant> eligible, int priority, string description,
-        Func<Participant, int> score, Traits[] good, Traits[] bad)
+        Func<Participant, int> activity, int minimumActivity, Func<Participant, int> score, Traits[] good, Traits[] bad)
     {
-        if (compared.Length < 2) return;
-        int highest = compared.Max(score);
+        var qualified = compared.Where(p => activity(p) >= minimumActivity).ToArray();
+        if (qualified.Length < 2) return;
+        int highest = qualified.Max(score);
         if (highest <= 0) return;
-        AddCandidates(result, priority, eligible.Where(p => score(p) == highest), description, good, bad);
+        string[] matching = qualified.Where(p => score(p) == highest).Select(p => p.Id).ToArray();
+        AddCandidates(result, priority, eligible.Where(p => matching.Contains(p.Id)), description, good, bad);
     }
 
     static void AddRate(List<Occurrence> result, Participant[] compared, List<Participant> eligible, string kind,
         Func<Participant, int> attempts, Func<Participant, int> hits, bool highest)
     {
-        var comparable = compared.Where(p => attempts(p) >= 5).ToArray();
+        var comparable = compared.Where(p => attempts(p) >= 10).ToArray();
         if (comparable.Length < 2) return;
         double value = highest ? comparable.Max(p => hits(p) / (double)attempts(p)) : comparable.Min(p => hits(p) / (double)attempts(p));
+        if (!highest && value > 0.5) return; // A poor-accuracy event requires at least half the attempts to miss.
         var matching = comparable.Where(p => Math.Abs(hits(p) / (double)attempts(p) - value) < .0000001).ToArray();
         var good = kind == "melee" ? MeleeGood : kind == "ranged" ? RangedGood : MagicGood;
         var bad = kind == "melee" ? MeleeBad : kind == "ranged" ? RangedBad : MagicBad;
@@ -333,7 +394,7 @@ internal static class CompanyPostBattleTraits
     static void AddCriticalRate(List<Occurrence> result, Participant[] compared, List<Participant> eligible, string kind,
         Func<Participant, int> hits, Func<Participant, int> criticals)
     {
-        var comparable = compared.Where(p => hits(p) >= 5).ToArray();
+        var comparable = compared.Where(p => hits(p) >= 10).ToArray();
         if (comparable.Length < 2) return;
         double highest = comparable.Max(p => criticals(p) / (double)hits(p));
         var matching = comparable.Where(p => Math.Abs(criticals(p) / (double)hits(p) - highest) < .0000001).ToArray();
@@ -360,8 +421,7 @@ internal static class CompanyPostBattleTraits
         return towardMinority ? -Math.Sign(difference) : Math.Sign(difference);
     }
 
-    static TraitChange TryApplyOutcome(CompanyCampaign campaign, Unit unit, Traits[] options, CompanyTraitPolarity requested,
-        int direction, bool leaderGlory)
+    static TraitChange TryApplyOutcome(CompanyCampaign campaign, Unit unit, Traits[] options, CompanyTraitPolarity requested, int direction)
     {
         int beforeGood, beforeBad; Counts(unit, out beforeGood, out beforeBad);
         int beforeDiff = beforeGood - beforeBad;
@@ -370,7 +430,7 @@ internal static class CompanyPostBattleTraits
         // With many existing traits, occasionally reduce one opposing trait instead of adding another.
         // This starts only at the curator's eight weighted-trait threshold and rises gradually to 30%.
         double reductionChance = total < 8 ? 0 : Math.Min(.30, .05 * (total - 7));
-        if (!leaderGlory && reductionChance > 0 && campaign.Next(10000) < (int)(reductionChance * 10000))
+        if (reductionChance > 0 && campaign.Next(10000) < (int)(reductionChance * 10000))
         {
             var reduced = TryReduceOpposingTrait(campaign, unit, requested, beforeDiff, direction);
             if (reduced != null) return reduced;
@@ -532,19 +592,12 @@ internal static class CompanyPostBattleTraits
         return CompanyTraitPolarity.Neutral;
     }
 
-    static string Describe(string subject, string occurrence, TraitChange change)
-    {
-        if (change.Removal)
-            return subject + " " + occurrence + ". The trait " + TraitsMethods.DisplayName(change.Before) + " was lost.";
-        if (change.Change)
-            return subject + " " + occurrence + ". The trait " + TraitsMethods.DisplayName(change.Before) + " changed to " + TraitsMethods.DisplayName(change.After) + ".";
-        return subject + " " + occurrence + ". Gained the trait " + TraitsMethods.DisplayName(change.After) + ".";
-    }
-
     internal static void RecordWeaponAttempt(Actor_Unit actor, bool ranged, int result)
     { if (actor != null) actor.Evidence.RecordWeapon(ranged, result); }
     internal static void RecordSpellAttempt(Actor_Unit actor, bool hit)
     { if (actor != null) actor.Evidence.RecordSpell(hit); }
+    internal static void RecordSpellCast(Actor_Unit actor, bool offensiveDamage)
+    { if (actor != null) actor.Evidence.RecordSpellCast(offensiveDamage); }
     internal static void RecordIncomingAttack(Actor_Unit target, bool opportunity)
     { if (target != null) target.Evidence.RecordIncoming(opportunity); }
     internal static void RecordDamageDealt(Actor_Unit attacker, bool ranged, int damage)

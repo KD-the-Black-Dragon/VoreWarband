@@ -1,4 +1,5 @@
 // Added by the VoreWar mercenary-company conversion fork.
+// 2026-11-10: Display ordinary and independent Grudge aftermath events in sequence (spec 40D narrative follow-up).
 // 2026-11-09: Identify boss-objective contracts and mark the boss in the arrival-time roster (campaign mission expansion).
 // 2026-11-09: Load and sort High Scores in the background so large archives never stall screen input (40E performance review).
 // 2026-11-08: Show active battle deployment count and explain the eight-member limit (balance follow-up item 2).
@@ -169,6 +170,14 @@ internal sealed class CompanyMissionsUI
             if (outcome == null) throw new InvalidOperationException("The post-battle event record is missing.");
             ui.Text(outcome.Description, 30, 180, 1170, 180);
             ui.Button("OK", 30, 540, 220, () => Change(() => CompanyBattleSession.AcknowledgePostBattle(State), Resume)); return;
+        }
+        if (State.Battle != null && State.Battle.Phase == CompanyBattlePhase.PostBattleGrudgeEvent)
+        {
+            ui.Clear("After the battle");
+            var outcome = State.Battle.GrudgeEvent;
+            if (outcome == null) throw new InvalidOperationException("The post-battle Grudge event record is missing.");
+            ui.Text(outcome.Description, 30, 180, 1170, 180);
+            ui.Button("OK", 30, 540, 220, () => Change(() => CompanyBattleSession.AcknowledgeGrudge(State), Resume)); return;
         }
         if (State.Ended) { Record(); return; }
         view.ShowMap();

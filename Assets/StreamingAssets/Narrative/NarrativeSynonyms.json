@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "synonyms": {
+    "stomach": [
+      "stomach",
+      "belly",
+      "gut"
+    ],
+     "cock": [
+      "cock",
+      "dick",
+      "shaft"
+    ],
+     "hungry": [
+      "hungry",
+      "ravenous",
+      "greedy"
+    ],
+     "balls": [
+      "balls",
+      "sack",
+      "ballsack"
+    ],
+     "delicious": [
+      "delicious",
+      "tasty",
+      "delectable"
+    ]
+  }
+}
